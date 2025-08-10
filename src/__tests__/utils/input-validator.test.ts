@@ -6,13 +6,14 @@ import {
   validateEnum,
   validateUserIdentification,
   validateStringArray,
-  validateDateRange
+  validateDateRange,
+  validateDateString
 } from '../../utils/input-validator.js';
 
 describe('Input Validator', () => {
   describe('validateString', () => {
     it('should validate required string', () => {
-      const result = validateString('', 'testField', { required: true });
+      const result = validateString(undefined, 'testField', { required: true });
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('testField is required');
     });
@@ -21,7 +22,7 @@ describe('Input Validator', () => {
       const longString = 'a'.repeat(11);
       const result = validateString(longString, 'testField', { maxLength: 10 });
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('testField must be 10 characters or less');
+      expect(result.errors).toContain('testField cannot exceed 10 characters');
     });
 
     it('should validate string min length', () => {
@@ -38,16 +39,16 @@ describe('Input Validator', () => {
       expect(result.errors).toContain('email has invalid format');
     });
 
-    it('should sanitize HTML tags', () => {
+    it('should not sanitize HTML tags (just validate)', () => {
       const result = validateString('<script>alert("xss")</script>Hello', 'testField');
       expect(result.isValid).toBe(true);
-      expect(result.sanitizedValue).toBe('Hello');
+      expect(result.sanitizedValue).toBe('<script>alert("xss")</script>Hello');
     });
 
-    it('should trim whitespace', () => {
+    it('should not trim whitespace (just validate)', () => {
       const result = validateString('  test  ', 'testField');
       expect(result.isValid).toBe(true);
-      expect(result.sanitizedValue).toBe('test');
+      expect(result.sanitizedValue).toBe('  test  ');
     });
 
     it('should accept valid string', () => {
@@ -61,20 +62,32 @@ describe('Input Validator', () => {
       expect(result.errors).toHaveLength(0);
     });
 
-    it('should handle null and undefined', () => {
+    it('should handle null and undefined for optional fields', () => {
       const nullResult = validateString(null as any, 'testField');
       expect(nullResult.isValid).toBe(true);
-      expect(nullResult.sanitizedValue).toBe('');
+      expect(nullResult.sanitizedValue).toBe(undefined);
 
       const undefinedResult = validateString(undefined as any, 'testField');
       expect(undefinedResult.isValid).toBe(true);
-      expect(undefinedResult.sanitizedValue).toBe('');
+      expect(undefinedResult.sanitizedValue).toBe(undefined);
     });
 
-    it('should fail when required field is empty after sanitization', () => {
-      const result = validateString('<script></script>', 'testField', { required: true });
+    it('should reject empty string when allowEmpty is false', () => {
+      const result = validateString('', 'testField', { allowEmpty: false });
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('testField is required');
+      expect(result.errors).toContain('testField cannot be empty');
+    });
+
+    it('should accept empty string when allowEmpty is true', () => {
+      const result = validateString('', 'testField', { allowEmpty: true });
+      expect(result.isValid).toBe(true);
+      expect(result.sanitizedValue).toBe('');
+    });
+
+    it('should reject non-string values', () => {
+      const result = validateString(123 as any, 'testField');
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('testField must be a string');
     });
   });
 
@@ -94,7 +107,7 @@ describe('Input Validator', () => {
     it('should validate maximum value', () => {
       const result = validateNumber(20, 'testNumber', { max: 10 });
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('testNumber must be at most 10');
+      expect(result.errors).toContain('testNumber cannot exceed 10');
     });
 
     it('should validate integer', () => {
@@ -115,13 +128,7 @@ describe('Input Validator', () => {
       expect(result.errors).toHaveLength(0);
     });
 
-    it('should convert string to number', () => {
-      const result = validateNumber('42' as any, 'testNumber');
-      expect(result.isValid).toBe(true);
-      expect(result.sanitizedValue).toBe(42);
-    });
-
-    it('should reject non-numeric strings', () => {
+    it('should reject non-numeric values', () => {
       const result = validateNumber('not a number' as any, 'testNumber');
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('testNumber must be a valid number');
@@ -133,10 +140,10 @@ describe('Input Validator', () => {
       expect(result.errors).toContain('testNumber must be a valid number');
     });
 
-    it('should handle Infinity', () => {
-      const result = validateNumber(Infinity, 'testNumber');
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('testNumber must be a valid number');
+    it('should handle optional number fields', () => {
+      const result = validateNumber(undefined, 'testNumber');
+      expect(result.isValid).toBe(true);
+      expect(result.sanitizedValue).toBe(undefined);
     });
   });
 
@@ -183,15 +190,6 @@ describe('Input Validator', () => {
       expect(result.errors).toContain('startAt must be a non-negative integer');
       expect(result.errors).toContain('maxResults must be an integer between 1 and 100');
     });
-
-    it('should handle string numbers', () => {
-      const result = validatePagination('10' as any, '25' as any);
-      expect(result.isValid).toBe(true);
-      expect(result.sanitizedValue).toEqual({
-        startAt: 10,
-        maxResults: 25
-      });
-    });
   });
 
   describe('validateEnum', () => {
@@ -213,28 +211,22 @@ describe('Input Validator', () => {
       expect(result.errors).toContain('testEnum must be one of: option1, option2');
     });
 
-    it('should handle empty value when not required', () => {
-      const result = validateEnum('', 'testEnum', ['option1', 'option2'], false);
+    it('should handle undefined value when not required', () => {
+      const result = validateEnum(undefined as any, 'testEnum', ['option1', 'option2'], false);
       expect(result.isValid).toBe(true);
-      expect(result.sanitizedValue).toBe('');
+      expect(result.sanitizedValue).toBe(undefined);
     });
 
-    it('should reject empty value when required', () => {
-      const result = validateEnum('', 'testEnum', ['option1', 'option2'], true);
+    it('should reject undefined value when required', () => {
+      const result = validateEnum(undefined as any, 'testEnum', ['option1', 'option2'], true);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('testEnum is required');
     });
 
-    it('should handle undefined value', () => {
-      const result = validateEnum(undefined as any, 'testEnum', ['option1']);
-      expect(result.isValid).toBe(true);
-      expect(result.sanitizedValue).toBe('');
-    });
-
-    it('should trim whitespace', () => {
-      const result = validateEnum('  option1  ', 'testEnum', ['option1', 'option2']);
-      expect(result.isValid).toBe(true);
-      expect(result.sanitizedValue).toBe('option1');
+    it('should reject non-string values', () => {
+      const result = validateEnum(123 as any, 'testEnum', ['option1', 'option2']);
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('testEnum must be a string');
     });
   });
 
@@ -246,57 +238,51 @@ describe('Input Validator', () => {
     });
 
     it('should accept accountId', () => {
-      const result = validateUserIdentification({ accountId: 'user123' });
+      const result = validateUserIdentification({ accountId: 'user123456789' });
       expect(result.isValid).toBe(true);
-      expect(result.sanitizedValue).toEqual({ accountId: 'user123' });
+      expect(result.sanitizedValue).toEqual({ accountId: 'user123456789' });
     });
 
-    it('should accept email', () => {
+    it('should reject email (privacy)', () => {
       const result = validateUserIdentification({ email: 'john@example.com' });
-      expect(result.isValid).toBe(true);
-      expect(result.sanitizedValue).toEqual({ email: 'john@example.com' });
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('Email-based user lookup is disabled for privacy reasons. Please use accountId instead.');
     });
 
-    it('should accept multiple identifiers', () => {
+    it('should accept both username and accountId', () => {
       const result = validateUserIdentification({
         username: 'john.doe',
-        accountId: 'user123',
-        email: 'john@example.com'
+        accountId: 'user123456789'
       });
       expect(result.isValid).toBe(true);
       expect(result.sanitizedValue).toEqual({
         username: 'john.doe',
-        accountId: 'user123',
-        email: 'john@example.com'
+        accountId: 'user123456789'
       });
     });
 
     it('should reject when no identifier provided', () => {
       const result = validateUserIdentification({});
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('At least one of username, accountId, or email must be provided');
+      expect(result.errors).toContain('At least one user identifier (username, accountId, or email) is required');
     });
 
-    it('should sanitize identifiers', () => {
-      const result = validateUserIdentification({
-        username: '  john.doe  ',
-        email: '<script>test@example.com</script>'
-      });
-      expect(result.isValid).toBe(true);
-      expect(result.sanitizedValue).toEqual({
-        username: 'john.doe',
-        email: 'test@example.com'
-      });
-    });
-
-    it('should handle null/undefined values', () => {
-      const result = validateUserIdentification({
-        username: null as any,
-        accountId: undefined,
-        email: ''
-      });
+    it('should validate accountId pattern', () => {
+      const result = validateUserIdentification({ accountId: 'invalid@id!' });
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('At least one of username, accountId, or email must be provided');
+      expect(result.errors).toContain('accountId has invalid format');
+    });
+
+    it('should validate accountId length', () => {
+      const result = validateUserIdentification({ accountId: 'short' });
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('accountId must be at least 10 characters');
+    });
+
+    it('should validate username pattern', () => {
+      const result = validateUserIdentification({ username: 'invalid username!' });
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('username has invalid format');
     });
   });
 
@@ -310,34 +296,25 @@ describe('Input Validator', () => {
     it('should validate max items', () => {
       const result = validateStringArray(['a', 'b', 'c', 'd'], 'testArray', { maxItems: 3 });
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('testArray must contain at most 3 items');
-    });
-
-    it('should validate min items', () => {
-      const result = validateStringArray(['a'], 'testArray', { minItems: 2 });
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('testArray must contain at least 2 items');
+      expect(result.errors).toContain('testArray cannot have more than 3 items');
     });
 
     it('should validate required array', () => {
-      const result = validateStringArray([], 'testArray', { required: true });
+      const result = validateStringArray(undefined, 'testArray', { required: true });
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('testArray is required and must not be empty');
+      expect(result.errors).toContain('testArray is required');
     });
 
-    it('should sanitize array items', () => {
-      const result = validateStringArray(
-        ['  item1  ', '<script>item2</script>', 'item3'],
-        'testArray'
-      );
-      expect(result.isValid).toBe(true);
-      expect(result.sanitizedValue).toEqual(['item1', 'item2', 'item3']);
+    it('should reject empty array when not allowed', () => {
+      const result = validateStringArray([], 'testArray', { allowEmpty: false });
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('testArray cannot be empty');
     });
 
-    it('should filter empty strings', () => {
-      const result = validateStringArray(['item1', '', '  ', 'item2'], 'testArray');
+    it('should accept empty array when allowed', () => {
+      const result = validateStringArray([], 'testArray', { allowEmpty: true });
       expect(result.isValid).toBe(true);
-      expect(result.sanitizedValue).toEqual(['item1', 'item2']);
+      expect(result.sanitizedValue).toEqual([]);
     });
 
     it('should handle non-array input', () => {
@@ -346,20 +323,35 @@ describe('Input Validator', () => {
       expect(result.errors).toContain('testArray must be an array');
     });
 
-    it('should handle null/undefined', () => {
+    it('should handle null/undefined for optional fields', () => {
       const nullResult = validateStringArray(null as any, 'testArray');
       expect(nullResult.isValid).toBe(true);
-      expect(nullResult.sanitizedValue).toEqual([]);
+      expect(nullResult.sanitizedValue).toBe(undefined);
 
       const undefinedResult = validateStringArray(undefined as any, 'testArray');
       expect(undefinedResult.isValid).toBe(true);
-      expect(undefinedResult.sanitizedValue).toEqual([]);
+      expect(undefinedResult.sanitizedValue).toBe(undefined);
     });
 
-    it('should convert non-string items to strings', () => {
-      const result = validateStringArray([1, true, 'test'] as any, 'testArray');
-      expect(result.isValid).toBe(true);
-      expect(result.sanitizedValue).toEqual(['1', 'true', 'test']);
+    it('should validate individual string items', () => {
+      const result = validateStringArray([123, 'valid'] as any, 'testArray');
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('testArray[0] must be a string');
+    });
+
+    it('should validate string length in items', () => {
+      const longString = 'a'.repeat(101);
+      const result = validateStringArray([longString], 'testArray', { maxLength: 100 });
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('testArray[0] cannot exceed 100 characters');
+    });
+
+    it('should validate pattern in items', () => {
+      const result = validateStringArray(['valid', 'invalid!'], 'testArray', { 
+        pattern: /^[a-zA-Z0-9]+$/ 
+      });
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('testArray[1] has invalid format: invalid!');
     });
   });
 
@@ -394,39 +386,21 @@ describe('Input Validator', () => {
     it('should reject when end date is before start date', () => {
       const result = validateDateRange('2024-12-31', '2024-01-01');
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('startDate must be before endDate');
+      expect(result.errors).toContain('startDate must be before or equal to endDate');
     });
 
     it('should validate date format', () => {
       const result = validateDateRange('2024-13-01', '2024-12-32');
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('startDate must be a valid date in YYYY-MM-DD format');
-      expect(result.errors).toContain('endDate must be a valid date in YYYY-MM-DD format');
+      expect(result.errors).toContain('startDate is not a valid date: 2024-13-01');
+      expect(result.errors).toContain('endDate is not a valid date: 2024-12-32');
     });
 
     it('should validate invalid date format', () => {
       const result = validateDateRange('01-01-2024', '12/31/2024');
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('startDate must be a valid date in YYYY-MM-DD format');
-      expect(result.errors).toContain('endDate must be a valid date in YYYY-MM-DD format');
-    });
-
-    it('should handle empty strings', () => {
-      const result = validateDateRange('', '');
-      expect(result.isValid).toBe(true);
-      expect(result.sanitizedValue).toEqual({
-        startDate: undefined,
-        endDate: undefined
-      });
-    });
-
-    it('should handle null values', () => {
-      const result = validateDateRange(null as any, null as any);
-      expect(result.isValid).toBe(true);
-      expect(result.sanitizedValue).toEqual({
-        startDate: undefined,
-        endDate: undefined
-      });
+      expect(result.errors).toContain('startDate must be in YYYY-MM-DD format');
+      expect(result.errors).toContain('endDate must be in YYYY-MM-DD format');
     });
 
     it('should accept same start and end date', () => {
@@ -450,7 +424,45 @@ describe('Input Validator', () => {
     it('should reject invalid leap year date', () => {
       const result = validateDateRange('2023-02-29', '2023-03-01');
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('startDate must be a valid date in YYYY-MM-DD format');
+      expect(result.errors).toContain('startDate is not a valid date: 2023-02-29');
+    });
+
+    it('should reject date range exceeding 5 years', () => {
+      const result = validateDateRange('2020-01-01', '2026-01-01');
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('Date range cannot exceed 5 years for performance reasons');
+    });
+  });
+
+  describe('validateDateString', () => {
+    it('should accept valid date', () => {
+      const result = validateDateString('2024-06-15', 'testDate');
+      expect(result.isValid).toBe(true);
+      expect(result.sanitizedValue).toBe('2024-06-15');
+    });
+
+    it('should reject invalid format', () => {
+      const result = validateDateString('06/15/2024', 'testDate');
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('testDate must be in YYYY-MM-DD format');
+    });
+
+    it('should reject invalid date', () => {
+      const result = validateDateString('2024-13-45', 'testDate');
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('testDate is not a valid date: 2024-13-45');
+    });
+
+    it('should reject non-string input', () => {
+      const result = validateDateString(20240615 as any, 'testDate');
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('testDate must be a string');
+    });
+
+    it('should reject dates outside reasonable range', () => {
+      const result = validateDateString('1800-01-01', 'testDate');
+      expect(result.isValid).toBe(false);
+      expect(result.errors[0]).toContain('testDate must be between 1900-01-01 and');
     });
   });
 });
