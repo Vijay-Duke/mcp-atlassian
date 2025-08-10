@@ -14,7 +14,6 @@ import {
   GetConfluenceLabelsArgs,
   AddConfluenceLabelsArgs,
   ExportConfluencePageArgs,
-  DeleteConfluenceCommentArgs,
   ConfluencePage,
   ConfluenceSpace,
   ConfluenceAttachment
@@ -719,23 +718,6 @@ export class ConfluenceHandlers {
 
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    } catch (error) {
-      return {
-        content: [{ type: 'text', text: formatApiError(error) }],
-        isError: true,
-      };
-    }
-  }
-
-  async deleteConfluenceComment(args: DeleteConfluenceCommentArgs): Promise<CallToolResult> {
-    try {
-      const { commentId } = args;
-
-      await this.client.delete(`/wiki/rest/api/content/${commentId}`);
-
-      return {
-        content: [{ type: 'text', text: `Comment ${commentId} deleted successfully` }],
       };
     } catch (error) {
       return {

@@ -146,22 +146,4 @@ export const jiraTools: Tool[] = [
       required: ['issueKey', 'body'],
     },
   },
-  {
-    name: 'delete_jira_comment',
-    description: 'Deletes a specific comment from a Jira issue. This action is irreversible.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        issueKey: {
-          type: 'string',
-          description: 'The key of the issue from which the comment will be deleted (e.g., "PROJ-123").',
-        },
-        commentId: {
-          type: 'string',
-          description: 'The unique identifier of the comment to be deleted.',
-        },
-      },
-      required: ['issueKey', 'commentId'],
-    },
-  },
 ];

@@ -384,18 +384,4 @@ export const confluenceTools: Tool[] = [
       required: ['pageId', 'format'],
     },
   },
-  {
-    name: 'delete_confluence_comment',
-    description: 'Deletes a specific comment from a Confluence page. This action is irreversible.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        commentId: {
-          type: 'string',
-          description: 'The unique identifier of the comment to be deleted.',
-        },
-      },
-      required: ['commentId'],
-    },
-  },
 ];
