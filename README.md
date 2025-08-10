@@ -78,8 +78,8 @@ Add to your Claude Desktop config file (`~/Library/Application Support/Claude/cl
 {
   "mcpServers": {
     "mcp-atlassian": {
-      "command": "/Users/yourusername/.nvm/versions/node/v22.16.0/bin/node",
-      "args": ["/Users/yourusername/IdeaProjects/mcp-atlassian/dist/index.js"],
+      "command": "/Users/vijayiyengar/.nvm/versions/node/v22.16.0/bin/node",
+      "args": ["/Users/vijayiyengar/IdeaProjects/mcp-atlassian/dist/index.js"],
       "env": {
         "ATLASSIAN_BASE_URL": "https://yourdomain.atlassian.net",
         "ATLASSIAN_EMAIL": "your.email@company.com",
