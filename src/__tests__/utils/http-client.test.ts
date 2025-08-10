@@ -12,6 +12,12 @@ describe('http-client', () => {
 
   describe('createAtlassianClient', () => {
     it('should create client with correct configuration', () => {
+      // Clear proxy environment variables
+      delete process.env.HTTPS_PROXY;
+      delete process.env.https_proxy;
+      delete process.env.HTTP_PROXY;
+      delete process.env.http_proxy;
+      
       process.env.ATLASSIAN_BASE_URL = 'https://test.atlassian.net';
       process.env.ATLASSIAN_EMAIL = 'test@example.com';
       process.env.ATLASSIAN_API_TOKEN = 'test-token';
