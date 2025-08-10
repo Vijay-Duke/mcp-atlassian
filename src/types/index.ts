@@ -128,6 +128,39 @@ export interface GetConfluencePagesMentioningMeArgs {
   spaceKey?: string;
 }
 
+export interface GetConfluenceUserArgs {
+  username?: string;
+  accountId?: string;
+  email?: string;
+}
+
+export interface SearchConfluencePagesByUserArgs {
+  username?: string;
+  accountId?: string;
+  searchType: 'creator' | 'lastModifier' | 'both';
+  spaceKey?: string;
+  limit?: number;
+  start?: number;
+}
+
+export interface ListUserConfluencePagesArgs {
+  username?: string;
+  accountId?: string;
+  spaceKey?: string;
+  startDate?: string;
+  endDate?: string;
+  limit?: number;
+  start?: number;
+}
+
+export interface ListUserConfluenceAttachmentsArgs {
+  username?: string;
+  accountId?: string;
+  spaceKey?: string;
+  limit?: number;
+  start?: number;
+}
+
 export interface ReadJiraIssueArgs {
   issueKey: string;
   expand?: string;

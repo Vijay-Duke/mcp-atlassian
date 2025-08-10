@@ -10,6 +10,140 @@ export const confluenceTools: Tool[] = [
     },
   },
   {
+    name: 'get_confluence_user',
+    description: 'Get details for a specific Confluence user by username, account ID, or email. Returns user profile information.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        username: {
+          type: 'string',
+          description: 'The username to search for.',
+        },
+        accountId: {
+          type: 'string',
+          description: 'The Atlassian account ID of the user.',
+        },
+        email: {
+          type: 'string',
+          description: 'The email address of the user.',
+        },
+      },
+    },
+  },
+  {
+    name: 'search_confluence_pages_by_user',
+    description: 'Search pages created or updated by a specific user. Can filter by creator, last modifier, or both.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        username: {
+          type: 'string',
+          description: 'The username of the user (alternative to accountId).',
+        },
+        accountId: {
+          type: 'string',
+          description: 'The Atlassian account ID of the user.',
+        },
+        searchType: {
+          type: 'string',
+          enum: ['creator', 'lastModifier', 'both'],
+          description: 'Search for pages created by the user, modified by the user, or both.',
+        },
+        spaceKey: {
+          type: 'string',
+          description: 'Optional space key to filter results to a specific space.',
+        },
+        limit: {
+          type: 'number',
+          description: 'The maximum number of pages to return. Default is 25, maximum is 100.',
+          default: 25,
+          minimum: 1,
+          maximum: 100,
+        },
+        start: {
+          type: 'number',
+          description: 'The starting index for pagination. Default is 0.',
+          default: 0,
+        },
+      },
+      required: ['searchType'],
+    },
+  },
+  {
+    name: 'list_user_confluence_pages',
+    description: 'List all pages authored by a specific user within an optional space or time range.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        username: {
+          type: 'string',
+          description: 'The username of the user (alternative to accountId).',
+        },
+        accountId: {
+          type: 'string',
+          description: 'The Atlassian account ID of the user.',
+        },
+        spaceKey: {
+          type: 'string',
+          description: 'Optional space key to filter results to a specific space.',
+        },
+        startDate: {
+          type: 'string',
+          description: 'Start date for filtering pages (format: YYYY-MM-DD).',
+        },
+        endDate: {
+          type: 'string',
+          description: 'End date for filtering pages (format: YYYY-MM-DD).',
+        },
+        limit: {
+          type: 'number',
+          description: 'The maximum number of pages to return. Default is 25, maximum is 100.',
+          default: 25,
+          minimum: 1,
+          maximum: 100,
+        },
+        start: {
+          type: 'number',
+          description: 'The starting index for pagination. Default is 0.',
+          default: 0,
+        },
+      },
+    },
+  },
+  {
+    name: 'list_user_confluence_attachments',
+    description: 'List all attachments uploaded by a specific user.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        username: {
+          type: 'string',
+          description: 'The username of the user (alternative to accountId).',
+        },
+        accountId: {
+          type: 'string',
+          description: 'The Atlassian account ID of the user.',
+        },
+        spaceKey: {
+          type: 'string',
+          description: 'Optional space key to filter results to a specific space.',
+        },
+        limit: {
+          type: 'number',
+          description: 'The maximum number of attachments to return. Default is 25, maximum is 100.',
+          default: 25,
+          minimum: 1,
+          maximum: 100,
+        },
+        start: {
+          type: 'number',
+          description: 'The starting index for pagination. Default is 0.',
+          default: 0,
+        },
+      },
+    },
+  },
+  {
     name: 'read_confluence_page',
     description: 'Retrieves the content of a Confluence page. You can specify the page by its ID or by its title and space key. The content can be returned in raw storage format (XHTML) or converted to Markdown.',
     inputSchema: {

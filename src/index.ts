@@ -30,6 +30,10 @@ import {
   UploadConfluenceAttachmentArgs,
   GetMyRecentConfluencePagesArgs,
   GetConfluencePagesMentioningMeArgs,
+  GetConfluenceUserArgs,
+  SearchConfluencePagesByUserArgs,
+  ListUserConfluencePagesArgs,
+  ListUserConfluenceAttachmentsArgs,
   ReadJiraIssueArgs,
   SearchJiraIssuesArgs,
   ListJiraProjectsArgs,
@@ -82,6 +86,22 @@ class AtlassianMCPServer {
           // Confluence tools
           case 'get_confluence_current_user':
             return await this.confluenceHandlers.getConfluenceCurrentUser();
+          case 'get_confluence_user':
+            return await this.confluenceHandlers.getConfluenceUser(
+              request.params.arguments as unknown as GetConfluenceUserArgs
+            );
+          case 'search_confluence_pages_by_user':
+            return await this.confluenceHandlers.searchConfluencePagesByUser(
+              request.params.arguments as unknown as SearchConfluencePagesByUserArgs
+            );
+          case 'list_user_confluence_pages':
+            return await this.confluenceHandlers.listUserConfluencePages(
+              request.params.arguments as unknown as ListUserConfluencePagesArgs
+            );
+          case 'list_user_confluence_attachments':
+            return await this.confluenceHandlers.listUserConfluenceAttachments(
+              request.params.arguments as unknown as ListUserConfluenceAttachmentsArgs
+            );
           case 'read_confluence_page':
             return await this.confluenceHandlers.readConfluencePage(
               request.params.arguments as unknown as ReadConfluencePageArgs

@@ -167,6 +167,10 @@ You can run the server directly from GitHub without cloning:
 | Tool | Description |
 |------|-------------|
 | `get_confluence_current_user` | Get details of the authenticated user |
+| `get_confluence_user` | Get details for a specific user |
+| `search_confluence_pages_by_user` | Search pages by user activity |
+| `list_user_confluence_pages` | List pages authored by a user |
+| `list_user_confluence_attachments` | List attachments uploaded by a user |
 | `read_confluence_page` | Read a Confluence page by ID or title |
 | `search_confluence_pages` | Search pages using CQL (Confluence Query Language) |
 | `list_confluence_spaces` | List all accessible spaces |

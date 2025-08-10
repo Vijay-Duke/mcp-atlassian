@@ -20,6 +20,10 @@ import {
   UploadConfluenceAttachmentArgs,
   GetMyRecentConfluencePagesArgs,
   GetConfluencePagesMentioningMeArgs,
+  GetConfluenceUserArgs,
+  SearchConfluencePagesByUserArgs,
+  ListUserConfluencePagesArgs,
+  ListUserConfluenceAttachmentsArgs,
   ConfluencePage,
   ConfluenceSpace,
   ConfluenceAttachment,
@@ -1132,6 +1136,312 @@ export class ConfluenceHandlers {
         start: response.data.start,
         limit: response.data.limit,
         pages,
+      };
+
+      return {
+        content: [{ type: 'text', text: JSON.stringify(resultData, null, 2) }],
+      };
+    } catch (error) {
+      return {
+        content: [{ type: 'text', text: formatApiError(error) }],
+        isError: true,
+      };
+    }
+  }
+
+  async getConfluenceUser(args: GetConfluenceUserArgs): Promise<CallToolResult> {
+    try {
+      const { username, accountId, email } = args;
+      
+      // Build search parameters
+      const params: any = {};
+      if (username) params.username = username;
+      if (accountId) params.accountId = accountId;
+      if (email) params.email = email;
+      
+      // First try to get user by accountId if provided
+      let userResponse;
+      if (accountId) {
+        try {
+          userResponse = await this.client.get(`/api/user`, {
+            params: { accountId }
+          });
+        } catch (e) {
+          // Fall back to search
+        }
+      }
+      
+      // If not found by accountId, search for user
+      if (!userResponse && (username || email)) {
+        const searchResponse = await this.client.get('/api/search/user', {
+          params: {
+            cql: username ? `user.fullname ~ "${username}"` : `user.email = "${email}"`,
+            limit: 1
+          }
+        });
+        
+        if (searchResponse.data.results && searchResponse.data.results.length > 0) {
+          const user = searchResponse.data.results[0].user;
+          userResponse = { data: user };
+        }
+      }
+      
+      if (!userResponse || !userResponse.data) {
+        return {
+          content: [{ type: 'text', text: 'User not found' }],
+          isError: true,
+        };
+      }
+      
+      const user: ConfluenceUser = userResponse.data;
+      const result = {
+        accountId: user.accountId,
+        displayName: user.displayName,
+        publicName: user.publicName,
+        email: user.email,
+        profilePicture: user.profilePicture,
+        type: user.type,
+        profileUrl: `${this.client.defaults.baseURL}/wiki/people/${user.accountId}`,
+      };
+
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    } catch (error) {
+      return {
+        content: [{ type: 'text', text: formatApiError(error) }],
+        isError: true,
+      };
+    }
+  }
+
+  async searchConfluencePagesByUser(args: SearchConfluencePagesByUserArgs): Promise<CallToolResult> {
+    try {
+      const { username, accountId, searchType, spaceKey, limit = 25, start = 0 } = args;
+      
+      // Get user's accountId if not provided
+      let userAccountId = accountId;
+      if (!userAccountId && username) {
+        const userResult = await this.getConfluenceUser({ username });
+        if (userResult.isError) {
+          return userResult;
+        }
+        const userData = JSON.parse((userResult.content[0] as any).text);
+        userAccountId = userData.accountId;
+      }
+      
+      if (!userAccountId) {
+        return {
+          content: [{ type: 'text', text: 'User account ID or username is required' }],
+          isError: true,
+        };
+      }
+      
+      // Build CQL query based on search type
+      let cql = '';
+      if (searchType === 'creator') {
+        cql = `creator = "${userAccountId}"`;
+      } else if (searchType === 'lastModifier') {
+        cql = `lastModifier = "${userAccountId}"`;
+      } else {
+        cql = `(creator = "${userAccountId}" OR lastModifier = "${userAccountId}")`;
+      }
+      
+      if (spaceKey) {
+        cql = `space = ${spaceKey} AND ${cql}`;
+      }
+      
+      cql += ' ORDER BY lastmodified DESC';
+
+      const response = await this.client.get('/api/content/search', {
+        params: {
+          cql,
+          limit: Math.min(limit, 100),
+          start,
+          expand: 'space,version,history.lastUpdated'
+        }
+      });
+
+      const pages = response.data.results.map((page: ConfluencePage) => ({
+        id: page.id,
+        title: page.title,
+        type: page.type,
+        spaceKey: page.space?.key,
+        spaceName: page.space?.name,
+        version: page.version?.number,
+        created: (page as any).history?.createdDate,
+        lastModified: (page as any).history?.lastUpdated?.when,
+        createdBy: (page as any).history?.createdBy?.displayName,
+        lastModifiedBy: (page as any).history?.lastUpdated?.by?.displayName,
+        webUrl: `${this.client.defaults.baseURL}/wiki${page._links?.webui || ''}`,
+      }));
+
+      const resultData = {
+        searchType,
+        user: userAccountId,
+        totalPages: response.data.totalSize,
+        start: response.data.start,
+        limit: response.data.limit,
+        pages,
+      };
+
+      return {
+        content: [{ type: 'text', text: JSON.stringify(resultData, null, 2) }],
+      };
+    } catch (error) {
+      return {
+        content: [{ type: 'text', text: formatApiError(error) }],
+        isError: true,
+      };
+    }
+  }
+
+  async listUserConfluencePages(args: ListUserConfluencePagesArgs): Promise<CallToolResult> {
+    try {
+      const { username, accountId, spaceKey, startDate, endDate, limit = 25, start = 0 } = args;
+      
+      // Get user's accountId if not provided
+      let userAccountId = accountId;
+      if (!userAccountId && username) {
+        const userResult = await this.getConfluenceUser({ username });
+        if (userResult.isError) {
+          return userResult;
+        }
+        const userData = JSON.parse((userResult.content[0] as any).text);
+        userAccountId = userData.accountId;
+      }
+      
+      if (!userAccountId) {
+        return {
+          content: [{ type: 'text', text: 'User account ID or username is required' }],
+          isError: true,
+        };
+      }
+      
+      // Build CQL query
+      let cql = `creator = "${userAccountId}"`;
+      
+      if (spaceKey) {
+        cql = `space = ${spaceKey} AND ${cql}`;
+      }
+      
+      if (startDate && endDate) {
+        cql += ` AND created >= ${startDate} AND created <= ${endDate}`;
+      } else if (startDate) {
+        cql += ` AND created >= ${startDate}`;
+      } else if (endDate) {
+        cql += ` AND created <= ${endDate}`;
+      }
+      
+      cql += ' ORDER BY created DESC';
+
+      const response = await this.client.get('/api/content/search', {
+        params: {
+          cql,
+          limit: Math.min(limit, 100),
+          start,
+          expand: 'space,version,history.createdDate'
+        }
+      });
+
+      const pages = response.data.results.map((page: ConfluencePage) => ({
+        id: page.id,
+        title: page.title,
+        type: page.type,
+        spaceKey: page.space?.key,
+        spaceName: page.space?.name,
+        version: page.version?.number,
+        created: (page as any).history?.createdDate,
+        webUrl: `${this.client.defaults.baseURL}/wiki${page._links?.webui || ''}`,
+      }));
+
+      const resultData = {
+        author: userAccountId,
+        spaceKey: spaceKey || 'all',
+        dateRange: {
+          start: startDate || 'unlimited',
+          end: endDate || 'unlimited'
+        },
+        totalPages: response.data.totalSize,
+        start: response.data.start,
+        limit: response.data.limit,
+        pages,
+      };
+
+      return {
+        content: [{ type: 'text', text: JSON.stringify(resultData, null, 2) }],
+      };
+    } catch (error) {
+      return {
+        content: [{ type: 'text', text: formatApiError(error) }],
+        isError: true,
+      };
+    }
+  }
+
+  async listUserConfluenceAttachments(args: ListUserConfluenceAttachmentsArgs): Promise<CallToolResult> {
+    try {
+      const { username, accountId, spaceKey, limit = 25, start = 0 } = args;
+      
+      // Get user's accountId if not provided
+      let userAccountId = accountId;
+      if (!userAccountId && username) {
+        const userResult = await this.getConfluenceUser({ username });
+        if (userResult.isError) {
+          return userResult;
+        }
+        const userData = JSON.parse((userResult.content[0] as any).text);
+        userAccountId = userData.accountId;
+      }
+      
+      if (!userAccountId) {
+        return {
+          content: [{ type: 'text', text: 'User account ID or username is required' }],
+          isError: true,
+        };
+      }
+      
+      // Build CQL query for attachments
+      let cql = `type = attachment AND creator = "${userAccountId}"`;
+      
+      if (spaceKey) {
+        cql = `space = ${spaceKey} AND ${cql}`;
+      }
+      
+      cql += ' ORDER BY created DESC';
+
+      const response = await this.client.get('/api/content/search', {
+        params: {
+          cql,
+          limit: Math.min(limit, 100),
+          start,
+          expand: 'container,space,version,metadata.mediaType,extensions.fileSize'
+        }
+      });
+
+      const attachments = response.data.results.map((attachment: any) => ({
+        id: attachment.id,
+        title: attachment.title,
+        filename: attachment.title,
+        mediaType: attachment.metadata?.mediaType,
+        fileSize: attachment.extensions?.fileSize,
+        created: attachment.history?.createdDate,
+        version: attachment.version?.number,
+        parentPageId: attachment.container?.id,
+        parentPageTitle: attachment.container?.title,
+        spaceKey: attachment.space?.key,
+        spaceName: attachment.space?.name,
+        downloadUrl: `${this.client.defaults.baseURL}/wiki${attachment._links?.download}`,
+        webUrl: `${this.client.defaults.baseURL}/wiki${attachment._links?.webui}`,
+      }));
+
+      const resultData = {
+        uploader: userAccountId,
+        spaceKey: spaceKey || 'all',
+        totalAttachments: response.data.totalSize,
+        start: response.data.start,
+        limit: response.data.limit,
+        attachments,
       };
 
       return {
