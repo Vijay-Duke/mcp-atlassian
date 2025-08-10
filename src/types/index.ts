@@ -129,6 +129,15 @@ export interface AddJiraCommentArgs {
   };
 }
 
+export interface DeleteJiraCommentArgs {
+  issueKey: string;
+  commentId: string;
+}
+
+export interface DeleteConfluenceCommentArgs {
+  commentId: string;
+}
+
 export interface ConfluencePage {
   id: string;
   type: string;

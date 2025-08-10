@@ -6,6 +6,7 @@ import {
   ListJiraProjectsArgs,
   CreateJiraIssueArgs,
   AddJiraCommentArgs,
+  DeleteJiraCommentArgs,
   JiraIssue,
   JiraProject
 } from '../types/index.js';
@@ -266,6 +267,25 @@ export class JiraHandlers {
 
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    } catch (error) {
+      return {
+        content: [{ type: 'text', text: formatApiError(error) }],
+        isError: true,
+      };
+    }
+  }
+
+  async deleteJiraComment(args: DeleteJiraCommentArgs): Promise<CallToolResult> {
+    try {
+      const { issueKey, commentId } = args;
+
+      await this.client.delete(
+        `/rest/api/3/issue/${issueKey}/comment/${commentId}`
+      );
+
+      return {
+        content: [{ type: 'text', text: `Comment ${commentId} deleted successfully from issue ${issueKey}` }],
       };
     } catch (error) {
       return {
