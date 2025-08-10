@@ -1,0 +1,87 @@
+# Source files (only need dist)
+src/
+*.ts
+!*.d.ts
+
+# Configuration files
+tsconfig.json
+vitest.config.ts
+.env
+.env.local
+.env.*.local
+
+# Test files
+dist/__tests__/
+dist/**/*.test.*
+__tests__/
+*.test.ts
+*.test.js
+coverage/
+.nyc_output/
+
+# Development files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm/
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git files
+.git/
+.gitignore
+
+# Documentation files (keep README.md)
+PUBLISH.md
+*.html
+*.pdf
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+exported_images/
+Architecture_Solution_Brief*
+
+# Debug/test scripts
+test-*.js
+test-*.mjs
+extract-*.js
+download-*.js
+export-*.js
+create-*.js
+html-to-*.js
+
+# Build artifacts we don't need
+*.tgz
+*.map
+dist/**/*.map
+dist/utils/pdf-converter.*
+dist/utils/simple-pdf-export.*
+
+# Scripts
+start.sh
+
+# Claude specific
+.claude/
+
+# Keep these files
+!README.md
+!LICENSE
+!package.json
+!package-lock.json
+!dist/**/*.js
+!dist/**/*.d.ts
+!.env.example

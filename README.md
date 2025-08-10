@@ -20,7 +20,7 @@ A Model Context Protocol (MCP) server for integrating with Atlassian products (C
 
 ## Installation
 
-### Option 1: Clone and Build
+### Option 1: Clone and Build (Recommended)
 
 ```bash
 # Clone the repository
@@ -34,13 +34,23 @@ npm install
 npm run build
 ```
 
-### Option 2: NPM Install (Recommended)
+### Option 2: Install from GitHub
+
+```bash
+# Install directly from GitHub
+npm install -g github:Vijay-Duke/mcp-atlassian
+
+# Or install in your project
+npm install github:Vijay-Duke/mcp-atlassian
+```
+
+### Option 3: NPM Registry
 
 ```bash
 # Install globally
 npm install -g mcp-atlassian
 
-# Or install locally in your project
+# Or install locally
 npm install mcp-atlassian
 ```
 
