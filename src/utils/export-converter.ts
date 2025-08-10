@@ -115,14 +115,26 @@ export class ExportConverter {
       try {
         let imageUrl = img.url;
         
-        // Handle relative URLs
-        if (imageUrl.startsWith('/wiki/')) {
-          imageUrl = imageUrl;
-        } else if (!imageUrl.startsWith('http')) {
-          imageUrl = `/wiki/${imageUrl}`;
-        } else {
-          const urlObj = new URL(imageUrl);
-          imageUrl = urlObj.pathname + urlObj.search;
+        // Security: Only process images from the same Atlassian domain or relative paths.
+        // This is to prevent SSRF attacks where the server could be forced to make requests
+        // to arbitrary internal or external services.
+        if (imageUrl.startsWith('http')) {
+          try {
+            const url = new URL(imageUrl);
+            const clientBaseUrl = new URL(client.defaults.baseURL!);
+            if (url.hostname !== clientBaseUrl.hostname) {
+              console.error(`Skipping external image from different domain: ${imageUrl}`);
+              continue; // Skip images from other domains
+            }
+            // Use only the path and query for same-domain URLs
+            imageUrl = url.pathname + url.search;
+          } catch (e) {
+            console.error(`Invalid image URL: ${imageUrl}`, e);
+            continue; // Skip invalid URLs
+          }
+        } else if (!imageUrl.startsWith('/')) {
+          // Ensure relative URLs are handled correctly, assuming they are relative to the domain root
+          imageUrl = '/' + imageUrl;
         }
         
         // Download image

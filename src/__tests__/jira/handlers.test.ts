@@ -118,16 +118,10 @@ describe('JiraHandlers', () => {
         data: { issues: [], total: 0, startAt: 0, maxResults: 100 } 
       });
 
-      await handlers.searchJiraIssues({ jql: 'test', maxResults: 200 });
+      const result = await handlers.searchJiraIssues({ jql: 'test', maxResults: 200 });
 
-      expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
-        params: {
-          jql: 'test',
-          maxResults: 100,
-          startAt: 0,
-          fields: '*all',
-        },
-      });
+      expect(result.isError).toBe(true);
+      expect((result.content[0] as any).text).toContain('maxResults must be an integer between 1 and 100');
     });
   });
 

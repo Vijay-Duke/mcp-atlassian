@@ -47,6 +47,7 @@ describe('ConfluenceHandlers', () => {
         version: 1,
         webUrl: 'https://test.atlassian.net/wiki/spaces/TEST/pages/123',
         content: '<p>Content</p>',
+        format: 'storage',
       });
     });
 
@@ -54,14 +55,14 @@ describe('ConfluenceHandlers', () => {
       const result = await handlers.readConfluencePage({});
 
       expect(result.isError).toBe(true);
-      expect((result.content[0] as any).text).toBe('Error: Either pageId or title must be provided');
+      expect((result.content[0] as any).text).toContain('Validation failed: Either pageId or title must be provided');
     });
 
     it('should return error when title provided without spaceKey', async () => {
       const result = await handlers.readConfluencePage({ title: 'Test' });
 
       expect(result.isError).toBe(true);
-      expect((result.content[0] as any).text).toBe('Error: spaceKey is required when using title');
+      expect((result.content[0] as any).text).toContain('Validation failed: spaceKey is required when using title');
     });
 
     it('should handle API errors', async () => {
@@ -118,16 +119,10 @@ describe('ConfluenceHandlers', () => {
         data: { results: [], totalSize: 0, start: 0, limit: 100 } 
       });
 
-      await handlers.searchConfluencePages({ cql: 'test', limit: 200 });
+      const result = await handlers.searchConfluencePages({ cql: 'test', limit: 200 });
 
-      expect(mockClient.get).toHaveBeenCalledWith('/wiki/rest/api/content/search', {
-        params: {
-          cql: 'test',
-          limit: 100,
-          start: 0,
-          expand: undefined,
-        },
-      });
+      expect(result.isError).toBe(true);
+      expect((result.content[0] as any).text).toContain('maxResults must be an integer between 1 and 100');
     });
   });
 
@@ -158,6 +153,7 @@ describe('ConfluenceHandlers', () => {
       expect(mockClient.get).toHaveBeenCalledWith('/wiki/rest/api/space', {
         params: {
           limit: 25,
+          start: 0,
           status: 'current',
           type: 'global',
         },

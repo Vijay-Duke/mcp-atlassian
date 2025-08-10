@@ -3,6 +3,7 @@
  * This is a basic implementation - for production use, consider using
  * a library like @atlaskit/editor-markdown-transformer
  */
+import { sanitizeHtml } from './html-sanitizer.js';
 
 export class ContentConverter {
   /**
@@ -80,7 +81,9 @@ export class ContentConverter {
    * This is a simplified converter for basic formatting
    */
   static storageToMarkdown(storage: string): string {
-    let markdown = storage;
+    // First, sanitize the HTML to prevent any script injection from affecting the conversion
+    const sanitizedStorage = sanitizeHtml(storage);
+    let markdown = sanitizedStorage;
 
     // Convert headers
     markdown = markdown.replace(/<h1>(.*?)<\/h1>/gi, '# $1');
@@ -143,6 +146,7 @@ export class ContentConverter {
    * Detect if content is already in storage format
    */
   static isStorageFormat(content: string): boolean {
+    // This check is now just a hint for conversion, not for security.
     return content.includes('<') && (
       content.includes('<p>') ||
       content.includes('<h1>') ||
@@ -155,12 +159,19 @@ export class ContentConverter {
   }
 
   /**
-   * Auto-detect format and convert if needed
+   * Auto-detect format, convert if needed, and ALWAYS sanitize.
+   * This function is a critical security control. It ensures that any content,
+   * whether it's user-provided HTML or Markdown, is passed through the HTML sanitizer
+   * before being sent to the Confluence API. This prevents XSS attacks.
    */
   static ensureStorageFormat(content: string): string {
+    let html: string;
     if (this.isStorageFormat(content)) {
-      return content;
+      html = content;
+    } else {
+      html = this.markdownToStorage(content);
     }
-    return this.markdownToStorage(content);
+    // Sanitize the HTML output to prevent XSS attacks. This is the critical security step.
+    return sanitizeHtml(html);
   }
 }

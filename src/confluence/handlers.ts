@@ -27,31 +27,51 @@ import {
   ConfluencePage,
   ConfluenceSpace,
   ConfluenceAttachment,
-  ConfluenceUser
+  ConfluenceUser,
+  ConfluencePagePayload,
+  ConfluencePageUpdatePayload,
+  ConfluenceCommentPayload
 } from '../types/index.js';
 import { formatApiError } from '../utils/http-client.js';
 import { ContentConverter } from '../utils/content-converter.js';
 import { ExportConverter } from '../utils/export-converter.js';
+import { sanitizeHtml } from '../utils/html-sanitizer.js';
+import { validateString, validatePagination, validateEnum, validateUserIdentification, validateNumber, validateStringArray } from '../utils/input-validator.js';
+import { createValidationError } from '../utils/error-handler.js';
 
 export class ConfluenceHandlers {
   constructor(private client: AxiosInstance) {}
+
+  private async _getCurrentUser(): Promise<ConfluenceUser> {
+    const response = await this.client.get('/api/user/current');
+    return response.data;
+  }
 
   async readConfluencePage(args: ReadConfluencePageArgs): Promise<CallToolResult> {
     try {
       const { pageId, title, spaceKey, expand = 'body.storage,version,space', format = 'storage' } = args;
 
       if (!pageId && !title) {
-        return {
-          content: [{ type: 'text', text: 'Error: Either pageId or title must be provided' }],
-          isError: true,
-        };
+        return createValidationError(['Either pageId or title must be provided'], 'readConfluencePage', 'confluence');
       }
 
       if (title && !spaceKey) {
-        return {
-          content: [{ type: 'text', text: 'Error: spaceKey is required when using title' }],
-          isError: true,
-        };
+        return createValidationError(['spaceKey is required when using title'], 'readConfluencePage', 'confluence');
+      }
+
+      if (pageId) {
+        const pageIdValidation = validateString(pageId, 'pageId');
+        if (!pageIdValidation.isValid) return createValidationError(pageIdValidation.errors, 'readConfluencePage', 'confluence');
+      }
+
+      if (title) {
+        const titleValidation = validateString(title, 'title');
+        if (!titleValidation.isValid) return createValidationError(titleValidation.errors, 'readConfluencePage', 'confluence');
+      }
+
+      if (spaceKey) {
+        const spaceKeyValidation = validateString(spaceKey, 'spaceKey');
+        if (!spaceKeyValidation.isValid) return createValidationError(spaceKeyValidation.errors, 'readConfluencePage', 'confluence');
       }
 
       let page: ConfluencePage;
@@ -109,11 +129,17 @@ export class ConfluenceHandlers {
     try {
       const { cql, limit = 25, start = 0, expand } = args;
 
+      const cqlValidation = validateString(cql, 'cql', { required: true, maxLength: 2000 });
+      if (!cqlValidation.isValid) return createValidationError(cqlValidation.errors, 'searchConfluencePages', 'confluence');
+
+      const paginationValidation = validatePagination(start, limit);
+      if (!paginationValidation.isValid) return createValidationError(paginationValidation.errors, 'searchConfluencePages', 'confluence');
+
       const response = await this.client.get('/wiki/rest/api/content/search', {
         params: {
-          cql,
-          limit: Math.min(limit, 100),
-          start,
+          cql: cqlValidation.sanitizedValue,
+          limit: paginationValidation.sanitizedValue!.maxResults,
+          start: paginationValidation.sanitizedValue!.startAt,
           expand,
         },
       });
@@ -146,15 +172,21 @@ export class ConfluenceHandlers {
 
   async listConfluenceSpaces(args: ListConfluenceSpacesArgs): Promise<CallToolResult> {
     try {
-      const { type, status = 'current', limit = 25 } = args;
+      const { type, status = 'current', limit = 25, start = 0 } = args;
+
+      const paginationValidation = validatePagination(start, limit);
+      if (!paginationValidation.isValid) return createValidationError(paginationValidation.errors, 'listConfluenceSpaces', 'confluence');
 
       const params: any = {
-        limit: Math.min(limit, 100),
+        limit: paginationValidation.sanitizedValue!.maxResults,
+        start: paginationValidation.sanitizedValue!.startAt,
         status,
       };
 
       if (type) {
-        params.type = type;
+        const typeValidation = validateString(type, 'type');
+        if (!typeValidation.isValid) return createValidationError(typeValidation.errors, 'listConfluenceSpaces', 'confluence');
+        params.type = typeValidation.sanitizedValue;
       }
 
       const response = await this.client.get('/wiki/rest/api/space', { params });
@@ -190,13 +222,32 @@ export class ConfluenceHandlers {
     try {
       const { pageId, mediaType, filename, limit = 50, start = 0 } = args;
 
-      const response = await this.client.get(`/wiki/rest/api/content/${pageId}/child/attachment`, {
-        params: {
-          limit: Math.min(limit, 100),
-          start,
-          ...(mediaType && { mediaType }),
-          ...(filename && { filename }),
-        },
+      const pageIdValidation = validateString(pageId, 'pageId', { required: true });
+      if (!pageIdValidation.isValid) return createValidationError(pageIdValidation.errors, 'listConfluenceAttachments', 'confluence');
+
+      const paginationValidation = validatePagination(start, limit);
+      if (!paginationValidation.isValid) return createValidationError(paginationValidation.errors, 'listConfluenceAttachments', 'confluence');
+
+      const params: any = {
+        limit: paginationValidation.sanitizedValue!.maxResults,
+        start: paginationValidation.sanitizedValue!.startAt,
+      };
+
+      if (mediaType) {
+        const mediaTypeValidation = validateString(mediaType, 'mediaType');
+        if (!mediaTypeValidation.isValid) return createValidationError(mediaTypeValidation.errors, 'listConfluenceAttachments', 'confluence');
+        params.mediaType = mediaTypeValidation.sanitizedValue;
+      }
+
+      if (filename) {
+        const filenameValidation = validateString(filename, 'filename');
+        if (!filenameValidation.isValid) return createValidationError(filenameValidation.errors, 'listConfluenceAttachments', 'confluence');
+        params.filename = filenameValidation.sanitizedValue;
+      }
+
+
+      const response = await this.client.get(`/wiki/rest/api/content/${pageIdValidation.sanitizedValue}/child/attachment`, {
+        params,
       });
 
       const attachments = response.data.results.map((attachment: ConfluenceAttachment) => ({
@@ -232,8 +283,16 @@ export class ConfluenceHandlers {
     try {
       const { attachmentId, version } = args;
 
+      const attachmentIdValidation = validateString(attachmentId, 'attachmentId', { required: true });
+      if (!attachmentIdValidation.isValid) return createValidationError(attachmentIdValidation.errors, 'downloadConfluenceAttachment', 'confluence');
+
+      if (version) {
+        const versionValidation = validateNumber(version, 'version', { integer: true });
+        if (!versionValidation.isValid) return createValidationError(versionValidation.errors, 'downloadConfluenceAttachment', 'confluence');
+      }
+
       // First get attachment metadata
-      const metadataResponse = await this.client.get(`/wiki/rest/api/content/${attachmentId}`, {
+      const metadataResponse = await this.client.get(`/wiki/rest/api/content/${attachmentIdValidation.sanitizedValue}`, {
         params: {
           expand: 'version,metadata',
         },
@@ -297,8 +356,19 @@ export class ConfluenceHandlers {
         maxAttachmentSize = 52428800 // 50MB default
       } = args;
 
+      const pageIdValidation = validateString(pageId, 'pageId', { required: true });
+      if (!pageIdValidation.isValid) return createValidationError(pageIdValidation.errors, 'downloadConfluencePageComplete', 'confluence');
+
+      if (attachmentTypes) {
+        const attachmentTypesValidation = validateStringArray(attachmentTypes, 'attachmentTypes');
+        if (!attachmentTypesValidation.isValid) return createValidationError(attachmentTypesValidation.errors, 'downloadConfluencePageComplete', 'confluence');
+      }
+
+      const maxAttachmentSizeValidation = validateNumber(maxAttachmentSize, 'maxAttachmentSize', { integer: true, min: 0 });
+      if (!maxAttachmentSizeValidation.isValid) return createValidationError(maxAttachmentSizeValidation.errors, 'downloadConfluencePageComplete', 'confluence');
+
       // Get page content with all expansions
-      const pageResponse = await this.client.get(`/wiki/rest/api/content/${pageId}`, {
+      const pageResponse = await this.client.get(`/wiki/rest/api/content/${pageIdValidation.sanitizedValue}`, {
         params: {
           expand: 'body.storage,body.view,version,space,ancestors,descendants,metadata.labels',
         },
@@ -429,14 +499,28 @@ export class ConfluenceHandlers {
     try {
       const { spaceKey, title, content, parentId, type = 'page' } = args;
 
-      // Convert to storage format if needed
-      const storageContent = ContentConverter.ensureStorageFormat(content);
+      const spaceKeyValidation = validateString(spaceKey, 'spaceKey', { required: true });
+      if (!spaceKeyValidation.isValid) return createValidationError(spaceKeyValidation.errors, 'createConfluencePage', 'confluence');
 
-      const requestBody: any = {
+      const titleValidation = validateString(title, 'title', { required: true });
+      if (!titleValidation.isValid) return createValidationError(titleValidation.errors, 'createConfluencePage', 'confluence');
+
+      const contentValidation = validateString(content, 'content', { required: true });
+      if (!contentValidation.isValid) return createValidationError(contentValidation.errors, 'createConfluencePage', 'confluence');
+
+      if (parentId) {
+        const parentIdValidation = validateString(parentId, 'parentId');
+        if (!parentIdValidation.isValid) return createValidationError(parentIdValidation.errors, 'createConfluencePage', 'confluence');
+      }
+
+      // Convert to storage format if needed
+      const storageContent = ContentConverter.ensureStorageFormat(contentValidation.sanitizedValue!);
+
+      const requestBody: ConfluencePagePayload = {
         type,
-        title,
+        title: titleValidation.sanitizedValue!,
         space: {
-          key: spaceKey,
+          key: spaceKeyValidation.sanitizedValue!,
         },
         body: {
           storage: {
@@ -478,33 +562,50 @@ export class ConfluenceHandlers {
     try {
       const { pageId, title, content, version, minorEdit = false, versionComment } = args;
 
+      const pageIdValidation = validateString(pageId, 'pageId', { required: true });
+      if (!pageIdValidation.isValid) return createValidationError(pageIdValidation.errors, 'updateConfluencePage', 'confluence');
+
+      const versionValidation = validateNumber(version, 'version', { required: true, integer: true });
+      if (!versionValidation.isValid) return createValidationError(versionValidation.errors, 'updateConfluencePage', 'confluence');
+
       // First, get the current page to maintain existing properties
-      const currentPageResponse = await this.client.get(`/wiki/rest/api/content/${pageId}`, {
+      const currentPageResponse = await this.client.get(`/wiki/rest/api/content/${pageIdValidation.sanitizedValue}`, {
         params: { expand: 'body.storage,version,space' },
       });
 
       const currentPage = currentPageResponse.data;
 
       // Prepare update request
-      const requestBody: any = {
-        id: pageId,
+      const requestBody: ConfluencePageUpdatePayload = {
+        id: pageIdValidation.sanitizedValue!,
         type: currentPage.type,
         title: title || currentPage.title,
         space: currentPage.space,
         version: {
-          number: version,
+          number: versionValidation.sanitizedValue!,
           minorEdit,
         },
+        body: currentPage.body,
       };
+
+      if (title) {
+        const titleValidation = validateString(title, 'title');
+        if (!titleValidation.isValid) return createValidationError(titleValidation.errors, 'updateConfluencePage', 'confluence');
+        requestBody.title = titleValidation.sanitizedValue;
+      }
 
       // Add version comment if provided
       if (versionComment) {
-        requestBody.version.message = versionComment;
+        const versionCommentValidation = validateString(versionComment, 'versionComment');
+        if (!versionCommentValidation.isValid) return createValidationError(versionCommentValidation.errors, 'updateConfluencePage', 'confluence');
+        requestBody.version.message = versionCommentValidation.sanitizedValue;
       }
 
       // Update content if provided
       if (content) {
-        const storageContent = ContentConverter.ensureStorageFormat(content);
+        const contentValidation = validateString(content, 'content');
+        if (!contentValidation.isValid) return createValidationError(contentValidation.errors, 'updateConfluencePage', 'confluence');
+        const storageContent = ContentConverter.ensureStorageFormat(contentValidation.sanitizedValue!);
         requestBody.body = {
           storage: {
             value: storageContent,
@@ -515,7 +616,7 @@ export class ConfluenceHandlers {
         requestBody.body = currentPage.body;
       }
 
-      const response = await this.client.put(`/wiki/rest/api/content/${pageId}`, requestBody);
+      const response = await this.client.put(`/wiki/rest/api/content/${pageIdValidation.sanitizedValue}`, requestBody);
 
       const result = {
         id: response.data.id,
@@ -541,13 +642,24 @@ export class ConfluenceHandlers {
     try {
       const { pageId, content, parentCommentId } = args;
 
-      // Convert to storage format if needed
-      const storageContent = ContentConverter.ensureStorageFormat(content);
+      const pageIdValidation = validateString(pageId, 'pageId', { required: true });
+      if (!pageIdValidation.isValid) return createValidationError(pageIdValidation.errors, 'addConfluenceComment', 'confluence');
 
-      const requestBody: any = {
+      const contentValidation = validateString(content, 'content', { required: true });
+      if (!contentValidation.isValid) return createValidationError(contentValidation.errors, 'addConfluenceComment', 'confluence');
+
+      if (parentCommentId) {
+        const parentCommentIdValidation = validateString(parentCommentId, 'parentCommentId');
+        if (!parentCommentIdValidation.isValid) return createValidationError(parentCommentIdValidation.errors, 'addConfluenceComment', 'confluence');
+      }
+
+      // Convert to storage format if needed
+      const storageContent = ContentConverter.ensureStorageFormat(contentValidation.sanitizedValue!);
+
+      const requestBody: ConfluenceCommentPayload = {
         type: 'comment',
         container: {
-          id: pageId,
+          id: pageIdValidation.sanitizedValue!,
           type: 'page',
         },
         body: {
@@ -592,17 +704,40 @@ export class ConfluenceHandlers {
     try {
       const { cql, username, userKey, accountId, expand, limit = 25, start = 0 } = args;
 
+      const paginationValidation = validatePagination(start, limit);
+      if (!paginationValidation.isValid) return createValidationError(paginationValidation.errors, 'findConfluenceUsers', 'confluence');
+
       // Build query parameters
       const params: any = {
-        limit: Math.min(limit, 100),
-        start,
+        limit: paginationValidation.sanitizedValue!.maxResults,
+        start: paginationValidation.sanitizedValue!.startAt,
       };
 
-      if (cql) params.cql = cql;
-      if (username) params.username = username;
-      if (userKey) params.key = userKey;
-      if (accountId) params.accountId = accountId;
-      if (expand) params.expand = expand;
+      if (cql) {
+        const cqlValidation = validateString(cql, 'cql');
+        if (!cqlValidation.isValid) return createValidationError(cqlValidation.errors, 'findConfluenceUsers', 'confluence');
+        params.cql = cqlValidation.sanitizedValue;
+      }
+      if (username) {
+        const usernameValidation = validateString(username, 'username');
+        if (!usernameValidation.isValid) return createValidationError(usernameValidation.errors, 'findConfluenceUsers', 'confluence');
+        params.username = usernameValidation.sanitizedValue;
+      }
+      if (userKey) {
+        const userKeyValidation = validateString(userKey, 'userKey');
+        if (!userKeyValidation.isValid) return createValidationError(userKeyValidation.errors, 'findConfluenceUsers', 'confluence');
+        params.key = userKeyValidation.sanitizedValue;
+      }
+      if (accountId) {
+        const accountIdValidation = validateString(accountId, 'accountId');
+        if (!accountIdValidation.isValid) return createValidationError(accountIdValidation.errors, 'findConfluenceUsers', 'confluence');
+        params.accountId = accountIdValidation.sanitizedValue;
+      }
+      if (expand) {
+        const expandValidation = validateString(expand, 'expand');
+        if (!expandValidation.isValid) return createValidationError(expandValidation.errors, 'findConfluenceUsers', 'confluence');
+        params.expand = expandValidation.sanitizedValue;
+      }
 
       // Try different endpoints based on Confluence version
       let response;
@@ -661,16 +796,24 @@ export class ConfluenceHandlers {
     try {
       const { pageId, prefix, limit = 25, start = 0 } = args;
 
+      const pageIdValidation = validateString(pageId, 'pageId', { required: true });
+      if (!pageIdValidation.isValid) return createValidationError(pageIdValidation.errors, 'getConfluenceLabels', 'confluence');
+
+      const paginationValidation = validatePagination(start, limit);
+      if (!paginationValidation.isValid) return createValidationError(paginationValidation.errors, 'getConfluenceLabels', 'confluence');
+
       const params: any = {
-        limit: Math.min(limit, 200),
-        start,
+        limit: paginationValidation.sanitizedValue!.maxResults,
+        start: paginationValidation.sanitizedValue!.startAt,
       };
 
       if (prefix) {
-        params.prefix = prefix;
+        const prefixValidation = validateString(prefix, 'prefix');
+        if (!prefixValidation.isValid) return createValidationError(prefixValidation.errors, 'getConfluenceLabels', 'confluence');
+        params.prefix = prefixValidation.sanitizedValue;
       }
 
-      const response = await this.client.get(`/wiki/rest/api/content/${pageId}/label`, { params });
+      const response = await this.client.get(`/wiki/rest/api/content/${pageIdValidation.sanitizedValue}/label`, { params });
 
       const labels = response.data.results?.map((label: any) => ({
         prefix: label.prefix,
@@ -702,6 +845,14 @@ export class ConfluenceHandlers {
     try {
       const { pageId, labels } = args;
 
+      const pageIdValidation = validateString(pageId, 'pageId', { required: true });
+      if (!pageIdValidation.isValid) return createValidationError(pageIdValidation.errors, 'addConfluenceLabels', 'confluence');
+
+      // Basic validation for labels array
+      if (!Array.isArray(labels) || labels.length === 0) {
+        return createValidationError(['labels must be a non-empty array'], 'addConfluenceLabels', 'confluence');
+      }
+
       // Format labels for the API
       const formattedLabels = labels.map(label => ({
         prefix: label.prefix || 'global',
@@ -709,7 +860,7 @@ export class ConfluenceHandlers {
       }));
 
       const response = await this.client.post(
-        `/wiki/rest/api/content/${pageId}/label`,
+        `/wiki/rest/api/content/${pageIdValidation.sanitizedValue}/label`,
         formattedLabels
       );
 
@@ -767,6 +918,8 @@ export class ConfluenceHandlers {
 
       const page = pageResponse.data;
       let htmlContent = page.body.export_view.value;
+      // Sanitize the HTML content immediately after retrieving it to prevent XSS.
+      htmlContent = sanitizeHtml(htmlContent);
       const title = page.title;
       const baseUrl = this.client.defaults.baseURL || '';
 
@@ -883,8 +1036,11 @@ export class ConfluenceHandlers {
   async getConfluenceSpace(args: GetConfluenceSpaceArgs): Promise<CallToolResult> {
     try {
       const { spaceKey, expand = 'description.plain,homepage' } = args;
+
+      const spaceKeyValidation = validateString(spaceKey, 'spaceKey', { required: true });
+      if (!spaceKeyValidation.isValid) return createValidationError(spaceKeyValidation.errors, 'getConfluenceSpace', 'confluence');
       
-      const response = await this.client.get(`/api/space/${spaceKey}`, {
+      const response = await this.client.get(`/api/space/${spaceKeyValidation.sanitizedValue}`, {
         params: { expand }
       });
       
@@ -915,10 +1071,16 @@ export class ConfluenceHandlers {
     try {
       const { pageId, limit = 25, start = 0, expand = 'space' } = args;
       
-      const response = await this.client.get(`/api/content/${pageId}/child/page`, {
+      const pageIdValidation = validateString(pageId, 'pageId', { required: true });
+      if (!pageIdValidation.isValid) return createValidationError(pageIdValidation.errors, 'listConfluencePageChildren', 'confluence');
+
+      const paginationValidation = validatePagination(start, limit);
+      if (!paginationValidation.isValid) return createValidationError(paginationValidation.errors, 'listConfluencePageChildren', 'confluence');
+
+      const response = await this.client.get(`/api/content/${pageIdValidation.sanitizedValue}/child/page`, {
         params: {
-          limit: Math.min(limit, 100),
-          start,
+          limit: paginationValidation.sanitizedValue!.maxResults,
+          start: paginationValidation.sanitizedValue!.startAt,
           expand
         }
       });
@@ -955,8 +1117,11 @@ export class ConfluenceHandlers {
     try {
       const { pageId } = args;
       
+      const pageIdValidation = validateString(pageId, 'pageId', { required: true });
+      if (!pageIdValidation.isValid) return createValidationError(pageIdValidation.errors, 'listConfluencePageAncestors', 'confluence');
+
       // First get the page with ancestors expanded
-      const response = await this.client.get(`/api/content/${pageId}`, {
+      const response = await this.client.get(`/api/content/${pageIdValidation.sanitizedValue}`, {
         params: {
           expand: 'ancestors'
         }
@@ -992,9 +1157,18 @@ export class ConfluenceHandlers {
   async uploadConfluenceAttachment(args: UploadConfluenceAttachmentArgs): Promise<CallToolResult> {
     try {
       const { pageId, file, filename, comment, minorEdit = false } = args;
+
+      const pageIdValidation = validateString(pageId, 'pageId', { required: true });
+      if (!pageIdValidation.isValid) return createValidationError(pageIdValidation.errors, 'uploadConfluenceAttachment', 'confluence');
+
+      const fileValidation = validateString(file, 'file', { required: true });
+      if (!fileValidation.isValid) return createValidationError(fileValidation.errors, 'uploadConfluenceAttachment', 'confluence');
+
+      const filenameValidation = validateString(filename, 'filename', { required: true });
+      if (!filenameValidation.isValid) return createValidationError(filenameValidation.errors, 'uploadConfluenceAttachment', 'confluence');
       
       // Convert base64 file to buffer
-      const fileBuffer = Buffer.from(file, 'base64');
+      const fileBuffer = Buffer.from(fileValidation.sanitizedValue!, 'base64');
       
       // Create form data
       const { default: FormData } = await import('form-data');
@@ -1043,10 +1217,17 @@ export class ConfluenceHandlers {
   async getMyRecentConfluencePages(args: GetMyRecentConfluencePagesArgs): Promise<CallToolResult> {
     try {
       const { limit = 25, start = 0, spaceKey } = args;
+
+      const paginationValidation = validatePagination(start, limit);
+      if (!paginationValidation.isValid) return createValidationError(paginationValidation.errors, 'getMyRecentConfluencePages', 'confluence');
+
+      if (spaceKey) {
+        const spaceKeyValidation = validateString(spaceKey, 'spaceKey');
+        if (!spaceKeyValidation.isValid) return createValidationError(spaceKeyValidation.errors, 'getMyRecentConfluencePages', 'confluence');
+      }
       
       // Get current user
-      const userResponse = await this.client.get('/api/user/current');
-      const currentUser: ConfluenceUser = userResponse.data;
+      const currentUser = await this._getCurrentUser();
       
       // Build CQL query
       let cql = `creator = "${currentUser.accountId}" OR lastModifier = "${currentUser.accountId}"`;
@@ -1097,10 +1278,17 @@ export class ConfluenceHandlers {
   async getConfluencePagesMentioningMe(args: GetConfluencePagesMentioningMeArgs): Promise<CallToolResult> {
     try {
       const { limit = 25, start = 0, spaceKey } = args;
+
+      const paginationValidation = validatePagination(start, limit);
+      if (!paginationValidation.isValid) return createValidationError(paginationValidation.errors, 'getConfluencePagesMentioningMe', 'confluence');
+
+      if (spaceKey) {
+        const spaceKeyValidation = validateString(spaceKey, 'spaceKey');
+        if (!spaceKeyValidation.isValid) return createValidationError(spaceKeyValidation.errors, 'getConfluencePagesMentioningMe', 'confluence');
+      }
       
       // Get current user
-      const userResponse = await this.client.get('/api/user/current');
-      const currentUser: ConfluenceUser = userResponse.data;
+      const currentUser = await this._getCurrentUser();
       
       // Build CQL query to find mentions
       let cql = `mention = "${currentUser.accountId}"`;
@@ -1152,12 +1340,15 @@ export class ConfluenceHandlers {
   async getConfluenceUser(args: GetConfluenceUserArgs): Promise<CallToolResult> {
     try {
       const { username, accountId, email } = args;
+
+      const userValidation = validateUserIdentification({ username, accountId, email });
+      if (!userValidation.isValid) return createValidationError(userValidation.errors, 'getConfluenceUser', 'confluence');
       
       // Build search parameters
       const params: any = {};
-      if (username) params.username = username;
-      if (accountId) params.accountId = accountId;
-      if (email) params.email = email;
+      if (userValidation.sanitizedValue?.username) params.username = userValidation.sanitizedValue.username;
+      if (userValidation.sanitizedValue?.accountId) params.accountId = userValidation.sanitizedValue.accountId;
+      if (userValidation.sanitizedValue?.email) params.email = userValidation.sanitizedValue.email;
       
       // First try to get user by accountId if provided
       let userResponse;
@@ -1219,10 +1410,16 @@ export class ConfluenceHandlers {
     try {
       const { username, accountId, searchType, spaceKey, limit = 25, start = 0 } = args;
       
+      const userValidation = validateUserIdentification({ username, accountId });
+      if (!userValidation.isValid) return createValidationError(userValidation.errors, 'searchConfluencePagesByUser', 'confluence');
+
+      const paginationValidation = validatePagination(start, limit);
+      if (!paginationValidation.isValid) return createValidationError(paginationValidation.errors, 'searchConfluencePagesByUser', 'confluence');
+
       // Get user's accountId if not provided
-      let userAccountId = accountId;
-      if (!userAccountId && username) {
-        const userResult = await this.getConfluenceUser({ username });
+      let userAccountId = userValidation.sanitizedValue?.accountId;
+      if (!userAccountId && userValidation.sanitizedValue?.username) {
+        const userResult = await this.getConfluenceUser({ username: userValidation.sanitizedValue.username });
         if (userResult.isError) {
           return userResult;
         }
@@ -1299,11 +1496,17 @@ export class ConfluenceHandlers {
   async listUserConfluencePages(args: ListUserConfluencePagesArgs): Promise<CallToolResult> {
     try {
       const { username, accountId, spaceKey, startDate, endDate, limit = 25, start = 0 } = args;
+
+      const userValidation = validateUserIdentification({ username, accountId });
+      if (!userValidation.isValid) return createValidationError(userValidation.errors, 'listUserConfluencePages', 'confluence');
+
+      const paginationValidation = validatePagination(start, limit);
+      if (!paginationValidation.isValid) return createValidationError(paginationValidation.errors, 'listUserConfluencePages', 'confluence');
       
       // Get user's accountId if not provided
-      let userAccountId = accountId;
-      if (!userAccountId && username) {
-        const userResult = await this.getConfluenceUser({ username });
+      let userAccountId = userValidation.sanitizedValue?.accountId;
+      if (!userAccountId && userValidation.sanitizedValue?.username) {
+        const userResult = await this.getConfluenceUser({ username: userValidation.sanitizedValue.username });
         if (userResult.isError) {
           return userResult;
         }
@@ -1383,10 +1586,16 @@ export class ConfluenceHandlers {
     try {
       const { username, accountId, spaceKey, limit = 25, start = 0 } = args;
       
+      const userValidation = validateUserIdentification({ username, accountId });
+      if (!userValidation.isValid) return createValidationError(userValidation.errors, 'listUserConfluenceAttachments', 'confluence');
+
+      const paginationValidation = validatePagination(start, limit);
+      if (!paginationValidation.isValid) return createValidationError(paginationValidation.errors, 'listUserConfluenceAttachments', 'confluence');
+
       // Get user's accountId if not provided
-      let userAccountId = accountId;
-      if (!userAccountId && username) {
-        const userResult = await this.getConfluenceUser({ username });
+      let userAccountId = userValidation.sanitizedValue?.accountId;
+      if (!userAccountId && userValidation.sanitizedValue?.username) {
+        const userResult = await this.getConfluenceUser({ username: userValidation.sanitizedValue.username });
         if (userResult.isError) {
           return userResult;
         }

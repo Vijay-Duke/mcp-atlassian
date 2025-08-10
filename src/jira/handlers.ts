@@ -25,7 +25,9 @@ import {
   UserJiraWorklogResponse,
   UserIssueSearchResponse,
   IssueSearchResult,
-  UserProfileResponse
+  UserProfileResponse,
+  JiraIssueCreatePayload,
+  JiraCommentPayload
 } from '../types/index.js';
 import { formatApiError } from '../utils/http-client.js';
 import { 
@@ -39,7 +41,9 @@ import {
   validateDateRange,
   validateStringArray,
   validateEnum,
-  validateUserIdentification
+  validateUserIdentification,
+  validateString,
+  validateNumber
 } from '../utils/input-validator.js';
 import { getUserCache, createCacheKey, CachedUser } from '../utils/user-cache.js';
 import { createEnhancedError, createValidationError, createUserNotFoundError } from '../utils/error-handler.js';
@@ -48,11 +52,21 @@ import { formatSeconds } from '../utils/time-formatter.js';
 export class JiraHandlers {
   constructor(private client: AxiosInstance) {}
 
+  private async _getCurrentUser(): Promise<JiraUser> {
+    const response = await this.client.get('/rest/api/3/myself');
+    return response.data;
+  }
+
   async readJiraIssue(args: ReadJiraIssueArgs): Promise<CallToolResult> {
     try {
       const { issueKey, expand = 'fields,transitions,changelog' } = args;
 
-      const response = await this.client.get(`/rest/api/3/issue/${issueKey}`, {
+      const issueKeyValidation = validateString(issueKey, 'issueKey', { required: true, maxLength: 255, pattern: /^[A-Z]+-[0-9]+$/ });
+      if (!issueKeyValidation.isValid) {
+        return createValidationError(issueKeyValidation.errors, 'readJiraIssue', 'jira');
+      }
+
+      const response = await this.client.get(`/rest/api/3/issue/${issueKeyValidation.sanitizedValue}`, {
         params: { expand },
       });
 
@@ -98,11 +112,21 @@ export class JiraHandlers {
     try {
       const { jql, maxResults = 50, startAt = 0, fields = '*all' } = args;
 
+      const jqlValidation = validateString(jql, 'jql', { required: true, maxLength: 2000 });
+      if (!jqlValidation.isValid) {
+        return createValidationError(jqlValidation.errors, 'searchJiraIssues', 'jira');
+      }
+
+      const paginationValidation = validatePagination(startAt, maxResults);
+      if (!paginationValidation.isValid) {
+        return createValidationError(paginationValidation.errors, 'searchJiraIssues', 'jira');
+      }
+
       const response = await this.client.get('/rest/api/3/search', {
         params: {
-          jql,
-          maxResults: Math.min(maxResults, 100),
-          startAt,
+          jql: jqlValidation.sanitizedValue,
+          maxResults: paginationValidation.sanitizedValue!.maxResults,
+          startAt: paginationValidation.sanitizedValue!.startAt,
           fields,
         },
       });
@@ -192,15 +216,26 @@ export class JiraHandlers {
         customFields 
       } = args;
 
-      const issueData: any = {
+      const projectKeyValidation = validateString(projectKey, 'projectKey', { required: true, pattern: /^[A-Z][A-Z0-9_]*$/ });
+      if (!projectKeyValidation.isValid) return createValidationError(projectKeyValidation.errors, 'createJiraIssue', 'jira');
+
+      const issueTypeValidation = validateString(issueType, 'issueType', { required: true });
+      if (!issueTypeValidation.isValid) return createValidationError(issueTypeValidation.errors, 'createJiraIssue', 'jira');
+
+      const summaryValidation = validateString(summary, 'summary', { required: true, maxLength: 255 });
+      if (!summaryValidation.isValid) return createValidationError(summaryValidation.errors, 'createJiraIssue', 'jira');
+
+      const issueData: JiraIssueCreatePayload = {
         fields: {
-          project: { key: projectKey },
-          issuetype: { name: issueType },
-          summary,
+          project: { key: projectKeyValidation.sanitizedValue! },
+          issuetype: { name: issueTypeValidation.sanitizedValue! },
+          summary: summaryValidation.sanitizedValue!,
         },
       };
 
       if (description) {
+        const descriptionValidation = validateString(description, 'description', { maxLength: 32767 });
+        if (!descriptionValidation.isValid) return createValidationError(descriptionValidation.errors, 'createJiraIssue', 'jira');
         issueData.fields.description = {
           type: 'doc',
           version: 1,
@@ -210,7 +245,7 @@ export class JiraHandlers {
               content: [
                 {
                   type: 'text',
-                  text: description,
+                  text: descriptionValidation.sanitizedValue,
                 },
               ],
             },
@@ -219,11 +254,15 @@ export class JiraHandlers {
       }
 
       if (priority) {
-        issueData.fields.priority = { name: priority };
+        const priorityValidation = validateString(priority, 'priority');
+        if (!priorityValidation.isValid) return createValidationError(priorityValidation.errors, 'createJiraIssue', 'jira');
+        issueData.fields.priority = { name: priorityValidation.sanitizedValue };
       }
 
       if (assignee) {
-        issueData.fields.assignee = { accountId: assignee };
+        const assigneeValidation = validateString(assignee, 'assignee');
+        if (!assigneeValidation.isValid) return createValidationError(assigneeValidation.errors, 'createJiraIssue', 'jira');
+        issueData.fields.assignee = { accountId: assigneeValidation.sanitizedValue };
       }
 
       if (labels && labels.length > 0) {
@@ -263,7 +302,13 @@ export class JiraHandlers {
     try {
       const { issueKey, body, visibility } = args;
 
-      const commentData: any = {
+      const issueKeyValidation = validateString(issueKey, 'issueKey', { required: true, pattern: /^[A-Z]+-[0-9]+$/ });
+      if (!issueKeyValidation.isValid) return createValidationError(issueKeyValidation.errors, 'addJiraComment', 'jira');
+
+      const bodyValidation = validateString(body, 'body', { required: true, maxLength: 32767 });
+      if (!bodyValidation.isValid) return createValidationError(bodyValidation.errors, 'addJiraComment', 'jira');
+
+      const commentData: JiraCommentPayload = {
         body: {
           type: 'doc',
           version: 1,
@@ -273,7 +318,7 @@ export class JiraHandlers {
               content: [
                 {
                   type: 'text',
-                  text: body,
+                  text: bodyValidation.sanitizedValue,
                 },
               ],
             },
@@ -339,14 +384,19 @@ export class JiraHandlers {
   async listJiraBoards(args: ListJiraBoardsArgs): Promise<CallToolResult> {
     try {
       const { projectKeyOrId, type, startAt = 0, maxResults = 50 } = args;
+
+      const paginationValidation = validatePagination(startAt, maxResults);
+      if (!paginationValidation.isValid) return createValidationError(paginationValidation.errors, 'listJiraBoards', 'jira');
       
       const params: any = {
-        startAt,
-        maxResults: Math.min(maxResults, 50),
+        startAt: paginationValidation.sanitizedValue!.startAt,
+        maxResults: paginationValidation.sanitizedValue!.maxResults,
       };
       
       if (projectKeyOrId) {
-        params.projectKeyOrId = projectKeyOrId;
+        const projectKeyValidation = validateString(projectKeyOrId, 'projectKeyOrId');
+        if (!projectKeyValidation.isValid) return createValidationError(projectKeyValidation.errors, 'listJiraBoards', 'jira');
+        params.projectKeyOrId = projectKeyValidation.sanitizedValue;
       }
       
       if (type) {
@@ -386,16 +436,24 @@ export class JiraHandlers {
     try {
       const { boardId, state, startAt = 0, maxResults = 50 } = args;
       
+      const boardIdValidation = validateNumber(boardId, 'boardId', { required: true, integer: true });
+      if (!boardIdValidation.isValid) return createValidationError(boardIdValidation.errors, 'listJiraSprints', 'jira');
+
+      const paginationValidation = validatePagination(startAt, maxResults);
+      if (!paginationValidation.isValid) return createValidationError(paginationValidation.errors, 'listJiraSprints', 'jira');
+
       const params: any = {
-        startAt,
-        maxResults: Math.min(maxResults, 50),
+        startAt: paginationValidation.sanitizedValue!.startAt,
+        maxResults: paginationValidation.sanitizedValue!.maxResults,
       };
       
       if (state) {
-        params.state = state;
+        const stateValidation = validateEnum(state, 'state', ['future', 'active', 'closed']);
+        if (!stateValidation.isValid) return createValidationError(stateValidation.errors, 'listJiraSprints', 'jira');
+        params.state = stateValidation.sanitizedValue;
       }
 
-      const response = await this.client.get(`/rest/agile/1.0/board/${boardId}/sprint`, { params });
+      const response = await this.client.get(`/rest/agile/1.0/board/${boardIdValidation.sanitizedValue}/sprint`, { params });
       
       const sprints = response.data.values.map((sprint: JiraSprint) => ({
         id: sprint.id,
@@ -431,7 +489,10 @@ export class JiraHandlers {
     try {
       const { sprintId } = args;
       
-      const response = await this.client.get(`/rest/agile/1.0/sprint/${sprintId}`);
+      const sprintIdValidation = validateNumber(sprintId, 'sprintId', { required: true, integer: true });
+      if (!sprintIdValidation.isValid) return createValidationError(sprintIdValidation.errors, 'getJiraSprint', 'jira');
+
+      const response = await this.client.get(`/rest/agile/1.0/sprint/${sprintIdValidation.sanitizedValue}`);
       
       const sprint: JiraSprint = response.data;
       const result: any = {
@@ -480,20 +541,23 @@ export class JiraHandlers {
   async getMyTasksInCurrentSprint(args: GetMyTasksInCurrentSprintArgs): Promise<CallToolResult> {
     try {
       // First get the current user
-      const userResponse = await this.client.get('/rest/api/3/myself');
-      const currentUser: JiraUser = userResponse.data;
+      const currentUser = await this._getCurrentUser();
       
       let jql = `assignee = "${currentUser.accountId}" AND sprint in openSprints()`;
       
       if (args.projectKey) {
-        jql = `project = ${args.projectKey} AND ${jql}`;
+        const projectKeyValidation = validateString(args.projectKey, 'projectKey', { pattern: /^[A-Z][A-Z0-9_]*$/ });
+        if (!projectKeyValidation.isValid) return createValidationError(projectKeyValidation.errors, 'getMyTasksInCurrentSprint', 'jira');
+        jql = `project = ${projectKeyValidation.sanitizedValue} AND ${jql}`;
       }
 
       // If a specific board is provided, we can get more specific sprint info
       let sprintInfo = null;
       if (args.boardId) {
+        const boardIdValidation = validateNumber(args.boardId, 'boardId', { integer: true });
+        if (!boardIdValidation.isValid) return createValidationError(boardIdValidation.errors, 'getMyTasksInCurrentSprint', 'jira');
         try {
-          const sprintResponse = await this.client.get(`/rest/agile/1.0/board/${args.boardId}/sprint`, {
+          const sprintResponse = await this.client.get(`/rest/agile/1.0/board/${boardIdValidation.sanitizedValue}/sprint`, {
             params: { state: 'active' }
           });
           
@@ -556,13 +620,14 @@ export class JiraHandlers {
       const { projectKeys, maxResults = 50 } = args;
       
       // First get the current user
-      const userResponse = await this.client.get('/rest/api/3/myself');
-      const currentUser: JiraUser = userResponse.data;
+      const currentUser = await this._getCurrentUser();
       
       let jql = `assignee = "${currentUser.accountId}" AND resolution = Unresolved`;
       
       if (projectKeys && projectKeys.length > 0) {
-        const projectFilter = projectKeys.map(key => `"${key}"`).join(', ');
+        const projectKeysValidation = validateStringArray(projectKeys, 'projectKeys', { pattern: /^[A-Z][A-Z0-9_]*$/ });
+        if (!projectKeysValidation.isValid) return createValidationError(projectKeysValidation.errors, 'getMyOpenIssues', 'jira');
+        const projectFilter = projectKeysValidation.sanitizedValue!.map(key => `"${key}"`).join(', ');
         jql = `project in (${projectFilter}) AND ${jql}`;
       }
       
@@ -986,10 +1051,16 @@ export class JiraHandlers {
   async getUserJiraActivity(args: GetUserJiraActivityArgs): Promise<CallToolResult> {
     try {
       const { username, accountId, activityType = 'all', projectKeys, days = 30, maxResults = 50, startAt = 0 } = args;
+
+      const userValidation = validateUserIdentification({ username, accountId });
+      if (!userValidation.isValid) return createValidationError(userValidation.errors, 'getUserJiraActivity', 'jira');
+
+      const paginationValidation = validatePagination(startAt, maxResults);
+      if (!paginationValidation.isValid) return createValidationError(paginationValidation.errors, 'getUserJiraActivity', 'jira');
       
       // Get user's accountId if not provided
-      let userAccountId = accountId;
-      if (!userAccountId && username) {
+      let userAccountId = userValidation.sanitizedValue?.accountId;
+      if (!userAccountId && userValidation.sanitizedValue?.username) {
         const userResult = await this.getJiraUser({ username });
         if (userResult.isError) {
           return userResult;

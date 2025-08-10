@@ -37,6 +37,8 @@ describe('http-client', () => {
           'Content-Type': 'application/json',
         },
         timeout: 30000,
+        maxRedirects: 5,
+        validateStatus: expect.any(Function),
       });
       
       expect(mockInterceptors.request.use).toHaveBeenCalled();
@@ -117,12 +119,13 @@ describe('http-client', () => {
       const error = {
         request: {},
         isAxiosError: true,
+        message: 'Network Error',
       } as AxiosError;
       
       (axios.isAxiosError as any) = vi.fn().mockReturnValue(true);
       
       const result = formatApiError(error);
-      expect(result).toBe('Network error: Unable to reach Atlassian API. Please check your connection.');
+      expect(result).toBe('Network error: Unable to reach Atlassian API. Network Error');
     });
 
     it('should format unknown error', () => {
