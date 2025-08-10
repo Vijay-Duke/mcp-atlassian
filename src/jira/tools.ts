@@ -2,6 +2,14 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 
 export const jiraTools: Tool[] = [
   {
+    name: 'get_jira_current_user',
+    description: 'Get details of the authenticated Jira user. Returns information about the current user including account ID, display name, email, and avatar URLs.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
     name: 'read_jira_issue',
     description: 'Retrieves detailed information about a specific Jira issue, including its fields, status, and transitions. Use this to get the full picture of a single issue.',
     inputSchema: {
@@ -144,6 +152,119 @@ export const jiraTools: Tool[] = [
         },
       },
       required: ['issueKey', 'body'],
+    },
+  },
+  {
+    name: 'list_jira_boards',
+    description: 'List accessible Jira boards (Scrum and Kanban). Can be filtered by project and board type.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectKeyOrId: {
+          type: 'string',
+          description: 'Filter boards by a specific project key or ID (e.g., "PROJ" or "10000").',
+        },
+        type: {
+          type: 'string',
+          enum: ['scrum', 'kanban'],
+          description: 'Filter by board type: scrum or kanban.',
+        },
+        startAt: {
+          type: 'number',
+          description: 'The starting index for pagination. Default is 0.',
+          default: 0,
+        },
+        maxResults: {
+          type: 'number',
+          description: 'The maximum number of boards to return. Default is 50, maximum is 50.',
+          default: 50,
+          minimum: 1,
+          maximum: 50,
+        },
+      },
+    },
+  },
+  {
+    name: 'list_jira_sprints',
+    description: 'List sprints for a given board. Can filter by sprint state (active, closed, future).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        boardId: {
+          type: 'number',
+          description: 'The ID of the board to get sprints from.',
+        },
+        state: {
+          type: 'string',
+          enum: ['active', 'closed', 'future'],
+          description: 'Filter sprints by state. If not provided, returns all sprints.',
+        },
+        startAt: {
+          type: 'number',
+          description: 'The starting index for pagination. Default is 0.',
+          default: 0,
+        },
+        maxResults: {
+          type: 'number',
+          description: 'The maximum number of sprints to return. Default is 50, maximum is 50.',
+          default: 50,
+          minimum: 1,
+          maximum: 50,
+        },
+      },
+      required: ['boardId'],
+    },
+  },
+  {
+    name: 'get_jira_sprint',
+    description: 'Get detailed information about a specific sprint, including its issues, dates, and goals.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sprintId: {
+          type: 'number',
+          description: 'The ID of the sprint to retrieve.',
+        },
+      },
+      required: ['sprintId'],
+    },
+  },
+  {
+    name: 'get_my_tasks_in_current_sprint',
+    description: 'Fetch all issues assigned to the current user in the active sprint(s). Optionally filter by board or project.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        boardId: {
+          type: 'number',
+          description: 'Optional board ID to get sprint-specific information.',
+        },
+        projectKey: {
+          type: 'string',
+          description: 'Optional project key to filter issues (e.g., "PROJ").',
+        },
+      },
+    },
+  },
+  {
+    name: 'get_my_open_issues',
+    description: 'Fetch all open (unresolved) issues assigned to the current user. Returns issues grouped by status and sorted by priority.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectKeys: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional list of project keys to filter issues (e.g., ["PROJ1", "PROJ2"]).',
+        },
+        maxResults: {
+          type: 'number',
+          description: 'The maximum number of issues to return. Default is 50, maximum is 100.',
+          default: 50,
+          minimum: 1,
+          maximum: 100,
+        },
+      },
     },
   },
 ];

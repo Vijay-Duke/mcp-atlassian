@@ -129,6 +129,34 @@ export interface AddJiraCommentArgs {
   };
 }
 
+export interface ListJiraBoardsArgs {
+  projectKeyOrId?: string;
+  type?: 'scrum' | 'kanban';
+  startAt?: number;
+  maxResults?: number;
+}
+
+export interface ListJiraSprintsArgs {
+  boardId: number;
+  state?: 'active' | 'closed' | 'future';
+  startAt?: number;
+  maxResults?: number;
+}
+
+export interface GetJiraSprintArgs {
+  sprintId: number;
+}
+
+export interface GetMyTasksInCurrentSprintArgs {
+  boardId?: number;
+  projectKey?: string;
+}
+
+export interface GetMyOpenIssuesArgs {
+  projectKeys?: string[];
+  maxResults?: number;
+}
+
 export interface ConfluencePage {
   id: string;
   type: string;
@@ -221,6 +249,47 @@ export interface JiraProject {
     name: string;
     description: string;
   }>;
+}
+
+export interface JiraUser {
+  self: string;
+  accountId: string;
+  emailAddress?: string;
+  displayName: string;
+  active: boolean;
+  timeZone?: string;
+  accountType?: string;
+  avatarUrls?: {
+    '48x48': string;
+    '24x24': string;
+    '16x16': string;
+    '32x32': string;
+  };
+}
+
+export interface JiraBoard {
+  id: number;
+  self: string;
+  name: string;
+  type: 'scrum' | 'kanban';
+  location?: {
+    projectId?: number;
+    projectKey?: string;
+    projectName?: string;
+    projectTypeKey?: string;
+  };
+}
+
+export interface JiraSprint {
+  id: number;
+  self: string;
+  state: 'active' | 'closed' | 'future';
+  name: string;
+  startDate?: string;
+  endDate?: string;
+  completeDate?: string;
+  originBoardId?: number;
+  goal?: string;
 }
 
 export interface AtlassianErrorResponse {

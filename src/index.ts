@@ -29,6 +29,11 @@ import {
   ListJiraProjectsArgs,
   CreateJiraIssueArgs,
   AddJiraCommentArgs,
+  ListJiraBoardsArgs,
+  ListJiraSprintsArgs,
+  GetJiraSprintArgs,
+  GetMyTasksInCurrentSprintArgs,
+  GetMyOpenIssuesArgs,
 } from './types/index.js';
 
 class AtlassianMCPServer {
@@ -123,6 +128,8 @@ class AtlassianMCPServer {
             );
 
           // Jira tools
+          case 'get_jira_current_user':
+            return await this.jiraHandlers.getJiraCurrentUser();
           case 'read_jira_issue':
             return await this.jiraHandlers.readJiraIssue(
               request.params.arguments as unknown as ReadJiraIssueArgs
@@ -142,6 +149,26 @@ class AtlassianMCPServer {
           case 'add_jira_comment':
             return await this.jiraHandlers.addJiraComment(
               request.params.arguments as unknown as AddJiraCommentArgs
+            );
+          case 'list_jira_boards':
+            return await this.jiraHandlers.listJiraBoards(
+              request.params.arguments as unknown as ListJiraBoardsArgs
+            );
+          case 'list_jira_sprints':
+            return await this.jiraHandlers.listJiraSprints(
+              request.params.arguments as unknown as ListJiraSprintsArgs
+            );
+          case 'get_jira_sprint':
+            return await this.jiraHandlers.getJiraSprint(
+              request.params.arguments as unknown as GetJiraSprintArgs
+            );
+          case 'get_my_tasks_in_current_sprint':
+            return await this.jiraHandlers.getMyTasksInCurrentSprint(
+              request.params.arguments as unknown as GetMyTasksInCurrentSprintArgs
+            );
+          case 'get_my_open_issues':
+            return await this.jiraHandlers.getMyOpenIssues(
+              request.params.arguments as unknown as GetMyOpenIssuesArgs
             );
 
           default:

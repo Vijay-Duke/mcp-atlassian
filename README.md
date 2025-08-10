@@ -13,10 +13,13 @@ A Model Context Protocol (MCP) server for integrating with Atlassian products (C
 - **Users**: Find and query users
 
 ### Jira Integration  
-- **Issues**: Read and search issues
+- **Issues**: Read and search issues, get personal tasks
 - **Projects**: List and explore projects
+- **Boards & Sprints**: List boards, view sprints, track active work
 - **Comments**: Add comments to issues
 - **Issue Creation**: Create new issues with custom fields
+- **User Management**: Get current user details
+- **Personal Dashboard**: View your open issues and sprint tasks
 
 ## Installation
 
@@ -178,11 +181,17 @@ You can run the server directly from GitHub without cloning:
 
 | Tool | Description |
 |------|-------------|
+| `get_jira_current_user` | Get details of the authenticated user |
 | `read_jira_issue` | Read issue details by key |
 | `search_jira_issues` | Search issues using JQL |
 | `list_jira_projects` | List all accessible projects |
 | `create_jira_issue` | Create new issue |
 | `add_jira_comment` | Add comment to issue |
+| `list_jira_boards` | List accessible Scrum/Kanban boards |
+| `list_jira_sprints` | List sprints for a board |
+| `get_jira_sprint` | Get detailed sprint information |
+| `get_my_tasks_in_current_sprint` | Get your tasks in active sprints |
+| `get_my_open_issues` | Get all your open issues |
 
 ## Usage Examples
 
@@ -231,6 +240,49 @@ You can run the server directly from GitHub without cloning:
     "summary": "Implement new feature",
     "description": "Detailed description here",
     "priority": "Medium"
+  }
+}
+```
+
+### Get Your Sprint Tasks
+
+```javascript
+// Get your tasks in the current sprint
+{
+  "tool": "get_my_tasks_in_current_sprint",
+  "arguments": {
+    "projectKey": "PROJ"
+  }
+}
+
+// Get all your open issues
+{
+  "tool": "get_my_open_issues",
+  "arguments": {
+    "projectKeys": ["PROJ1", "PROJ2"],
+    "maxResults": 50
+  }
+}
+```
+
+### Work with Boards and Sprints
+
+```javascript
+// List boards for a project
+{
+  "tool": "list_jira_boards",
+  "arguments": {
+    "projectKeyOrId": "PROJ",
+    "type": "scrum"
+  }
+}
+
+// Get active sprints for a board
+{
+  "tool": "list_jira_sprints",
+  "arguments": {
+    "boardId": 123,
+    "state": "active"
   }
 }
 ```
