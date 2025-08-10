@@ -20,9 +20,30 @@ import {
   JiraProject,
   JiraUser,
   JiraBoard,
-  JiraSprint
+  JiraSprint,
+  WorklogEntry,
+  UserJiraWorklogResponse,
+  UserIssueSearchResponse,
+  IssueSearchResult,
+  UserProfileResponse
 } from '../types/index.js';
 import { formatApiError } from '../utils/http-client.js';
+import { 
+  JqlBuilder, 
+  validateAccountId, 
+  validateProjectKeys,
+  escapeJqlString 
+} from '../utils/jql-sanitizer.js';
+import {
+  validatePagination,
+  validateDateRange,
+  validateStringArray,
+  validateEnum,
+  validateUserIdentification
+} from '../utils/input-validator.js';
+import { getUserCache, createCacheKey, CachedUser } from '../utils/user-cache.js';
+import { createEnhancedError, createValidationError, createUserNotFoundError } from '../utils/error-handler.js';
+import { formatSeconds } from '../utils/time-formatter.js';
 
 export class JiraHandlers {
   constructor(private client: AxiosInstance) {}
@@ -600,14 +621,42 @@ export class JiraHandlers {
   async getJiraUser(args: GetJiraUserArgs): Promise<CallToolResult> {
     try {
       const { username, accountId, email } = args;
+      const cache = getUserCache();
       
-      // Search for user - Jira API is different from Confluence
+      // Try cache first
+      let cacheKey: string;
+      try {
+        cacheKey = createCacheKey({ username, accountId, email });
+        const cachedUser = cache.get(cacheKey);
+        if (cachedUser) {
+          const result = {
+            accountId: cachedUser.accountId,
+            displayName: cachedUser.displayName,
+            emailAddress: cachedUser.emailAddress,
+            active: cachedUser.active,
+            timeZone: cachedUser.timeZone,
+            accountType: cachedUser.accountType,
+            avatarUrls: cachedUser.avatarUrls,
+            profileUrl: `${this.client.defaults.baseURL}/people/${cachedUser.accountId}`,
+            source: 'cache'
+          };
+          
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          };
+        }
+      } catch (e) {
+        // Invalid cache key, proceed with API lookup
+      }
+      
+      // Prioritize accountId lookup (most secure)
       let user: JiraUser | null = null;
       
       if (accountId) {
         try {
+          const validatedAccountId = validateAccountId(accountId);
           const response = await this.client.get(`/rest/api/3/user`, {
-            params: { accountId }
+            params: { accountId: validatedAccountId }
           });
           user = response.data;
         } catch (e) {
@@ -615,40 +664,48 @@ export class JiraHandlers {
         }
       }
       
+      // Fallback to username search with strict matching (deprecated - warn user)
       if (!user && username) {
         try {
           const response = await this.client.get('/rest/api/3/user/search', {
-            params: { query: username, maxResults: 1 }
+            params: { query: escapeJqlString(username), maxResults: 10 }
           });
+          
           if (response.data && response.data.length > 0) {
-            user = response.data[0];
+            // Strict matching: find exact match by displayName or accountId
+            user = response.data.find((u: JiraUser) => 
+              u.displayName === username ||
+              u.accountId === username
+            ) || null;
+            
+            // Warn about deprecated username usage
+            if (user) {
+              console.warn(`Warning: Username lookup is deprecated. Use accountId '${user.accountId}' instead.`);
+            }
           }
         } catch (e) {
           // User not found by username
         }
       }
       
+      // Email search removed for privacy reasons - accountId should be used instead
       if (!user && email) {
-        try {
-          const response = await this.client.get('/rest/api/3/user/search', {
-            params: { query: email, maxResults: 1 }
-          });
-          if (response.data && response.data.length > 0) {
-            user = response.data[0];
-          }
-        } catch (e) {
-          // User not found by email
-        }
-      }
-      
-      if (!user) {
         return {
-          content: [{ type: 'text', text: 'User not found' }],
+          content: [{ 
+            type: 'text', 
+            text: 'Email-based user lookup has been disabled for privacy reasons. Please use accountId instead.' 
+          }],
           isError: true,
         };
       }
       
-      const result = {
+      if (!user) {
+        const identifier = accountId || username || email || 'unknown';
+        return createUserNotFoundError(identifier, 'jira');
+      }
+      
+      // Cache the user data for future lookups
+      const cachedUserData: Omit<CachedUser, 'cachedAt'> = {
         accountId: user.accountId,
         displayName: user.displayName,
         emailAddress: user.emailAddress,
@@ -656,17 +713,33 @@ export class JiraHandlers {
         timeZone: user.timeZone,
         accountType: user.accountType,
         avatarUrls: user.avatarUrls,
+      };
+      cache.set(cachedUserData);
+      
+      const result = {
+        ...cachedUserData,
         profileUrl: `${this.client.defaults.baseURL}/people/${user.accountId}`,
+        source: 'api'
       };
 
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
       };
     } catch (error) {
-      return {
-        content: [{ type: 'text', text: formatApiError(error) }],
-        isError: true,
-      };
+      return createEnhancedError(error, {
+        operation: 'get user profile',
+        component: 'jira',
+        userInput: { 
+          username: args.username, 
+          accountId: args.accountId, 
+          email: args.email 
+        },
+        suggestions: [
+          'Verify the user identifier is correct',
+          'Use accountId for best performance and security',
+          'Check that the user exists in your Atlassian instance'
+        ]
+      });
     }
   }
 
@@ -692,34 +765,46 @@ export class JiraHandlers {
         };
       }
       
-      // Build JQL query based on search type
-      let jql = '';
+      // Validate and sanitize inputs
+      const validatedAccountId = validateAccountId(userAccountId);
+      const jqlBuilder = new JqlBuilder();
+      
+      // Build JQL query based on search type using secure builder
       if (searchType === 'assignee') {
-        jql = `assignee = "${userAccountId}"`;
+        jqlBuilder.equals('assignee', validatedAccountId);
       } else if (searchType === 'reporter') {
-        jql = `reporter = "${userAccountId}"`;
+        jqlBuilder.equals('reporter', validatedAccountId);
       } else if (searchType === 'creator') {
-        jql = `creator = "${userAccountId}"`;
+        jqlBuilder.equals('creator', validatedAccountId);
       } else if (searchType === 'watcher') {
-        jql = `watcher = "${userAccountId}"`;
-      } else {
-        jql = `(assignee = "${userAccountId}" OR reporter = "${userAccountId}" OR creator = "${userAccountId}" OR watcher = "${userAccountId}")`;
+        jqlBuilder.equals('watcher', validatedAccountId);
+      } else if (searchType === 'all') {
+        jqlBuilder.orEquals(['assignee', 'reporter', 'creator', 'watcher'], validatedAccountId);
       }
       
+      // Add project filter if specified
       if (projectKeys && projectKeys.length > 0) {
-        const projectFilter = projectKeys.map(key => `"${key}"`).join(', ');
-        jql = `project in (${projectFilter}) AND ${jql}`;
+        const validatedProjectKeys = validateProjectKeys(projectKeys);
+        jqlBuilder.in('project', validatedProjectKeys);
       }
       
+      // Add status filter if specified
       if (status) {
-        jql += ` AND status = "${status}"`;
+        jqlBuilder.equals('status', status);
       }
       
+      // Add issue type filter if specified  
       if (issueType) {
-        jql += ` AND issuetype = "${issueType}"`;
+        jqlBuilder.equals('issuetype', issueType);
       }
       
-      jql += ' ORDER BY updated DESC';
+      // Build final JQL with ordering
+      let jql = jqlBuilder.build();
+      if (jql) {
+        jql += ' ORDER BY updated DESC';
+      } else {
+        throw new Error('Invalid search criteria provided');
+      }
 
       const response = await this.client.get('/rest/api/3/search', {
         params: {
@@ -768,10 +853,58 @@ export class JiraHandlers {
     try {
       const { username, accountId, role, projectKeys, startDate, endDate, maxResults = 50, startAt = 0 } = args;
       
+      // Validate inputs
+      const userValidation = validateUserIdentification({ username, accountId });
+      if (!userValidation.isValid) {
+        return {
+          content: [{ type: 'text', text: `Input validation failed: ${userValidation.errors.join(', ')}` }],
+          isError: true,
+        };
+      }
+      
+      const roleValidation = validateEnum(role, 'role', ['assignee', 'reporter', 'creator'], true);
+      if (!roleValidation.isValid) {
+        return {
+          content: [{ type: 'text', text: `Role validation failed: ${roleValidation.errors.join(', ')}` }],
+          isError: true,
+        };
+      }
+      
+      const paginationValidation = validatePagination(startAt, maxResults);
+      if (!paginationValidation.isValid) {
+        return {
+          content: [{ type: 'text', text: `Pagination validation failed: ${paginationValidation.errors.join(', ')}` }],
+          isError: true,
+        };
+      }
+      
+      const dateValidation = validateDateRange(startDate, endDate);
+      if (!dateValidation.isValid) {
+        return {
+          content: [{ type: 'text', text: `Date validation failed: ${dateValidation.errors.join(', ')}` }],
+          isError: true,
+        };
+      }
+      
+      let validatedProjectKeys: string[] | undefined;
+      if (projectKeys) {
+        const projectValidation = validateStringArray(projectKeys, 'projectKeys', {
+          pattern: /^[A-Z0-9]{1,10}$/,
+          maxItems: 20
+        });
+        if (!projectValidation.isValid) {
+          return {
+            content: [{ type: 'text', text: `Project keys validation failed: ${projectValidation.errors.join(', ')}` }],
+            isError: true,
+          };
+        }
+        validatedProjectKeys = projectValidation.sanitizedValue;
+      }
+      
       // Get user's accountId if not provided
-      let userAccountId = accountId;
-      if (!userAccountId && username) {
-        const userResult = await this.getJiraUser({ username });
+      let userAccountId = userValidation.sanitizedValue?.accountId;
+      if (!userAccountId && userValidation.sanitizedValue?.username) {
+        const userResult = await this.getJiraUser({ username: userValidation.sanitizedValue.username });
         if (userResult.isError) {
           return userResult;
         }
@@ -781,34 +914,32 @@ export class JiraHandlers {
       
       if (!userAccountId) {
         return {
-          content: [{ type: 'text', text: 'User account ID or username is required' }],
+          content: [{ type: 'text', text: 'Could not resolve user account ID' }],
           isError: true,
         };
       }
       
-      // Build JQL query
-      let jql = `${role} = "${userAccountId}"`;
+      // Build secure JQL query using JQL Builder
+      const jqlBuilder = new JqlBuilder();
+      const validatedAccountId = validateAccountId(userAccountId);
       
-      if (projectKeys && projectKeys.length > 0) {
-        const projectFilter = projectKeys.map(key => `"${key}"`).join(', ');
-        jql = `project in (${projectFilter}) AND ${jql}`;
+      jqlBuilder.equals(roleValidation.sanitizedValue!, validatedAccountId);
+      
+      if (validatedProjectKeys && validatedProjectKeys.length > 0) {
+        jqlBuilder.in('project', validatedProjectKeys);
       }
       
-      if (startDate && endDate) {
-        jql += ` AND created >= "${startDate}" AND created <= "${endDate}"`;
-      } else if (startDate) {
-        jql += ` AND created >= "${startDate}"`;
-      } else if (endDate) {
-        jql += ` AND created <= "${endDate}"`;
+      if (dateValidation.sanitizedValue) {
+        jqlBuilder.dateRange('created', dateValidation.sanitizedValue.startDate, dateValidation.sanitizedValue.endDate);
       }
       
-      jql += ' ORDER BY created DESC';
+      const jql = jqlBuilder.build() + ' ORDER BY created DESC';
 
       const response = await this.client.get('/rest/api/3/search', {
         params: {
           jql,
-          maxResults: Math.min(maxResults, 100),
-          startAt,
+          maxResults: paginationValidation.sanitizedValue!.maxResults,
+          startAt: paginationValidation.sanitizedValue!.startAt,
           fields: 'summary,status,priority,issuetype,assignee,reporter,created,updated,project,resolution',
         },
       });
@@ -988,10 +1119,50 @@ export class JiraHandlers {
     try {
       const { username, accountId, startDate, endDate, projectKeys, maxResults = 50, startAt = 0 } = args;
       
-      // Get user's accountId if not provided
-      let userAccountId = accountId;
-      if (!userAccountId && username) {
-        const userResult = await this.getJiraUser({ username });
+      // Validate inputs
+      const userValidation = validateUserIdentification({ username, accountId });
+      if (!userValidation.isValid) {
+        return {
+          content: [{ type: 'text', text: `Input validation failed: ${userValidation.errors.join(', ')}` }],
+          isError: true,
+        };
+      }
+      
+      const paginationValidation = validatePagination(startAt, maxResults);
+      if (!paginationValidation.isValid) {
+        return {
+          content: [{ type: 'text', text: `Pagination validation failed: ${paginationValidation.errors.join(', ')}` }],
+          isError: true,
+        };
+      }
+      
+      const dateValidation = validateDateRange(startDate, endDate);
+      if (!dateValidation.isValid) {
+        return {
+          content: [{ type: 'text', text: `Date validation failed: ${dateValidation.errors.join(', ')}` }],
+          isError: true,
+        };
+      }
+      
+      let validatedProjectKeys: string[] | undefined;
+      if (projectKeys) {
+        const projectValidation = validateStringArray(projectKeys, 'projectKeys', {
+          pattern: /^[A-Z0-9]{1,10}$/,
+          maxItems: 20
+        });
+        if (!projectValidation.isValid) {
+          return {
+            content: [{ type: 'text', text: `Project keys validation failed: ${projectValidation.errors.join(', ')}` }],
+            isError: true,
+          };
+        }
+        validatedProjectKeys = projectValidation.sanitizedValue;
+      }
+      
+      // Get user's accountId if not provided (with caching)
+      let userAccountId = userValidation.sanitizedValue?.accountId;
+      if (!userAccountId && userValidation.sanitizedValue?.username) {
+        const userResult = await this.getJiraUser({ username: userValidation.sanitizedValue.username });
         if (userResult.isError) {
           return userResult;
         }
@@ -1001,55 +1172,63 @@ export class JiraHandlers {
       
       if (!userAccountId) {
         return {
-          content: [{ type: 'text', text: 'User account ID or username is required' }],
+          content: [{ type: 'text', text: 'Could not resolve user account ID' }],
           isError: true,
         };
       }
       
-      // Build JQL to find issues with worklogs
-      let jql = `worklogAuthor = "${userAccountId}"`;
+      // Build secure JQL query using JQL Builder
+      const jqlBuilder = new JqlBuilder();
+      const validatedAccountId = validateAccountId(userAccountId);
       
-      if (projectKeys && projectKeys.length > 0) {
-        const projectFilter = projectKeys.map(key => `"${key}"`).join(', ');
-        jql = `project in (${projectFilter}) AND ${jql}`;
+      jqlBuilder.equals('worklogAuthor', validatedAccountId);
+      
+      if (validatedProjectKeys && validatedProjectKeys.length > 0) {
+        jqlBuilder.in('project', validatedProjectKeys);
       }
       
-      if (startDate && endDate) {
-        jql += ` AND worklogDate >= "${startDate}" AND worklogDate <= "${endDate}"`;
-      } else if (startDate) {
-        jql += ` AND worklogDate >= "${startDate}"`;
-      } else if (endDate) {
-        jql += ` AND worklogDate <= "${endDate}"`;
+      // Add date filtering for worklog dates (optimized for performance)
+      if (dateValidation.sanitizedValue) {
+        if (dateValidation.sanitizedValue.startDate) {
+          jqlBuilder.raw(`worklogDate >= "${dateValidation.sanitizedValue.startDate}"`);
+        }
+        if (dateValidation.sanitizedValue.endDate) {
+          jqlBuilder.raw(`worklogDate <= "${dateValidation.sanitizedValue.endDate}"`);
+        }
       }
+      
+      const jql = jqlBuilder.build();
 
+      // Use batch API call with worklog expansion for optimal performance
       const response = await this.client.get('/rest/api/3/search', {
         params: {
           jql,
-          maxResults: Math.min(maxResults, 100),
-          startAt,
+          maxResults: paginationValidation.sanitizedValue!.maxResults,
+          startAt: paginationValidation.sanitizedValue!.startAt,
           fields: 'summary,project,worklog',
-          expand: 'worklog',
+          expand: 'worklog', // Efficient batch loading of worklogs
         },
       });
 
-      const worklogs: any[] = [];
+      const worklogs: WorklogEntry[] = [];
       let totalTimeSpent = 0;
       
       for (const issue of response.data.issues) {
         if (issue.fields.worklog?.worklogs) {
           for (const worklog of issue.fields.worklog.worklogs) {
             if (worklog.author?.accountId === userAccountId) {
-              worklogs.push({
+              const worklogEntry: WorklogEntry = {
                 issueKey: issue.key,
-                summary: issue.fields.summary,
-                project: issue.fields.project?.key,
+                summary: issue.fields.summary || 'No summary',
+                project: issue.fields.project?.key || 'Unknown',
                 started: worklog.started,
                 timeSpent: worklog.timeSpent,
-                timeSpentSeconds: worklog.timeSpentSeconds,
-                comment: worklog.comment?.content?.[0]?.content?.[0]?.text || worklog.comment,
+                timeSpentSeconds: worklog.timeSpentSeconds || 0,
+                comment: worklog.comment?.content?.[0]?.content?.[0]?.text || worklog.comment || '',
                 created: worklog.created,
                 updated: worklog.updated,
-              });
+              };
+              worklogs.push(worklogEntry);
               totalTimeSpent += worklog.timeSpentSeconds || 0;
             }
           }
@@ -1059,41 +1238,32 @@ export class JiraHandlers {
       // Sort worklogs by date
       worklogs.sort((a, b) => new Date(b.started).getTime() - new Date(a.started).getTime());
 
-      const resultData = {
+      const resultData: UserJiraWorklogResponse = {
         user: userAccountId,
         dateRange: {
-          start: startDate || 'unlimited',
-          end: endDate || 'unlimited'
+          start: dateValidation.sanitizedValue?.startDate || 'unlimited',
+          end: dateValidation.sanitizedValue?.endDate || 'unlimited'
         },
         totalWorklogs: worklogs.length,
         totalTimeSpentSeconds: totalTimeSpent,
-        totalTimeSpentFormatted: this.formatSeconds(totalTimeSpent),
-        worklogs: worklogs.slice(0, maxResults),
+        totalTimeSpentFormatted: formatSeconds(totalTimeSpent),
+        worklogs: worklogs.slice(0, paginationValidation.sanitizedValue!.maxResults),
       };
 
       return {
         content: [{ type: 'text', text: JSON.stringify(resultData, null, 2) }],
       };
     } catch (error) {
-      return {
-        content: [{ type: 'text', text: formatApiError(error) }],
-        isError: true,
-      };
-    }
-  }
-
-  private formatSeconds(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const days = Math.floor(hours / 8); // Assuming 8-hour work day
-    const remainingHours = hours % 8;
-    
-    if (days > 0) {
-      return `${days}d ${remainingHours}h ${minutes}m`;
-    } else if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    } else {
-      return `${minutes}m`;
+      return createEnhancedError(error, {
+        operation: 'get user worklog',
+        component: 'jira',
+        userInput: { username: args.username, accountId: args.accountId },
+        suggestions: [
+          'Verify the user exists and has logged work',
+          'Check date range is reasonable (not too large)',
+          'Ensure you have permission to view worklogs'
+        ]
+      });
     }
   }
 }

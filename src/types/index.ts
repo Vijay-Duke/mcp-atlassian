@@ -440,3 +440,69 @@ export interface AtlassianErrorResponse {
     [key: string]: string;
   };
 }
+
+// Response interfaces for better type safety
+export interface WorklogEntry {
+  issueKey: string;
+  summary: string;
+  project: string;
+  started: string;
+  timeSpent: string;
+  timeSpentSeconds: number;
+  comment?: string;
+  created: string;
+  updated: string;
+}
+
+export interface UserJiraWorklogResponse {
+  user: string;
+  dateRange: {
+    start: string;
+    end: string;
+  };
+  totalWorklogs: number;
+  totalTimeSpentSeconds: number;
+  totalTimeSpentFormatted: string;
+  worklogs: WorklogEntry[];
+}
+
+export interface UserIssueSearchResponse {
+  searchType: string;
+  user: string;
+  totalIssues: number;
+  startAt: number;
+  maxResults: number;
+  issues: IssueSearchResult[];
+}
+
+export interface IssueSearchResult {
+  key: string;
+  summary: string;
+  status?: string;
+  priority?: string;
+  issueType?: string;
+  assignee?: string;
+  reporter?: string;
+  project?: string;
+  resolution?: string;
+  created: string;
+  updated: string;
+  webUrl: string;
+}
+
+export interface UserProfileResponse {
+  accountId: string;
+  displayName: string;
+  emailAddress?: string;
+  active: boolean;
+  timeZone?: string;
+  accountType?: string;
+  avatarUrls?: {
+    '48x48': string;
+    '24x24': string;
+    '16x16': string;
+    '32x32': string;
+  };
+  profileUrl: string;
+  source: 'api' | 'cache';
+}
