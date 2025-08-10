@@ -226,6 +226,54 @@ export interface GetMyOpenIssuesArgs {
   maxResults?: number;
 }
 
+export interface GetJiraUserArgs {
+  username?: string;
+  accountId?: string;
+  email?: string;
+}
+
+export interface SearchJiraIssuesByUserArgs {
+  username?: string;
+  accountId?: string;
+  searchType: 'assignee' | 'reporter' | 'creator' | 'watcher' | 'all';
+  projectKeys?: string[];
+  status?: string;
+  issueType?: string;
+  maxResults?: number;
+  startAt?: number;
+}
+
+export interface ListUserJiraIssuesArgs {
+  username?: string;
+  accountId?: string;
+  role: 'assignee' | 'reporter' | 'creator';
+  projectKeys?: string[];
+  startDate?: string;
+  endDate?: string;
+  maxResults?: number;
+  startAt?: number;
+}
+
+export interface GetUserJiraActivityArgs {
+  username?: string;
+  accountId?: string;
+  activityType?: 'comments' | 'transitions' | 'all';
+  projectKeys?: string[];
+  days?: number;
+  maxResults?: number;
+  startAt?: number;
+}
+
+export interface GetUserJiraWorklogArgs {
+  username?: string;
+  accountId?: string;
+  startDate?: string;
+  endDate?: string;
+  projectKeys?: string[];
+  maxResults?: number;
+  startAt?: number;
+}
+
 export interface ConfluencePage {
   id: string;
   type: string;

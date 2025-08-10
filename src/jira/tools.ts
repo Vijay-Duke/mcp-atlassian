@@ -10,6 +10,212 @@ export const jiraTools: Tool[] = [
     },
   },
   {
+    name: 'get_jira_user',
+    description: 'Get details for a specific Jira user by username, account ID, or email. Returns user profile information.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        username: {
+          type: 'string',
+          description: 'The username to search for.',
+        },
+        accountId: {
+          type: 'string',
+          description: 'The Atlassian account ID of the user.',
+        },
+        email: {
+          type: 'string',
+          description: 'The email address of the user.',
+        },
+      },
+    },
+  },
+  {
+    name: 'search_jira_issues_by_user',
+    description: 'Search issues by user involvement. Can filter by assignee, reporter, creator, watcher, or all.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        username: {
+          type: 'string',
+          description: 'The username of the user (alternative to accountId).',
+        },
+        accountId: {
+          type: 'string',
+          description: 'The Atlassian account ID of the user.',
+        },
+        searchType: {
+          type: 'string',
+          enum: ['assignee', 'reporter', 'creator', 'watcher', 'all'],
+          description: 'Type of user involvement to search for.',
+        },
+        projectKeys: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional list of project keys to filter results.',
+        },
+        status: {
+          type: 'string',
+          description: 'Filter by issue status (e.g., "Open", "In Progress", "Done").',
+        },
+        issueType: {
+          type: 'string',
+          description: 'Filter by issue type (e.g., "Bug", "Task", "Story").',
+        },
+        maxResults: {
+          type: 'number',
+          description: 'The maximum number of issues to return. Default is 50, maximum is 100.',
+          default: 50,
+          minimum: 1,
+          maximum: 100,
+        },
+        startAt: {
+          type: 'number',
+          description: 'The starting index for pagination. Default is 0.',
+          default: 0,
+        },
+      },
+      required: ['searchType'],
+    },
+  },
+  {
+    name: 'list_user_jira_issues',
+    description: 'List issues for a specific user role (assignee, reporter, or creator) with optional date filtering.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        username: {
+          type: 'string',
+          description: 'The username of the user (alternative to accountId).',
+        },
+        accountId: {
+          type: 'string',
+          description: 'The Atlassian account ID of the user.',
+        },
+        role: {
+          type: 'string',
+          enum: ['assignee', 'reporter', 'creator'],
+          description: 'The role of the user in relation to the issues.',
+        },
+        projectKeys: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional list of project keys to filter results.',
+        },
+        startDate: {
+          type: 'string',
+          description: 'Start date for filtering issues (format: YYYY-MM-DD).',
+        },
+        endDate: {
+          type: 'string',
+          description: 'End date for filtering issues (format: YYYY-MM-DD).',
+        },
+        maxResults: {
+          type: 'number',
+          description: 'The maximum number of issues to return. Default is 50, maximum is 100.',
+          default: 50,
+          minimum: 1,
+          maximum: 100,
+        },
+        startAt: {
+          type: 'number',
+          description: 'The starting index for pagination. Default is 0.',
+          default: 0,
+        },
+      },
+      required: ['role'],
+    },
+  },
+  {
+    name: 'get_user_jira_activity',
+    description: 'Get recent activity for a user including comments, status changes, and issue updates.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        username: {
+          type: 'string',
+          description: 'The username of the user (alternative to accountId).',
+        },
+        accountId: {
+          type: 'string',
+          description: 'The Atlassian account ID of the user.',
+        },
+        activityType: {
+          type: 'string',
+          enum: ['comments', 'transitions', 'all'],
+          description: 'Type of activity to retrieve. Default is "all".',
+          default: 'all',
+        },
+        projectKeys: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional list of project keys to filter results.',
+        },
+        days: {
+          type: 'number',
+          description: 'Number of days to look back for activity. Default is 30.',
+          default: 30,
+          minimum: 1,
+          maximum: 365,
+        },
+        maxResults: {
+          type: 'number',
+          description: 'The maximum number of activities to return. Default is 50, maximum is 100.',
+          default: 50,
+          minimum: 1,
+          maximum: 100,
+        },
+        startAt: {
+          type: 'number',
+          description: 'The starting index for pagination. Default is 0.',
+          default: 0,
+        },
+      },
+    },
+  },
+  {
+    name: 'get_user_jira_worklog',
+    description: 'Get work logs for a specific user, showing time tracking entries.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        username: {
+          type: 'string',
+          description: 'The username of the user (alternative to accountId).',
+        },
+        accountId: {
+          type: 'string',
+          description: 'The Atlassian account ID of the user.',
+        },
+        startDate: {
+          type: 'string',
+          description: 'Start date for filtering worklogs (format: YYYY-MM-DD).',
+        },
+        endDate: {
+          type: 'string',
+          description: 'End date for filtering worklogs (format: YYYY-MM-DD).',
+        },
+        projectKeys: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional list of project keys to filter results.',
+        },
+        maxResults: {
+          type: 'number',
+          description: 'The maximum number of worklogs to return. Default is 50, maximum is 100.',
+          default: 50,
+          minimum: 1,
+          maximum: 100,
+        },
+        startAt: {
+          type: 'number',
+          description: 'The starting index for pagination. Default is 0.',
+          default: 0,
+        },
+      },
+    },
+  },
+  {
     name: 'read_jira_issue',
     description: 'Retrieves detailed information about a specific Jira issue, including its fields, status, and transitions. Use this to get the full picture of a single issue.',
     inputSchema: {

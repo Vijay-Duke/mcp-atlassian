@@ -44,6 +44,11 @@ import {
   GetJiraSprintArgs,
   GetMyTasksInCurrentSprintArgs,
   GetMyOpenIssuesArgs,
+  GetJiraUserArgs,
+  SearchJiraIssuesByUserArgs,
+  ListUserJiraIssuesArgs,
+  GetUserJiraActivityArgs,
+  GetUserJiraWorklogArgs,
 } from './types/index.js';
 
 class AtlassianMCPServer {
@@ -221,6 +226,26 @@ class AtlassianMCPServer {
           case 'get_my_open_issues':
             return await this.jiraHandlers.getMyOpenIssues(
               request.params.arguments as unknown as GetMyOpenIssuesArgs
+            );
+          case 'get_jira_user':
+            return await this.jiraHandlers.getJiraUser(
+              request.params.arguments as unknown as GetJiraUserArgs
+            );
+          case 'search_jira_issues_by_user':
+            return await this.jiraHandlers.searchJiraIssuesByUser(
+              request.params.arguments as unknown as SearchJiraIssuesByUserArgs
+            );
+          case 'list_user_jira_issues':
+            return await this.jiraHandlers.listUserJiraIssues(
+              request.params.arguments as unknown as ListUserJiraIssuesArgs
+            );
+          case 'get_user_jira_activity':
+            return await this.jiraHandlers.getUserJiraActivity(
+              request.params.arguments as unknown as GetUserJiraActivityArgs
+            );
+          case 'get_user_jira_worklog':
+            return await this.jiraHandlers.getUserJiraWorklog(
+              request.params.arguments as unknown as GetUserJiraWorklogArgs
             );
 
           default:

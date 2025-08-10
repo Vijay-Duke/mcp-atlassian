@@ -11,6 +11,11 @@ import {
   GetJiraSprintArgs,
   GetMyTasksInCurrentSprintArgs,
   GetMyOpenIssuesArgs,
+  GetJiraUserArgs,
+  SearchJiraIssuesByUserArgs,
+  ListUserJiraIssuesArgs,
+  GetUserJiraActivityArgs,
+  GetUserJiraWorklogArgs,
   JiraIssue,
   JiraProject,
   JiraUser,
@@ -589,6 +594,506 @@ export class JiraHandlers {
         content: [{ type: 'text', text: formatApiError(error) }],
         isError: true,
       };
+    }
+  }
+
+  async getJiraUser(args: GetJiraUserArgs): Promise<CallToolResult> {
+    try {
+      const { username, accountId, email } = args;
+      
+      // Search for user - Jira API is different from Confluence
+      let user: JiraUser | null = null;
+      
+      if (accountId) {
+        try {
+          const response = await this.client.get(`/rest/api/3/user`, {
+            params: { accountId }
+          });
+          user = response.data;
+        } catch (e) {
+          // User not found by accountId
+        }
+      }
+      
+      if (!user && username) {
+        try {
+          const response = await this.client.get('/rest/api/3/user/search', {
+            params: { query: username, maxResults: 1 }
+          });
+          if (response.data && response.data.length > 0) {
+            user = response.data[0];
+          }
+        } catch (e) {
+          // User not found by username
+        }
+      }
+      
+      if (!user && email) {
+        try {
+          const response = await this.client.get('/rest/api/3/user/search', {
+            params: { query: email, maxResults: 1 }
+          });
+          if (response.data && response.data.length > 0) {
+            user = response.data[0];
+          }
+        } catch (e) {
+          // User not found by email
+        }
+      }
+      
+      if (!user) {
+        return {
+          content: [{ type: 'text', text: 'User not found' }],
+          isError: true,
+        };
+      }
+      
+      const result = {
+        accountId: user.accountId,
+        displayName: user.displayName,
+        emailAddress: user.emailAddress,
+        active: user.active,
+        timeZone: user.timeZone,
+        accountType: user.accountType,
+        avatarUrls: user.avatarUrls,
+        profileUrl: `${this.client.defaults.baseURL}/people/${user.accountId}`,
+      };
+
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    } catch (error) {
+      return {
+        content: [{ type: 'text', text: formatApiError(error) }],
+        isError: true,
+      };
+    }
+  }
+
+  async searchJiraIssuesByUser(args: SearchJiraIssuesByUserArgs): Promise<CallToolResult> {
+    try {
+      const { username, accountId, searchType, projectKeys, status, issueType, maxResults = 50, startAt = 0 } = args;
+      
+      // Get user's accountId if not provided
+      let userAccountId = accountId;
+      if (!userAccountId && username) {
+        const userResult = await this.getJiraUser({ username });
+        if (userResult.isError) {
+          return userResult;
+        }
+        const userData = JSON.parse((userResult.content[0] as any).text);
+        userAccountId = userData.accountId;
+      }
+      
+      if (!userAccountId) {
+        return {
+          content: [{ type: 'text', text: 'User account ID or username is required' }],
+          isError: true,
+        };
+      }
+      
+      // Build JQL query based on search type
+      let jql = '';
+      if (searchType === 'assignee') {
+        jql = `assignee = "${userAccountId}"`;
+      } else if (searchType === 'reporter') {
+        jql = `reporter = "${userAccountId}"`;
+      } else if (searchType === 'creator') {
+        jql = `creator = "${userAccountId}"`;
+      } else if (searchType === 'watcher') {
+        jql = `watcher = "${userAccountId}"`;
+      } else {
+        jql = `(assignee = "${userAccountId}" OR reporter = "${userAccountId}" OR creator = "${userAccountId}" OR watcher = "${userAccountId}")`;
+      }
+      
+      if (projectKeys && projectKeys.length > 0) {
+        const projectFilter = projectKeys.map(key => `"${key}"`).join(', ');
+        jql = `project in (${projectFilter}) AND ${jql}`;
+      }
+      
+      if (status) {
+        jql += ` AND status = "${status}"`;
+      }
+      
+      if (issueType) {
+        jql += ` AND issuetype = "${issueType}"`;
+      }
+      
+      jql += ' ORDER BY updated DESC';
+
+      const response = await this.client.get('/rest/api/3/search', {
+        params: {
+          jql,
+          maxResults: Math.min(maxResults, 100),
+          startAt,
+          fields: 'summary,status,priority,issuetype,assignee,reporter,created,updated,project',
+        },
+      });
+
+      const issues = response.data.issues.map((issue: JiraIssue) => ({
+        key: issue.key,
+        summary: issue.fields.summary,
+        status: issue.fields.status?.name,
+        priority: issue.fields.priority?.name,
+        issueType: issue.fields.issuetype?.name,
+        assignee: issue.fields.assignee?.displayName,
+        reporter: issue.fields.reporter?.displayName,
+        project: issue.fields.project?.key,
+        created: issue.fields.created,
+        updated: issue.fields.updated,
+        webUrl: `${this.client.defaults.baseURL}/browse/${issue.key}`,
+      }));
+
+      const resultData = {
+        searchType,
+        user: userAccountId,
+        totalIssues: response.data.total,
+        startAt: response.data.startAt,
+        maxResults: response.data.maxResults,
+        issues,
+      };
+
+      return {
+        content: [{ type: 'text', text: JSON.stringify(resultData, null, 2) }],
+      };
+    } catch (error) {
+      return {
+        content: [{ type: 'text', text: formatApiError(error) }],
+        isError: true,
+      };
+    }
+  }
+
+  async listUserJiraIssues(args: ListUserJiraIssuesArgs): Promise<CallToolResult> {
+    try {
+      const { username, accountId, role, projectKeys, startDate, endDate, maxResults = 50, startAt = 0 } = args;
+      
+      // Get user's accountId if not provided
+      let userAccountId = accountId;
+      if (!userAccountId && username) {
+        const userResult = await this.getJiraUser({ username });
+        if (userResult.isError) {
+          return userResult;
+        }
+        const userData = JSON.parse((userResult.content[0] as any).text);
+        userAccountId = userData.accountId;
+      }
+      
+      if (!userAccountId) {
+        return {
+          content: [{ type: 'text', text: 'User account ID or username is required' }],
+          isError: true,
+        };
+      }
+      
+      // Build JQL query
+      let jql = `${role} = "${userAccountId}"`;
+      
+      if (projectKeys && projectKeys.length > 0) {
+        const projectFilter = projectKeys.map(key => `"${key}"`).join(', ');
+        jql = `project in (${projectFilter}) AND ${jql}`;
+      }
+      
+      if (startDate && endDate) {
+        jql += ` AND created >= "${startDate}" AND created <= "${endDate}"`;
+      } else if (startDate) {
+        jql += ` AND created >= "${startDate}"`;
+      } else if (endDate) {
+        jql += ` AND created <= "${endDate}"`;
+      }
+      
+      jql += ' ORDER BY created DESC';
+
+      const response = await this.client.get('/rest/api/3/search', {
+        params: {
+          jql,
+          maxResults: Math.min(maxResults, 100),
+          startAt,
+          fields: 'summary,status,priority,issuetype,assignee,reporter,created,updated,project,resolution',
+        },
+      });
+
+      const issues = response.data.issues.map((issue: JiraIssue) => ({
+        key: issue.key,
+        summary: issue.fields.summary,
+        status: issue.fields.status?.name,
+        priority: issue.fields.priority?.name,
+        issueType: issue.fields.issuetype?.name,
+        assignee: issue.fields.assignee?.displayName,
+        reporter: issue.fields.reporter?.displayName,
+        project: issue.fields.project?.key,
+        resolution: issue.fields.resolution?.name,
+        created: issue.fields.created,
+        updated: issue.fields.updated,
+        webUrl: `${this.client.defaults.baseURL}/browse/${issue.key}`,
+      }));
+
+      const resultData = {
+        role,
+        user: userAccountId,
+        dateRange: {
+          start: startDate || 'unlimited',
+          end: endDate || 'unlimited'
+        },
+        totalIssues: response.data.total,
+        startAt: response.data.startAt,
+        maxResults: response.data.maxResults,
+        issues,
+      };
+
+      return {
+        content: [{ type: 'text', text: JSON.stringify(resultData, null, 2) }],
+      };
+    } catch (error) {
+      return {
+        content: [{ type: 'text', text: formatApiError(error) }],
+        isError: true,
+      };
+    }
+  }
+
+  async getUserJiraActivity(args: GetUserJiraActivityArgs): Promise<CallToolResult> {
+    try {
+      const { username, accountId, activityType = 'all', projectKeys, days = 30, maxResults = 50, startAt = 0 } = args;
+      
+      // Get user's accountId if not provided
+      let userAccountId = accountId;
+      if (!userAccountId && username) {
+        const userResult = await this.getJiraUser({ username });
+        if (userResult.isError) {
+          return userResult;
+        }
+        const userData = JSON.parse((userResult.content[0] as any).text);
+        userAccountId = userData.accountId;
+      }
+      
+      if (!userAccountId) {
+        return {
+          content: [{ type: 'text', text: 'User account ID or username is required' }],
+          isError: true,
+        };
+      }
+      
+      // Calculate date range for activity
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+      
+      // Build JQL query for recent activity
+      let jql = `(assignee = "${userAccountId}" OR reporter = "${userAccountId}" OR creator = "${userAccountId}")`;
+      jql += ` AND updated >= -${days}d`;
+      
+      if (projectKeys && projectKeys.length > 0) {
+        const projectFilter = projectKeys.map(key => `"${key}"`).join(', ');
+        jql = `project in (${projectFilter}) AND ${jql}`;
+      }
+      
+      jql += ' ORDER BY updated DESC';
+
+      const response = await this.client.get('/rest/api/3/search', {
+        params: {
+          jql,
+          maxResults: Math.min(maxResults, 100),
+          startAt,
+          fields: 'summary,status,priority,issuetype,assignee,reporter,created,updated,project,comment,worklog',
+          expand: 'changelog',
+        },
+      });
+
+      // Process issues and extract activity
+      const activity: any[] = [];
+      
+      for (const issue of response.data.issues) {
+        // Add issue updates
+        if (issue.fields.updated) {
+          const updatedDate = new Date(issue.fields.updated);
+          if (updatedDate >= startDate) {
+            activity.push({
+              type: 'issue_updated',
+              issueKey: issue.key,
+              summary: issue.fields.summary,
+              date: issue.fields.updated,
+              project: issue.fields.project?.key,
+            });
+          }
+        }
+        
+        // Add comments if requested
+        if ((activityType === 'comments' || activityType === 'all') && issue.fields.comment?.comments) {
+          for (const comment of issue.fields.comment.comments) {
+            if (comment.author?.accountId === userAccountId) {
+              const commentDate = new Date(comment.created);
+              if (commentDate >= startDate) {
+                activity.push({
+                  type: 'comment',
+                  issueKey: issue.key,
+                  date: comment.created,
+                  body: comment.body?.content?.[0]?.content?.[0]?.text || comment.body,
+                });
+              }
+            }
+          }
+        }
+        
+        // Add transitions if requested
+        if ((activityType === 'transitions' || activityType === 'all') && issue.changelog?.histories) {
+          for (const history of issue.changelog.histories) {
+            if (history.author?.accountId === userAccountId) {
+              const changeDate = new Date(history.created);
+              if (changeDate >= startDate) {
+                for (const item of history.items) {
+                  if (item.field === 'status') {
+                    activity.push({
+                      type: 'status_change',
+                      issueKey: issue.key,
+                      date: history.created,
+                      from: item.fromString,
+                      to: item.toString,
+                    });
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      // Sort activity by date
+      activity.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      const resultData = {
+        user: userAccountId,
+        activityType,
+        dateRange: {
+          start: startDate.toISOString(),
+          end: endDate.toISOString(),
+          days,
+        },
+        totalActivities: activity.length,
+        activities: activity.slice(0, maxResults),
+      };
+
+      return {
+        content: [{ type: 'text', text: JSON.stringify(resultData, null, 2) }],
+      };
+    } catch (error) {
+      return {
+        content: [{ type: 'text', text: formatApiError(error) }],
+        isError: true,
+      };
+    }
+  }
+
+  async getUserJiraWorklog(args: GetUserJiraWorklogArgs): Promise<CallToolResult> {
+    try {
+      const { username, accountId, startDate, endDate, projectKeys, maxResults = 50, startAt = 0 } = args;
+      
+      // Get user's accountId if not provided
+      let userAccountId = accountId;
+      if (!userAccountId && username) {
+        const userResult = await this.getJiraUser({ username });
+        if (userResult.isError) {
+          return userResult;
+        }
+        const userData = JSON.parse((userResult.content[0] as any).text);
+        userAccountId = userData.accountId;
+      }
+      
+      if (!userAccountId) {
+        return {
+          content: [{ type: 'text', text: 'User account ID or username is required' }],
+          isError: true,
+        };
+      }
+      
+      // Build JQL to find issues with worklogs
+      let jql = `worklogAuthor = "${userAccountId}"`;
+      
+      if (projectKeys && projectKeys.length > 0) {
+        const projectFilter = projectKeys.map(key => `"${key}"`).join(', ');
+        jql = `project in (${projectFilter}) AND ${jql}`;
+      }
+      
+      if (startDate && endDate) {
+        jql += ` AND worklogDate >= "${startDate}" AND worklogDate <= "${endDate}"`;
+      } else if (startDate) {
+        jql += ` AND worklogDate >= "${startDate}"`;
+      } else if (endDate) {
+        jql += ` AND worklogDate <= "${endDate}"`;
+      }
+
+      const response = await this.client.get('/rest/api/3/search', {
+        params: {
+          jql,
+          maxResults: Math.min(maxResults, 100),
+          startAt,
+          fields: 'summary,project,worklog',
+          expand: 'worklog',
+        },
+      });
+
+      const worklogs: any[] = [];
+      let totalTimeSpent = 0;
+      
+      for (const issue of response.data.issues) {
+        if (issue.fields.worklog?.worklogs) {
+          for (const worklog of issue.fields.worklog.worklogs) {
+            if (worklog.author?.accountId === userAccountId) {
+              worklogs.push({
+                issueKey: issue.key,
+                summary: issue.fields.summary,
+                project: issue.fields.project?.key,
+                started: worklog.started,
+                timeSpent: worklog.timeSpent,
+                timeSpentSeconds: worklog.timeSpentSeconds,
+                comment: worklog.comment?.content?.[0]?.content?.[0]?.text || worklog.comment,
+                created: worklog.created,
+                updated: worklog.updated,
+              });
+              totalTimeSpent += worklog.timeSpentSeconds || 0;
+            }
+          }
+        }
+      }
+      
+      // Sort worklogs by date
+      worklogs.sort((a, b) => new Date(b.started).getTime() - new Date(a.started).getTime());
+
+      const resultData = {
+        user: userAccountId,
+        dateRange: {
+          start: startDate || 'unlimited',
+          end: endDate || 'unlimited'
+        },
+        totalWorklogs: worklogs.length,
+        totalTimeSpentSeconds: totalTimeSpent,
+        totalTimeSpentFormatted: this.formatSeconds(totalTimeSpent),
+        worklogs: worklogs.slice(0, maxResults),
+      };
+
+      return {
+        content: [{ type: 'text', text: JSON.stringify(resultData, null, 2) }],
+      };
+    } catch (error) {
+      return {
+        content: [{ type: 'text', text: formatApiError(error) }],
+        isError: true,
+      };
+    }
+  }
+
+  private formatSeconds(seconds: number): string {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const days = Math.floor(hours / 8); // Assuming 8-hour work day
+    const remainingHours = hours % 8;
+    
+    if (days > 0) {
+      return `${days}d ${remainingHours}h ${minutes}m`;
+    } else if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else {
+      return `${minutes}m`;
     }
   }
 }

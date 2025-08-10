@@ -196,6 +196,11 @@ You can run the server directly from GitHub without cloning:
 | Tool | Description |
 |------|-------------|
 | `get_jira_current_user` | Get details of the authenticated user |
+| `get_jira_user` | Get details for a specific user |
+| `search_jira_issues_by_user` | Search issues by user involvement |
+| `list_user_jira_issues` | List issues by user role with date filtering |
+| `get_user_jira_activity` | Track user activity including comments and transitions |
+| `get_user_jira_worklog` | Get time tracking entries with formatted totals |
 | `read_jira_issue` | Read issue details by key |
 | `search_jira_issues` | Search issues using JQL |
 | `list_jira_projects` | List all accessible projects |
@@ -297,6 +302,50 @@ You can run the server directly from GitHub without cloning:
   "arguments": {
     "boardId": 123,
     "state": "active"
+  }
+}
+```
+
+### User-Specific Jira Operations
+
+```javascript
+// Get user details
+{
+  "tool": "get_jira_user",
+  "arguments": {
+    "username": "john.doe"
+  }
+}
+
+// Search issues by user involvement
+{
+  "tool": "search_jira_issues_by_user",
+  "arguments": {
+    "username": "john.doe",
+    "searchType": "assignee",
+    "status": "In Progress",
+    "maxResults": 20
+  }
+}
+
+// Get user's work logs
+{
+  "tool": "get_user_jira_worklog",
+  "arguments": {
+    "username": "john.doe",
+    "startDate": "2024-01-01",
+    "endDate": "2024-01-31",
+    "projectKeys": ["PROJ1", "PROJ2"]
+  }
+}
+
+// Track user activity
+{
+  "tool": "get_user_jira_activity",
+  "arguments": {
+    "username": "john.doe",
+    "activityType": "all",
+    "days": 7
   }
 }
 ```
