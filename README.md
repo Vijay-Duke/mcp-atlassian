@@ -20,9 +20,11 @@ A Model Context Protocol (MCP) server for integrating with Atlassian products (C
 
 ## Installation
 
+### Option 1: Clone and Build
+
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/mcp-atlassian.git
+git clone https://github.com/Vijay-Duke/mcp-atlassian.git
 cd mcp-atlassian
 
 # Install dependencies
@@ -30,6 +32,16 @@ npm install
 
 # Build TypeScript
 npm run build
+```
+
+### Option 2: NPM Install (Recommended)
+
+```bash
+# Install globally
+npm install -g mcp-atlassian
+
+# Or install locally in your project
+npm install mcp-atlassian
 ```
 
 ## Configuration
@@ -53,16 +65,19 @@ ATLASSIAN_API_TOKEN=your-api-token
 
 ### MCP Settings Configuration
 
-#### Option 1: Local Installation
+Add to your Claude Desktop config file:
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **Linux**: `~/.config/Claude/claude_desktop_config.json`
 
-Add to your Claude Desktop config file (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+#### Option 1: After npm install -g
 
 ```json
 {
   "mcpServers": {
     "mcp-atlassian": {
-      "command": "/path/to/node",
-      "args": ["/path/to/mcp-atlassian/dist/index.js"],
+      "command": "npx",
+      "args": ["mcp-atlassian"],
       "env": {
         "ATLASSIAN_BASE_URL": "https://yourdomain.atlassian.net",
         "ATLASSIAN_EMAIL": "your-email@example.com",
@@ -73,13 +88,31 @@ Add to your Claude Desktop config file (`~/Library/Application Support/Claude/cl
 }
 ```
 
-**Example with full paths:**
+#### Option 2: From Local Clone
+
 ```json
 {
   "mcpServers": {
     "mcp-atlassian": {
-      "command": "/Users/vijayiyengar/.nvm/versions/node/v22.16.0/bin/node",
-      "args": ["/Users/vijayiyengar/IdeaProjects/mcp-atlassian/dist/index.js"],
+      "command": "node",
+      "args": ["/path/to/your/mcp-atlassian/dist/index.js"],
+      "env": {
+        "ATLASSIAN_BASE_URL": "https://yourdomain.atlassian.net",
+        "ATLASSIAN_EMAIL": "your-email@example.com",
+        "ATLASSIAN_API_TOKEN": "YOUR_API_TOKEN"
+      }
+    }
+  }
+}
+```
+
+**Example with typical paths:**
+```json
+{
+  "mcpServers": {
+    "mcp-atlassian": {
+      "command": "node",
+      "args": ["~/projects/mcp-atlassian/dist/index.js"],
       "env": {
         "ATLASSIAN_BASE_URL": "https://yourdomain.atlassian.net",
         "ATLASSIAN_EMAIL": "your.email@company.com",
@@ -90,7 +123,7 @@ Add to your Claude Desktop config file (`~/Library/Application Support/Claude/cl
 }
 ```
 
-#### Option 2: Direct from GitHub using uvx (Coming Soon)
+#### Option 3: Direct from GitHub using uvx (Coming Soon)
 
 You can run the server directly from GitHub without cloning:
 

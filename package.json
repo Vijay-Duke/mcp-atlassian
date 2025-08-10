@@ -4,6 +4,9 @@
   "description": "MCP server for Atlassian (Confluence and Jira) integration",
   "main": "dist/index.js",
   "type": "module",
+  "bin": {
+    "mcp-atlassian": "./dist/index.js"
+  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
@@ -16,10 +19,21 @@
     "mcp",
     "atlassian",
     "confluence",
-    "jira"
+    "jira",
+    "model-context-protocol",
+    "ai-assistant",
+    "claude"
   ],
-  "author": "",
+  "author": "MCP Atlassian Contributors",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Vijay-Duke/mcp-atlassian.git"
+  },
+  "homepage": "https://github.com/Vijay-Duke/mcp-atlassian#readme",
+  "bugs": {
+    "url": "https://github.com/Vijay-Duke/mcp-atlassian/issues"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.16.0",
     "axios": "^1.11.0",
