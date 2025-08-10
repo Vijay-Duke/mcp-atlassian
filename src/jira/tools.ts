@@ -3,17 +3,17 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 export const jiraTools: Tool[] = [
   {
     name: 'read_jira_issue',
-    description: 'Read details from a Jira issue by issue key',
+    description: 'Retrieves detailed information about a specific Jira issue, including its fields, status, and transitions. Use this to get the full picture of a single issue.',
     inputSchema: {
       type: 'object',
       properties: {
         issueKey: {
           type: 'string',
-          description: 'The Jira issue key (e.g., "PROJ-123")',
+          description: 'The unique identifier for the Jira issue (e.g., "PROJ-123").',
         },
         expand: {
           type: 'string',
-          description: 'Properties to expand (default: fields,transitions,changelog)',
+          description: 'A comma-separated list of additional properties to expand. Common options include `fields`, `transitions`, and `changelog`.',
           default: 'fields,transitions,changelog',
         },
       },
@@ -22,29 +22,29 @@ export const jiraTools: Tool[] = [
   },
   {
     name: 'search_jira_issues',
-    description: 'Search for Jira issues using JQL (Jira Query Language)',
+    description: 'Searches for Jira issues using Jira Query Language (JQL). This is the primary way to find issues that match specific criteria.',
     inputSchema: {
       type: 'object',
       properties: {
         jql: {
           type: 'string',
-          description: 'JQL query string (e.g., "project = PROJ AND status = Open")',
+          description: 'A JQL query string. For example, to find all open issues in project "PROJ", use: `project = PROJ AND status = Open`.',
         },
         maxResults: {
           type: 'number',
-          description: 'Maximum number of results (default: 50, max: 100)',
+          description: 'The maximum number of issues to return. Default is 50, maximum is 100.',
           default: 50,
           minimum: 1,
           maximum: 100,
         },
         startAt: {
           type: 'number',
-          description: 'Starting index for pagination (default: 0)',
+          description: 'The starting index for pagination. Default is 0.',
           default: 0,
         },
         fields: {
           type: 'string',
-          description: 'Fields to include in the response (default: *all)',
+          description: 'A comma-separated list of fields to include for each issue in the response. By default, it returns all fields (`*all`).',
           default: '*all',
         },
       },
@@ -53,13 +53,13 @@ export const jiraTools: Tool[] = [
   },
   {
     name: 'list_jira_projects',
-    description: 'List available Jira projects',
+    description: 'Lists all Jira projects that the user has permission to view. This is useful for discovering available projects to work with.',
     inputSchema: {
       type: 'object',
       properties: {
         expand: {
           type: 'string',
-          description: 'Properties to expand (default: description,lead,issueTypes)',
+          description: 'A comma-separated list of properties to expand for each project. Common options are `description`, `lead`, and `issueTypes`.',
           default: 'description,lead,issueTypes',
         },
       },
@@ -67,47 +67,47 @@ export const jiraTools: Tool[] = [
   },
   {
     name: 'create_jira_issue',
-    description: 'Create a new Jira issue',
+    description: 'Creates a new issue in a Jira project. You must specify the project, issue type, and a summary. Other fields like description, priority, and assignee are optional.',
     inputSchema: {
       type: 'object',
       properties: {
         projectKey: {
           type: 'string',
-          description: 'The project key where the issue will be created',
+          description: 'The key of the project in which the issue will be created (e.g., "PROJ").',
         },
         issueType: {
           type: 'string',
-          description: 'The issue type (e.g., "Bug", "Task", "Story")',
+          description: 'The name of the issue type (e.g., "Bug", "Task", "Story"). This must be a valid issue type in the specified project.',
         },
         summary: {
           type: 'string',
-          description: 'The issue summary/title',
+          description: 'A concise summary or title for the issue.',
         },
         description: {
           type: 'string',
-          description: 'The issue description (optional)',
+          description: 'A detailed description of the issue. Optional.',
         },
         priority: {
           type: 'string',
-          description: 'The priority (e.g., "High", "Medium", "Low")',
+          description: 'The priority level for the issue (e.g., "High", "Medium", "Low"). Must be a valid priority in the project.',
         },
         assignee: {
           type: 'string',
-          description: 'The assignee account ID',
+          description: 'The Atlassian account ID of the user to whom the issue should be assigned.',
         },
         labels: {
           type: 'array',
           items: { type: 'string' },
-          description: 'Labels to add to the issue',
+          description: 'A list of labels to add to the new issue.',
         },
         components: {
           type: 'array',
           items: { type: 'string' },
-          description: 'Component names to add to the issue',
+          description: 'A list of component names to associate with the new issue.',
         },
         customFields: {
           type: 'object',
-          description: 'Custom field values as key-value pairs',
+          description: 'A JSON object for setting custom fields. The keys are the custom field IDs (e.g., "customfield_10010") and the values are the data to be set.',
         },
       },
       required: ['projectKey', 'issueType', 'summary'],
@@ -115,30 +115,30 @@ export const jiraTools: Tool[] = [
   },
   {
     name: 'add_jira_comment',
-    description: 'Add a comment to a Jira issue',
+    description: 'Adds a comment to an existing Jira issue. You can also control the visibility of the comment.',
     inputSchema: {
       type: 'object',
       properties: {
         issueKey: {
           type: 'string',
-          description: 'The Jira issue key (e.g., "PROJ-123")',
+          description: 'The key of the issue to which the comment will be added (e.g., "PROJ-123").',
         },
         body: {
           type: 'string',
-          description: 'The comment text',
+          description: 'The text content of the comment.',
         },
         visibility: {
           type: 'object',
-          description: 'Visibility restrictions for the comment',
+          description: 'An object that sets the visibility of the comment to a specific project role or group. Optional.',
           properties: {
             type: {
               type: 'string',
               enum: ['group', 'role'],
-              description: 'Type of visibility restriction',
+              description: 'The type of visibility restriction.',
             },
             value: {
               type: 'string',
-              description: 'The group name or role name',
+              description: 'The name of the group or project role.',
             },
           },
         },
