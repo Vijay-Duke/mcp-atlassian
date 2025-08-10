@@ -12,6 +12,12 @@ describe('http-client', () => {
 
   describe('createAtlassianClient', () => {
     it('should create client with correct configuration', () => {
+      // Clear proxy environment variables
+      delete process.env.HTTPS_PROXY;
+      delete process.env.https_proxy;
+      delete process.env.HTTP_PROXY;
+      delete process.env.http_proxy;
+      
       process.env.ATLASSIAN_BASE_URL = 'https://test.atlassian.net';
       process.env.ATLASSIAN_EMAIL = 'test@example.com';
       process.env.ATLASSIAN_API_TOKEN = 'test-token';
@@ -37,6 +43,8 @@ describe('http-client', () => {
           'Content-Type': 'application/json',
         },
         timeout: 30000,
+        maxRedirects: 5,
+        validateStatus: expect.any(Function),
       });
       
       expect(mockInterceptors.request.use).toHaveBeenCalled();
@@ -117,12 +125,13 @@ describe('http-client', () => {
       const error = {
         request: {},
         isAxiosError: true,
+        message: 'Network Error',
       } as AxiosError;
       
       (axios.isAxiosError as any) = vi.fn().mockReturnValue(true);
       
       const result = formatApiError(error);
-      expect(result).toBe('Network error: Unable to reach Atlassian API. Please check your connection.');
+      expect(result).toBe('Network error: Unable to reach Atlassian API. Network Error');
     });
 
     it('should format unknown error', () => {

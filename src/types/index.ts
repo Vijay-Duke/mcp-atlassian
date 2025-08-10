@@ -189,6 +189,24 @@ export interface CreateJiraIssueArgs {
   customFields?: Record<string, any>;
 }
 
+export interface JiraIssueCreatePayload {
+  fields: {
+    project: { key: string };
+    issuetype: { name: string };
+    summary: string;
+    description?: {
+      type: 'doc';
+      version: 1;
+      content: any[];
+    };
+    priority?: { name: string };
+    assignee?: { accountId: string };
+    labels?: string[];
+    components?: { name: string }[];
+    [key: string]: any;
+  };
+}
+
 export interface AddJiraCommentArgs {
   issueKey: string;
   body: string;
@@ -196,6 +214,61 @@ export interface AddJiraCommentArgs {
     type: 'group' | 'role';
     value: string;
   };
+}
+
+export interface JiraCommentPayload {
+  body: {
+    type: 'doc';
+    version: 1;
+    content: any[];
+  };
+  visibility?: any;
+}
+
+export interface ConfluencePagePayload {
+  type: string;
+  title: string;
+  space: { key: string };
+  body: {
+    storage: {
+      value: string;
+      representation: 'storage';
+    };
+  };
+  ancestors?: { id: string }[];
+}
+
+export interface ConfluencePageUpdatePayload {
+  id: string;
+  type: string;
+  title: string;
+  space: { key: string };
+  body: {
+    storage: {
+      value: string;
+      representation: 'storage';
+    };
+  };
+  version: {
+    number: number;
+    minorEdit: boolean;
+    message?: string;
+  };
+}
+
+export interface ConfluenceCommentPayload {
+    type: 'comment',
+    container: {
+        id: string;
+        type: 'page',
+    },
+    body: {
+        storage: {
+            value: string;
+            representation: 'storage',
+        },
+    },
+    ancestors?: { id: string }[];
 }
 
 export interface ListJiraBoardsArgs {
