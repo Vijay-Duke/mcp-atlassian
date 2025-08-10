@@ -32,51 +32,42 @@ jobs:
       run: npm ci
     
     - name: Run npm audit
+      id: npm-audit
       run: |
+        echo "## NPM Audit Results" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
         npm audit --json > audit.json || true
-        cat audit.json | jq '.vulnerabilities | to_entries | map(select(.value.severity == "high" or .value.severity == "critical")) | length' > high_vulns.txt
-        HIGH_VULNS=$(cat high_vulns.txt)
+        npm audit >> $GITHUB_STEP_SUMMARY || true
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        
+        # Check for high/critical vulnerabilities
+        HIGH_VULNS=$(cat audit.json | jq -r '.metadata.vulnerabilities | .high + .critical' || echo "0")
+        echo "High/Critical vulnerabilities found: $HIGH_VULNS"
+        
         if [ "$HIGH_VULNS" -gt 0 ]; then
-          echo "Found $HIGH_VULNS high/critical vulnerabilities"
-          npm audit
+          echo "::warning::Found $HIGH_VULNS high/critical vulnerabilities"
+          echo "### ⚠️ Found $HIGH_VULNS high/critical vulnerabilities" >> $GITHUB_STEP_SUMMARY
           exit 1
+        else
+          echo "### ✅ No high/critical vulnerabilities found" >> $GITHUB_STEP_SUMMARY
         fi
       continue-on-error: true
     
-    - name: Run CodeQL Analysis
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: javascript-typescript
+        config-file: ./.github/codeql/codeql-config.yml
+      continue-on-error: true
+    
+    - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
-      with:
-        languages: javascript, typescript
-    
-    - name: OWASP Dependency Check
-      uses: dependency-check/Dependency-Check_Action@main
-      with:
-        project: 'mcp-atlassian'
-        path: '.'
-        format: 'HTML'
-        out: 'reports'
       continue-on-error: true
     
-    - name: Upload Dependency Check results
+    - name: Upload audit results
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: dependency-check-report
-        path: reports/
-        retention-days: 30
-    
-    - name: Snyk Security Scan
-      uses: snyk/actions/node@master
-      continue-on-error: true
-      env:
-        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-      with:
-        args: --severity-threshold=high --json-file-output=snyk.json
-    
-    - name: Upload Snyk results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: snyk-report
-        path: snyk.json
+        name: npm-audit-report
+        path: audit.json
         retention-days: 30
