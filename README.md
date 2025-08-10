@@ -53,23 +53,64 @@ ATLASSIAN_API_TOKEN=your-api-token
 
 ### MCP Settings Configuration
 
-Add to your Claude Desktop or MCP client configuration:
+#### Option 1: Local Installation
+
+Add to your Claude Desktop config file (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
 
 ```json
 {
   "mcpServers": {
-    "atlassian": {
-      "command": "node",
-      "args": ["path/to/mcp-atlassian/dist/index.js"],
+    "mcp-atlassian": {
+      "command": "/path/to/node",
+      "args": ["/path/to/mcp-atlassian/dist/index.js"],
       "env": {
         "ATLASSIAN_BASE_URL": "https://yourdomain.atlassian.net",
-        "ATLASSIAN_EMAIL": "your-email@example.com", 
-        "ATLASSIAN_API_TOKEN": "your-api-token"
+        "ATLASSIAN_EMAIL": "your-email@example.com",
+        "ATLASSIAN_API_TOKEN": "YOUR_API_TOKEN"
       }
     }
   }
 }
 ```
+
+**Example with full paths:**
+```json
+{
+  "mcpServers": {
+    "mcp-atlassian": {
+      "command": "/Users/yourusername/.nvm/versions/node/v22.16.0/bin/node",
+      "args": ["/Users/yourusername/IdeaProjects/mcp-atlassian/dist/index.js"],
+      "env": {
+        "ATLASSIAN_BASE_URL": "https://yourdomain.atlassian.net",
+        "ATLASSIAN_EMAIL": "your.email@company.com",
+        "ATLASSIAN_API_TOKEN": "YOUR_API_TOKEN"
+      }
+    }
+  }
+}
+```
+
+#### Option 2: Direct from GitHub using uvx (Coming Soon)
+
+You can run the server directly from GitHub without cloning:
+
+```json
+{
+  "mcpServers": {
+    "mcp-atlassian": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/Vijay-Duke/mcp-atlassian.git", "mcp-atlassian"],
+      "env": {
+        "ATLASSIAN_BASE_URL": "https://yourdomain.atlassian.net",
+        "ATLASSIAN_EMAIL": "your-email@example.com",
+        "ATLASSIAN_API_TOKEN": "YOUR_API_TOKEN"
+      }
+    }
+  }
+}
+```
+
+**Note:** The uvx method requires the package to be properly configured for Python packaging. This is planned for a future release.
 
 ## Available Tools
 
