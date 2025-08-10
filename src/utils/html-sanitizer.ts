@@ -4,7 +4,7 @@ import { JSDOM } from 'jsdom';
 // Create a JSDOM window to be used by DOMPurify in the Node.js environment
 // This is necessary because DOMPurify requires a DOM to parse and sanitize HTML.
 const window = new JSDOM('').window;
-const dompurify = DOMPurify(window as unknown as Window);
+const dompurify = DOMPurify(window as any);
 
 /**
  * Configuration for DOMPurify.

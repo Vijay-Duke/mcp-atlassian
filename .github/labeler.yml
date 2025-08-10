@@ -1,0 +1,57 @@
+# Add labels to PRs based on changed files
+
+# Source code changes
+"source":
+  - changed-files:
+    - any-glob-to-any-file: 'src/**/*'
+
+# Test changes
+"tests":
+  - changed-files:
+    - any-glob-to-any-file: 'src/__tests__/**/*'
+
+# Documentation changes
+"documentation":
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.md'
+      - 'docs/**/*'
+
+# Configuration changes
+"configuration":
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.*rc*'
+      - '.*config.*'
+      - 'package*.json'
+      - 'tsconfig*.json'
+
+# GitHub Actions changes
+"ci/cd":
+  - changed-files:
+    - any-glob-to-any-file: '.github/**/*'
+
+# Jira-specific changes
+"jira":
+  - changed-files:
+    - any-glob-to-any-file: 'src/jira/**/*'
+
+# Confluence-specific changes
+"confluence":
+  - changed-files:
+    - any-glob-to-any-file: 'src/confluence/**/*'
+
+# Security-related changes
+"security":
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/html-sanitizer*'
+      - '**/input-validator*'
+      - '**/jql-sanitizer*'
+
+# Dependencies
+"dependencies":
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'package-lock.json'
+      - 'package.json'

@@ -414,6 +414,96 @@ mcp-atlassian/
 - Some Confluence macros may not convert perfectly to Markdown
 - Rate limits apply based on Atlassian Cloud API limits
 
+## CI/CD Pipeline
+
+This project uses GitHub Actions for continuous integration and deployment.
+
+### Workflows
+
+#### 🔄 Continuous Integration (`ci.yml`)
+- **Triggers**: Push to main/develop, Pull requests
+- **Jobs**:
+  - **Test**: Runs tests on Node.js 18.x, 20.x, and 22.x
+  - **Build**: Compiles TypeScript and validates the build
+  - **Lint**: Type checking and security audit
+  - **Validate Package**: Ensures package size and structure
+
+#### 📦 Publish to npm (`publish.yml`)
+- **Triggers**: GitHub releases, Manual dispatch
+- **Features**:
+  - Automatic version bumping
+  - npm publishing with provenance
+  - GitHub release creation
+  - Changelog updates
+
+#### 🔒 Security Scanning (`security.yml`)
+- **Triggers**: Push to main, PRs, Weekly schedule
+- **Scans**:
+  - npm audit for vulnerabilities
+  - CodeQL analysis
+  - OWASP dependency check
+  - Snyk security scanning (optional)
+
+#### 🏷️ Release Management (`release.yml`)
+- **Triggers**: Version tags, Manual dispatch
+- **Features**:
+  - Automatic changelog generation
+  - GitHub release creation
+  - Build artifacts attachment
+  - Release notes formatting
+
+#### ✅ PR Validation (`pr-validation.yml`)
+- **Triggers**: Pull request events
+- **Checks**:
+  - Semantic PR title validation
+  - PR size labeling
+  - Auto-labeling based on files changed
+
+### 🤖 Automated Dependency Updates
+
+Dependabot is configured to:
+- Check for npm dependency updates weekly
+- Check for GitHub Actions updates weekly
+- Group non-major updates together
+- Create PRs with proper labels
+
+### Setting Up CI/CD
+
+#### Required GitHub Secrets
+
+1. **NPM_TOKEN**: npm authentication token for publishing
+   - Generate at: https://www.npmjs.com/settings/YOUR_USERNAME/tokens
+   - Required scopes: `publish`
+
+2. **SNYK_TOKEN** (Optional): For Snyk security scanning
+   - Get from: https://app.snyk.io/account
+
+#### Branch Protection
+
+Recommended branch protection rules for `main`:
+- Require PR reviews before merging
+- Require status checks to pass (CI tests)
+- Require branches to be up to date
+- Include administrators in restrictions
+
+### Local Development
+
+Before pushing changes:
+
+```bash
+# Run tests locally
+npm test
+
+# Build the project
+npm run build
+
+# Check for security vulnerabilities
+npm audit
+
+# Type check
+npx tsc --noEmit
+```
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.

@@ -17,6 +17,7 @@ export interface ListConfluenceSpacesArgs {
   type?: 'global' | 'personal';
   status?: 'current' | 'archived';
   limit?: number;
+  start?: number;
 }
 
 export interface ListConfluenceAttachmentsArgs {

@@ -1,0 +1,82 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run security scan every Monday at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run npm audit
+      run: |
+        npm audit --json > audit.json || true
+        cat audit.json | jq '.vulnerabilities | to_entries | map(select(.value.severity == "high" or .value.severity == "critical")) | length' > high_vulns.txt
+        HIGH_VULNS=$(cat high_vulns.txt)
+        if [ "$HIGH_VULNS" -gt 0 ]; then
+          echo "Found $HIGH_VULNS high/critical vulnerabilities"
+          npm audit
+          exit 1
+        fi
+      continue-on-error: true
+    
+    - name: Run CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        languages: javascript, typescript
+    
+    - name: OWASP Dependency Check
+      uses: dependency-check/Dependency-Check_Action@main
+      with:
+        project: 'mcp-atlassian'
+        path: '.'
+        format: 'HTML'
+        out: 'reports'
+      continue-on-error: true
+    
+    - name: Upload Dependency Check results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: dependency-check-report
+        path: reports/
+        retention-days: 30
+    
+    - name: Snyk Security Scan
+      uses: snyk/actions/node@master
+      continue-on-error: true
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --severity-threshold=high --json-file-output=snyk.json
+    
+    - name: Upload Snyk results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: snyk-report
+        path: snyk.json
+        retention-days: 30

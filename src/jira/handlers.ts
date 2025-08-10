@@ -627,7 +627,7 @@ export class JiraHandlers {
       if (projectKeys && projectKeys.length > 0) {
         const projectKeysValidation = validateStringArray(projectKeys, 'projectKeys', { pattern: /^[A-Z][A-Z0-9_]*$/ });
         if (!projectKeysValidation.isValid) return createValidationError(projectKeysValidation.errors, 'getMyOpenIssues', 'jira');
-        const projectFilter = projectKeysValidation.sanitizedValue!.map(key => `"${key}"`).join(', ');
+        const projectFilter = projectKeysValidation.sanitizedValue!.map((key: string) => `"${key}"`).join(', ');
         jql = `project in (${projectFilter}) AND ${jql}`;
       }
       
