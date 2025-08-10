@@ -92,6 +92,42 @@ export interface ExportConfluencePageArgs {
   format: 'html' | 'markdown';
 }
 
+export interface GetConfluenceSpaceArgs {
+  spaceKey: string;
+  expand?: string;
+}
+
+export interface ListConfluencePageChildrenArgs {
+  pageId: string;
+  limit?: number;
+  start?: number;
+  expand?: string;
+}
+
+export interface ListConfluencePageAncestorsArgs {
+  pageId: string;
+}
+
+export interface UploadConfluenceAttachmentArgs {
+  pageId: string;
+  file: string;
+  filename: string;
+  comment?: string;
+  minorEdit?: boolean;
+}
+
+export interface GetMyRecentConfluencePagesArgs {
+  limit?: number;
+  start?: number;
+  spaceKey?: string;
+}
+
+export interface GetConfluencePagesMentioningMeArgs {
+  limit?: number;
+  start?: number;
+  spaceKey?: string;
+}
+
 export interface ReadJiraIssueArgs {
   issueKey: string;
   expand?: string;
@@ -187,9 +223,32 @@ export interface ConfluenceSpace {
   name: string;
   type: string;
   status: string;
+  description?: {
+    plain?: {
+      value: string;
+    };
+  };
   _links?: {
     self: string;
     webui: string;
+  };
+}
+
+export interface ConfluenceUser {
+  type: string;
+  accountId: string;
+  email?: string;
+  publicName: string;
+  displayName: string;
+  profilePicture?: {
+    path: string;
+    width: number;
+    height: number;
+    isDefault: boolean;
+  };
+  operations?: any[];
+  _links?: {
+    self: string;
   };
 }
 

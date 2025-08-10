@@ -24,6 +24,12 @@ import {
   GetConfluenceLabelsArgs,
   AddConfluenceLabelsArgs,
   ExportConfluencePageArgs,
+  GetConfluenceSpaceArgs,
+  ListConfluencePageChildrenArgs,
+  ListConfluencePageAncestorsArgs,
+  UploadConfluenceAttachmentArgs,
+  GetMyRecentConfluencePagesArgs,
+  GetConfluencePagesMentioningMeArgs,
   ReadJiraIssueArgs,
   SearchJiraIssuesArgs,
   ListJiraProjectsArgs,
@@ -74,6 +80,8 @@ class AtlassianMCPServer {
       try {
         switch (request.params.name) {
           // Confluence tools
+          case 'get_confluence_current_user':
+            return await this.confluenceHandlers.getConfluenceCurrentUser();
           case 'read_confluence_page':
             return await this.confluenceHandlers.readConfluencePage(
               request.params.arguments as unknown as ReadConfluencePageArgs
@@ -86,6 +94,10 @@ class AtlassianMCPServer {
             return await this.confluenceHandlers.listConfluenceSpaces(
               request.params.arguments as unknown as ListConfluenceSpacesArgs
             );
+          case 'get_confluence_space':
+            return await this.confluenceHandlers.getConfluenceSpace(
+              request.params.arguments as unknown as GetConfluenceSpaceArgs
+            );
           case 'list_confluence_attachments':
             return await this.confluenceHandlers.listConfluenceAttachments(
               request.params.arguments as unknown as ListConfluenceAttachmentsArgs
@@ -93,6 +105,10 @@ class AtlassianMCPServer {
           case 'download_confluence_attachment':
             return await this.confluenceHandlers.downloadConfluenceAttachment(
               request.params.arguments as unknown as DownloadConfluenceAttachmentArgs
+            );
+          case 'upload_confluence_attachment':
+            return await this.confluenceHandlers.uploadConfluenceAttachment(
+              request.params.arguments as unknown as UploadConfluenceAttachmentArgs
             );
           case 'download_confluence_page_complete':
             return await this.confluenceHandlers.downloadConfluencePageComplete(
@@ -106,6 +122,14 @@ class AtlassianMCPServer {
             return await this.confluenceHandlers.updateConfluencePage(
               request.params.arguments as unknown as UpdateConfluencePageArgs
             );
+          case 'list_confluence_page_children':
+            return await this.confluenceHandlers.listConfluencePageChildren(
+              request.params.arguments as unknown as ListConfluencePageChildrenArgs
+            );
+          case 'list_confluence_page_ancestors':
+            return await this.confluenceHandlers.listConfluencePageAncestors(
+              request.params.arguments as unknown as ListConfluencePageAncestorsArgs
+            );
           case 'add_confluence_comment':
             return await this.confluenceHandlers.addConfluenceComment(
               request.params.arguments as unknown as AddConfluenceCommentArgs
@@ -114,17 +138,25 @@ class AtlassianMCPServer {
             return await this.confluenceHandlers.findConfluenceUsers(
               request.params.arguments as unknown as FindConfluenceUsersArgs
             );
-          case 'get_confluence_labels':
+          case 'list_confluence_page_labels':
             return await this.confluenceHandlers.getConfluenceLabels(
               request.params.arguments as unknown as GetConfluenceLabelsArgs
             );
-          case 'add_confluence_labels':
+          case 'add_confluence_page_label':
             return await this.confluenceHandlers.addConfluenceLabels(
               request.params.arguments as unknown as AddConfluenceLabelsArgs
             );
           case 'export_confluence_page':
             return await this.confluenceHandlers.exportConfluencePage(
               request.params.arguments as unknown as ExportConfluencePageArgs
+            );
+          case 'get_my_recent_confluence_pages':
+            return await this.confluenceHandlers.getMyRecentConfluencePages(
+              request.params.arguments as unknown as GetMyRecentConfluencePagesArgs
+            );
+          case 'get_confluence_pages_mentioning_me':
+            return await this.confluenceHandlers.getConfluencePagesMentioningMe(
+              request.params.arguments as unknown as GetConfluencePagesMentioningMeArgs
             );
 
           // Jira tools

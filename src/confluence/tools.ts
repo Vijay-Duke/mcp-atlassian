@@ -2,6 +2,14 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 
 export const confluenceTools: Tool[] = [
   {
+    name: 'get_confluence_current_user',
+    description: 'Get details of the authenticated Confluence user. Returns information about the current user including account ID, display name, email, and profile picture.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
     name: 'read_confluence_page',
     description: 'Retrieves the content of a Confluence page. You can specify the page by its ID or by its title and space key. The content can be returned in raw storage format (XHTML) or converted to Markdown.',
     inputSchema: {
@@ -91,6 +99,25 @@ export const confluenceTools: Tool[] = [
     },
   },
   {
+    name: 'get_confluence_space',
+    description: 'Get details of a specific Confluence space by its key. Returns space information including name, type, status, and description.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        spaceKey: {
+          type: 'string',
+          description: 'The key of the space to retrieve (e.g., "DEV").',
+        },
+        expand: {
+          type: 'string',
+          description: 'Properties to expand in the response (e.g., "description.plain,homepage").',
+          default: 'description.plain,homepage',
+        },
+      },
+      required: ['spaceKey'],
+    },
+  },
+  {
     name: 'list_confluence_attachments',
     description: 'Lists all attachments for a specific Confluence page. Can be filtered by filename or media type.',
     inputSchema: {
@@ -140,6 +167,37 @@ export const confluenceTools: Tool[] = [
         },
       },
       required: ['attachmentId'],
+    },
+  },
+  {
+    name: 'upload_confluence_attachment',
+    description: 'Upload a file attachment to a Confluence page. The file should be provided as a base64-encoded string.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        pageId: {
+          type: 'string',
+          description: 'The ID of the page to attach the file to.',
+        },
+        file: {
+          type: 'string',
+          description: 'The file content as a base64-encoded string.',
+        },
+        filename: {
+          type: 'string',
+          description: 'The name of the file including extension (e.g., "document.pdf").',
+        },
+        comment: {
+          type: 'string',
+          description: 'Optional comment describing the attachment.',
+        },
+        minorEdit: {
+          type: 'boolean',
+          description: 'Set to true if this is a minor edit that should not notify watchers. Default is false.',
+          default: false,
+        },
+      },
+      required: ['pageId', 'file', 'filename'],
     },
   },
   {
@@ -241,6 +299,51 @@ export const confluenceTools: Tool[] = [
     },
   },
   {
+    name: 'list_confluence_page_children',
+    description: 'List child pages under a given Confluence page. Returns a hierarchical list of direct child pages.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        pageId: {
+          type: 'string',
+          description: 'The ID of the parent page.',
+        },
+        limit: {
+          type: 'number',
+          description: 'The maximum number of child pages to return. Default is 25, maximum is 100.',
+          default: 25,
+          minimum: 1,
+          maximum: 100,
+        },
+        start: {
+          type: 'number',
+          description: 'The starting index for pagination. Default is 0.',
+          default: 0,
+        },
+        expand: {
+          type: 'string',
+          description: 'Properties to expand in the response.',
+          default: 'space',
+        },
+      },
+      required: ['pageId'],
+    },
+  },
+  {
+    name: 'list_confluence_page_ancestors',
+    description: 'Retrieve the parent hierarchy of a Confluence page. Returns the full ancestry path from root to the immediate parent.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        pageId: {
+          type: 'string',
+          description: 'The ID of the page to get ancestors for.',
+        },
+      },
+      required: ['pageId'],
+    },
+  },
+  {
     name: 'add_confluence_comment',
     description: 'Adds a comment to a Confluence page. Can also be used to reply to an existing comment.',
     inputSchema: {
@@ -304,7 +407,7 @@ export const confluenceTools: Tool[] = [
     },
   },
   {
-    name: 'get_confluence_labels',
+    name: 'list_confluence_page_labels',
     description: 'Retrieves all labels for a specific Confluence page.',
     inputSchema: {
       type: 'object',
@@ -334,7 +437,7 @@ export const confluenceTools: Tool[] = [
     },
   },
   {
-    name: 'add_confluence_labels',
+    name: 'add_confluence_page_label',
     description: 'Adds one or more labels to a Confluence page. Labels are useful for organizing and categorizing content.',
     inputSchema: {
       type: 'object',
@@ -382,6 +485,56 @@ export const confluenceTools: Tool[] = [
         },
       },
       required: ['pageId', 'format'],
+    },
+  },
+  {
+    name: 'get_my_recent_confluence_pages',
+    description: 'List pages recently created or updated by the current user. Returns pages where you are the creator or last modifier.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: {
+          type: 'number',
+          description: 'The maximum number of pages to return. Default is 25, maximum is 100.',
+          default: 25,
+          minimum: 1,
+          maximum: 100,
+        },
+        start: {
+          type: 'number',
+          description: 'The starting index for pagination. Default is 0.',
+          default: 0,
+        },
+        spaceKey: {
+          type: 'string',
+          description: 'Optional space key to filter results to a specific space.',
+        },
+      },
+    },
+  },
+  {
+    name: 'get_confluence_pages_mentioning_me',
+    description: 'Search for pages that mention the current user. Returns pages where you have been @mentioned.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: {
+          type: 'number',
+          description: 'The maximum number of pages to return. Default is 25, maximum is 100.',
+          default: 25,
+          minimum: 1,
+          maximum: 100,
+        },
+        start: {
+          type: 'number',
+          description: 'The starting index for pagination. Default is 0.',
+          default: 0,
+        },
+        spaceKey: {
+          type: 'string',
+          description: 'Optional space key to filter results to a specific space.',
+        },
+      },
     },
   },
 ];

@@ -14,9 +14,16 @@ import {
   GetConfluenceLabelsArgs,
   AddConfluenceLabelsArgs,
   ExportConfluencePageArgs,
+  GetConfluenceSpaceArgs,
+  ListConfluencePageChildrenArgs,
+  ListConfluencePageAncestorsArgs,
+  UploadConfluenceAttachmentArgs,
+  GetMyRecentConfluencePagesArgs,
+  GetConfluencePagesMentioningMeArgs,
   ConfluencePage,
   ConfluenceSpace,
-  ConfluenceAttachment
+  ConfluenceAttachment,
+  ConfluenceUser
 } from '../types/index.js';
 import { formatApiError } from '../utils/http-client.js';
 import { ContentConverter } from '../utils/content-converter.js';
@@ -838,6 +845,301 @@ export class ConfluenceHandlers {
             suggestion: 'Ensure the page exists and has proper permissions'
           }, null, 2)
         }],
+        isError: true,
+      };
+    }
+  }
+
+  async getConfluenceCurrentUser(): Promise<CallToolResult> {
+    try {
+      const response = await this.client.get('/api/user/current');
+      
+      const user: ConfluenceUser = response.data;
+      const result = {
+        accountId: user.accountId,
+        displayName: user.displayName,
+        publicName: user.publicName,
+        email: user.email,
+        profilePicture: user.profilePicture,
+        type: user.type,
+        profileUrl: `${this.client.defaults.baseURL}/wiki/people/${user.accountId}`,
+      };
+
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    } catch (error) {
+      return {
+        content: [{ type: 'text', text: formatApiError(error) }],
+        isError: true,
+      };
+    }
+  }
+
+  async getConfluenceSpace(args: GetConfluenceSpaceArgs): Promise<CallToolResult> {
+    try {
+      const { spaceKey, expand = 'description.plain,homepage' } = args;
+      
+      const response = await this.client.get(`/api/space/${spaceKey}`, {
+        params: { expand }
+      });
+      
+      const space: ConfluenceSpace = response.data;
+      const result = {
+        id: space.id,
+        key: space.key,
+        name: space.name,
+        type: space.type,
+        status: space.status,
+        description: space.description?.plain?.value,
+        webUrl: `${this.client.defaults.baseURL}/wiki/spaces/${space.key}`,
+        _links: space._links,
+      };
+
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    } catch (error) {
+      return {
+        content: [{ type: 'text', text: formatApiError(error) }],
+        isError: true,
+      };
+    }
+  }
+
+  async listConfluencePageChildren(args: ListConfluencePageChildrenArgs): Promise<CallToolResult> {
+    try {
+      const { pageId, limit = 25, start = 0, expand = 'space' } = args;
+      
+      const response = await this.client.get(`/api/content/${pageId}/child/page`, {
+        params: {
+          limit: Math.min(limit, 100),
+          start,
+          expand
+        }
+      });
+      
+      const children = response.data.results.map((page: ConfluencePage) => ({
+        id: page.id,
+        title: page.title,
+        type: page.type,
+        status: page.status,
+        spaceKey: page.space?.key,
+        webUrl: `${this.client.defaults.baseURL}/wiki${page._links?.webui || ''}`,
+      }));
+
+      const resultData = {
+        parentPageId: pageId,
+        totalChildren: response.data.size,
+        start: response.data.start,
+        limit: response.data.limit,
+        children,
+      };
+
+      return {
+        content: [{ type: 'text', text: JSON.stringify(resultData, null, 2) }],
+      };
+    } catch (error) {
+      return {
+        content: [{ type: 'text', text: formatApiError(error) }],
+        isError: true,
+      };
+    }
+  }
+
+  async listConfluencePageAncestors(args: ListConfluencePageAncestorsArgs): Promise<CallToolResult> {
+    try {
+      const { pageId } = args;
+      
+      // First get the page with ancestors expanded
+      const response = await this.client.get(`/api/content/${pageId}`, {
+        params: {
+          expand: 'ancestors'
+        }
+      });
+      
+      const page: ConfluencePage = response.data;
+      const ancestors = (page as any).ancestors?.map((ancestor: any) => ({
+        id: ancestor.id,
+        title: ancestor.title,
+        type: ancestor.type,
+        status: ancestor.status,
+        webUrl: `${this.client.defaults.baseURL}/wiki${ancestor._links?.webui || ''}`,
+      })) || [];
+
+      const resultData = {
+        pageId,
+        pageTitle: page.title,
+        ancestors: ancestors.reverse(), // Root first, immediate parent last
+        depth: ancestors.length,
+      };
+
+      return {
+        content: [{ type: 'text', text: JSON.stringify(resultData, null, 2) }],
+      };
+    } catch (error) {
+      return {
+        content: [{ type: 'text', text: formatApiError(error) }],
+        isError: true,
+      };
+    }
+  }
+
+  async uploadConfluenceAttachment(args: UploadConfluenceAttachmentArgs): Promise<CallToolResult> {
+    try {
+      const { pageId, file, filename, comment, minorEdit = false } = args;
+      
+      // Convert base64 file to buffer
+      const fileBuffer = Buffer.from(file, 'base64');
+      
+      // Create form data
+      const { default: FormData } = await import('form-data');
+      const form = new FormData();
+      form.append('file', fileBuffer, filename);
+      if (comment) {
+        form.append('comment', comment);
+      }
+      form.append('minorEdit', String(minorEdit));
+
+      const response = await this.client.post(
+        `/api/content/${pageId}/child/attachment`,
+        form,
+        {
+          headers: {
+            ...form.getHeaders(),
+            'X-Atlassian-Token': 'no-check' // Required for file uploads
+          }
+        }
+      );
+
+      const attachment = response.data.results[0];
+      const result = {
+        id: attachment.id,
+        title: attachment.title,
+        filename: attachment.title,
+        fileSize: attachment.extensions?.fileSize,
+        mediaType: attachment.metadata?.mediaType,
+        comment: attachment.extensions?.comment,
+        version: attachment.version?.number,
+        downloadUrl: `${this.client.defaults.baseURL}/wiki${attachment._links?.download}`,
+        webUrl: `${this.client.defaults.baseURL}/wiki${attachment._links?.webui}`,
+      };
+
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    } catch (error) {
+      return {
+        content: [{ type: 'text', text: formatApiError(error) }],
+        isError: true,
+      };
+    }
+  }
+
+  async getMyRecentConfluencePages(args: GetMyRecentConfluencePagesArgs): Promise<CallToolResult> {
+    try {
+      const { limit = 25, start = 0, spaceKey } = args;
+      
+      // Get current user
+      const userResponse = await this.client.get('/api/user/current');
+      const currentUser: ConfluenceUser = userResponse.data;
+      
+      // Build CQL query
+      let cql = `creator = "${currentUser.accountId}" OR lastModifier = "${currentUser.accountId}"`;
+      if (spaceKey) {
+        cql = `space = ${spaceKey} AND (${cql})`;
+      }
+      cql += ' ORDER BY lastmodified DESC';
+
+      const response = await this.client.get('/api/content/search', {
+        params: {
+          cql,
+          limit: Math.min(limit, 100),
+          start,
+          expand: 'space,version'
+        }
+      });
+
+      const pages = response.data.results.map((page: ConfluencePage) => ({
+        id: page.id,
+        title: page.title,
+        type: page.type,
+        spaceKey: page.space?.key,
+        spaceName: page.space?.name,
+        version: page.version?.number,
+        lastModified: (page as any).version?.when,
+        webUrl: `${this.client.defaults.baseURL}/wiki${page._links?.webui || ''}`,
+      }));
+
+      const resultData = {
+        currentUser: currentUser.displayName,
+        totalPages: response.data.totalSize,
+        start: response.data.start,
+        limit: response.data.limit,
+        pages,
+      };
+
+      return {
+        content: [{ type: 'text', text: JSON.stringify(resultData, null, 2) }],
+      };
+    } catch (error) {
+      return {
+        content: [{ type: 'text', text: formatApiError(error) }],
+        isError: true,
+      };
+    }
+  }
+
+  async getConfluencePagesMentioningMe(args: GetConfluencePagesMentioningMeArgs): Promise<CallToolResult> {
+    try {
+      const { limit = 25, start = 0, spaceKey } = args;
+      
+      // Get current user
+      const userResponse = await this.client.get('/api/user/current');
+      const currentUser: ConfluenceUser = userResponse.data;
+      
+      // Build CQL query to find mentions
+      let cql = `mention = "${currentUser.accountId}"`;
+      if (spaceKey) {
+        cql = `space = ${spaceKey} AND ${cql}`;
+      }
+      cql += ' ORDER BY lastmodified DESC';
+
+      const response = await this.client.get('/api/content/search', {
+        params: {
+          cql,
+          limit: Math.min(limit, 100),
+          start,
+          expand: 'space,version'
+        }
+      });
+
+      const pages = response.data.results.map((page: ConfluencePage) => ({
+        id: page.id,
+        title: page.title,
+        type: page.type,
+        spaceKey: page.space?.key,
+        spaceName: page.space?.name,
+        version: page.version?.number,
+        lastModified: (page as any).version?.when,
+        lastModifier: (page as any).version?.by?.displayName,
+        webUrl: `${this.client.defaults.baseURL}/wiki${page._links?.webui || ''}`,
+      }));
+
+      const resultData = {
+        currentUser: currentUser.displayName,
+        totalPages: response.data.totalSize,
+        start: response.data.start,
+        limit: response.data.limit,
+        pages,
+      };
+
+      return {
+        content: [{ type: 'text', text: JSON.stringify(resultData, null, 2) }],
+      };
+    } catch (error) {
+      return {
+        content: [{ type: 'text', text: formatApiError(error) }],
         isError: true,
       };
     }

@@ -7,10 +7,12 @@ A Model Context Protocol (MCP) server for integrating with Atlassian products (C
 ### Confluence Integration
 - **Read & Search**: Access pages, spaces, and content
 - **Content Management**: Create, update pages and comments
+- **Page Hierarchy**: Navigate parent/child page relationships
 - **Export**: Export pages as HTML or Markdown with embedded images
-- **Attachments**: List and download attachments
+- **Attachments**: List, download, and upload attachments
 - **Labels**: Manage page labels
-- **Users**: Find and query users
+- **Users**: Find and query users, track personal activity
+- **Personal Dashboard**: View recent pages and mentions
 
 ### Jira Integration  
 - **Issues**: Read and search issues, get personal tasks
@@ -164,18 +166,26 @@ You can run the server directly from GitHub without cloning:
 
 | Tool | Description |
 |------|-------------|
+| `get_confluence_current_user` | Get details of the authenticated user |
 | `read_confluence_page` | Read a Confluence page by ID or title |
 | `search_confluence_pages` | Search pages using CQL (Confluence Query Language) |
 | `list_confluence_spaces` | List all accessible spaces |
+| `get_confluence_space` | Get details of a specific space |
 | `create_confluence_page` | Create a new page |
 | `update_confluence_page` | Update existing page content |
+| `list_confluence_page_children` | List child pages of a page |
+| `list_confluence_page_ancestors` | Get parent hierarchy of a page |
 | `export_confluence_page` | Export page as HTML or Markdown with embedded images |
 | `list_confluence_attachments` | List page attachments |
 | `download_confluence_attachment` | Download specific attachment |
+| `upload_confluence_attachment` | Upload file to a page |
+| `download_confluence_page_complete` | Download page with all content |
 | `add_confluence_comment` | Add comment to a page |
-| `get_confluence_labels` | Get page labels |
-| `add_confluence_labels` | Add labels to a page |
+| `list_confluence_page_labels` | Get page labels |
+| `add_confluence_page_label` | Add labels to a page |
 | `find_confluence_users` | Search for users |
+| `get_my_recent_confluence_pages` | List your recent pages |
+| `get_confluence_pages_mentioning_me` | Find pages that mention you |
 
 ### Jira Tools
 
