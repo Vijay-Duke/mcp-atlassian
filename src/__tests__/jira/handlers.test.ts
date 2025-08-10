@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AxiosInstance } from 'axios';
 import { JiraHandlers } from '../../jira/handlers.js';
 
@@ -9,12 +9,19 @@ describe('JiraHandlers', () => {
   beforeEach(() => {
     mockClient = {
       get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
       defaults: {
         baseURL: 'https://test.atlassian.net',
       },
     } as unknown as AxiosInstance;
     
     handlers = new JiraHandlers(mockClient);
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
   });
 
   describe('readJiraIssue', () => {
@@ -56,6 +63,25 @@ describe('JiraHandlers', () => {
       expect(data.fields.summary).toBe('Test Issue');
       expect(data.fields.status).toBe('Open');
       expect(data.transitions).toHaveLength(1);
+    });
+
+    it('should handle issue not found', async () => {
+      const notFoundError = new Error('Issue not found');
+      (notFoundError as any).response = { status: 404 };
+      
+      (mockClient.get as any).mockRejectedValue(notFoundError);
+
+      const result = await handlers.readJiraIssue({ issueKey: 'NONEXIST-1' });
+
+      expect(result.isError).toBe(true);
+      expect((result.content[0] as any).text).toContain('Issue not found');
+    });
+
+    it('should validate issue key format', async () => {
+      const result = await handlers.readJiraIssue({ issueKey: '' });
+
+      expect(result.isError).toBe(true);
+      expect((result.content[0] as any).text).toContain('issueKey is required');
     });
 
     it('should handle API errors', async () => {
@@ -113,6 +139,13 @@ describe('JiraHandlers', () => {
       expect(data.issues[0].key).toBe('TEST-1');
     });
 
+    it('should validate JQL query', async () => {
+      const result = await handlers.searchJiraIssues({ jql: '' });
+
+      expect(result.isError).toBe(true);
+      expect((result.content[0] as any).text).toContain('jql is required');
+    });
+
     it('should limit results to 100 maximum', async () => {
       (mockClient.get as any).mockResolvedValue({ 
         data: { issues: [], total: 0, startAt: 0, maxResults: 100 } 
@@ -122,6 +155,49 @@ describe('JiraHandlers', () => {
 
       expect(result.isError).toBe(true);
       expect((result.content[0] as any).text).toContain('maxResults must be an integer between 1 and 100');
+    });
+
+    it('should handle pagination', async () => {
+      (mockClient.get as any).mockResolvedValue({ 
+        data: { issues: [], total: 100, startAt: 50, maxResults: 25 } 
+      });
+
+      await handlers.searchJiraIssues({ 
+        jql: 'project = TEST',
+        startAt: 50,
+        maxResults: 25,
+        fields: 'summary,status'
+      });
+
+      expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
+        params: {
+          jql: 'project = TEST',
+          maxResults: 25,
+          startAt: 50,
+          fields: 'summary,status',
+        },
+      });
+    });
+
+    it('should handle complex JQL queries', async () => {
+      const complexJql = 'project = TEST AND status in (Open, "In Progress") AND assignee = currentUser() ORDER BY priority DESC';
+      
+      (mockClient.get as any).mockResolvedValue({ 
+        data: { issues: [], total: 0, startAt: 0, maxResults: 50 } 
+      });
+
+      const result = await handlers.searchJiraIssues({ jql: complexJql });
+
+      expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
+        params: {
+          jql: complexJql,
+          maxResults: 50,
+          startAt: 0,
+          fields: '*all',
+        },
+      });
+      
+      expect(result.isError).toBeUndefined();
     });
   });
 
@@ -155,6 +231,1008 @@ describe('JiraHandlers', () => {
       expect(data.totalProjects).toBe(1);
       expect(data.projects[0].name).toBe('Test Project');
       expect(data.projects[0].issueTypes).toHaveLength(2);
+    });
+
+    it('should handle empty project list', async () => {
+      (mockClient.get as any).mockResolvedValue({ data: [] });
+
+      const result = await handlers.listJiraProjects({});
+
+      expect(result.isError).toBeUndefined();
+      const data = JSON.parse((result.content[0] as any).text);
+      expect(data.totalProjects).toBe(0);
+      expect(data.projects).toHaveLength(0);
+    });
+  });
+
+  describe('createJiraIssue', () => {
+    it('should create issue successfully', async () => {
+      const mockCreatedIssue = {
+        id: '10002',
+        key: 'TEST-2',
+        self: 'https://test.atlassian.net/rest/api/3/issue/10002',
+      };
+
+      (mockClient.post as any).mockResolvedValue({ data: mockCreatedIssue });
+
+      const result = await handlers.createJiraIssue({
+        projectKey: 'TEST',
+        issueType: 'Bug',
+        summary: 'New Bug',
+        description: 'Bug description',
+        priority: 'High',
+      });
+
+      expect(mockClient.post).toHaveBeenCalledWith('/rest/api/3/issue', {
+        fields: {
+          project: { key: 'TEST' },
+          issuetype: { name: 'Bug' },
+          summary: 'New Bug',
+          description: {
+            type: 'doc',
+            version: 1,
+            content: [
+              {
+                type: 'paragraph',
+                content: [{ type: 'text', text: 'Bug description' }],
+              },
+            ],
+          },
+          priority: { name: 'High' },
+        },
+      });
+
+      expect(result.isError).toBeUndefined();
+      const data = JSON.parse((result.content[0] as any).text);
+      expect(data.key).toBe('TEST-2');
+      expect(data.message).toBe('Issue created successfully');
+    });
+
+    it('should create issue with assignee', async () => {
+      (mockClient.post as any).mockResolvedValue({ 
+        data: { id: '10003', key: 'TEST-3' } 
+      });
+
+      await handlers.createJiraIssue({
+        projectKey: 'TEST',
+        issueType: 'Task',
+        summary: 'Assigned Task',
+        assignee: 'user123',
+      });
+
+      expect(mockClient.post).toHaveBeenCalledWith('/rest/api/3/issue', 
+        expect.objectContaining({
+          fields: expect.objectContaining({
+            assignee: { accountId: 'user123' },
+          }),
+        })
+      );
+    });
+
+    it('should create issue with labels and components', async () => {
+      (mockClient.post as any).mockResolvedValue({ 
+        data: { id: '10004', key: 'TEST-4' } 
+      });
+
+      await handlers.createJiraIssue({
+        projectKey: 'TEST',
+        issueType: 'Story',
+        summary: 'Story with metadata',
+        labels: ['frontend', 'urgent'],
+        components: ['UI', 'Backend'],
+      });
+
+      expect(mockClient.post).toHaveBeenCalledWith('/rest/api/3/issue', 
+        expect.objectContaining({
+          fields: expect.objectContaining({
+            labels: ['frontend', 'urgent'],
+            components: [{ name: 'UI' }, { name: 'Backend' }],
+          }),
+        })
+      );
+    });
+
+    it('should validate required fields', async () => {
+      const result = await handlers.createJiraIssue({
+        projectKey: '',
+        issueType: 'Bug',
+        summary: 'Test',
+      });
+
+      expect(result.isError).toBe(true);
+      expect((result.content[0] as any).text).toContain('projectKey is required');
+    });
+
+    it('should handle creation errors', async () => {
+      (mockClient.post as any).mockRejectedValue(new Error('Creation failed'));
+
+      const result = await handlers.createJiraIssue({
+        projectKey: 'TEST',
+        issueType: 'Bug',
+        summary: 'New Issue',
+      });
+
+      expect(result.isError).toBe(true);
+      expect((result.content[0] as any).text).toBe('Creation failed');
+    });
+  });
+
+  describe('addJiraComment', () => {
+    it('should add comment successfully', async () => {
+      const mockComment = {
+        id: 'comment123',
+        body: {
+          type: 'doc',
+          version: 1,
+          content: [
+            {
+              type: 'paragraph',
+              content: [{ type: 'text', text: 'Test comment' }],
+            },
+          ],
+        },
+        author: { displayName: 'John Doe' },
+        created: '2024-01-01T00:00:00.000Z',
+      };
+
+      (mockClient.post as any).mockResolvedValue({ data: mockComment });
+
+      const result = await handlers.addJiraComment({
+        issueKey: 'TEST-1',
+        comment: 'Test comment',
+      });
+
+      expect(mockClient.post).toHaveBeenCalledWith(
+        '/rest/api/3/issue/TEST-1/comment',
+        {
+          body: {
+            type: 'doc',
+            version: 1,
+            content: [
+              {
+                type: 'paragraph',
+                content: [{ type: 'text', text: 'Test comment' }],
+              },
+            ],
+          },
+        }
+      );
+
+      expect(result.isError).toBeUndefined();
+      const data = JSON.parse((result.content[0] as any).text);
+      expect(data.id).toBe('comment123');
+      expect(data.author).toBe('John Doe');
+    });
+
+    it('should handle markdown comment', async () => {
+      (mockClient.post as any).mockResolvedValue({ 
+        data: { id: 'comment456' } 
+      });
+
+      await handlers.addJiraComment({
+        issueKey: 'TEST-2',
+        comment: '# Header\n\n- Item 1\n- Item 2',
+      });
+
+      const postCall = (mockClient.post as any).mock.calls[0];
+      expect(postCall[1].body.content).toBeDefined();
+      expect(postCall[1].body.type).toBe('doc');
+    });
+
+    it('should validate required fields', async () => {
+      const result = await handlers.addJiraComment({
+        issueKey: '',
+        comment: 'Test',
+      });
+
+      expect(result.isError).toBe(true);
+      expect((result.content[0] as any).text).toContain('issueKey is required');
+    });
+  });
+
+  describe('User-related methods', () => {
+    describe('getJiraCurrentUser', () => {
+      it('should get current user successfully', async () => {
+        const mockUser = {
+          accountId: 'user123',
+          displayName: 'John Doe',
+          emailAddress: 'john@example.com',
+          avatarUrls: { '48x48': 'avatar.png' },
+          active: true,
+          timeZone: 'America/New_York',
+        };
+
+        (mockClient.get as any).mockResolvedValue({ data: mockUser });
+
+        const result = await handlers.getJiraCurrentUser();
+
+        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/myself');
+        expect(result.isError).toBeUndefined();
+        
+        const data = JSON.parse((result.content[0] as any).text);
+        expect(data.accountId).toBe('user123');
+        expect(data.displayName).toBe('John Doe');
+      });
+    });
+
+    describe('getJiraUser', () => {
+      it('should get user by accountId', async () => {
+        const mockUser = {
+          accountId: 'user456',
+          displayName: 'Jane Smith',
+          emailAddress: 'jane@example.com',
+          active: true,
+        };
+
+        (mockClient.get as any).mockResolvedValue({ data: mockUser });
+
+        const result = await handlers.getJiraUser({ accountId: 'user456' });
+
+        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/user', {
+          params: { accountId: 'user456' }
+        });
+        
+        expect(result.isError).toBeUndefined();
+        const data = JSON.parse((result.content[0] as any).text);
+        expect(data.displayName).toBe('Jane Smith');
+      });
+
+      it('should search user by email', async () => {
+        const mockSearchResponse = [
+          {
+            accountId: 'user789',
+            displayName: 'Bob Wilson',
+            emailAddress: 'bob@example.com',
+          }
+        ];
+
+        (mockClient.get as any).mockResolvedValue({ data: mockSearchResponse });
+
+        const result = await handlers.getJiraUser({ email: 'bob@example.com' });
+
+        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/user/search', {
+          params: { query: 'bob@example.com' }
+        });
+
+        expect(result.isError).toBeUndefined();
+        const data = JSON.parse((result.content[0] as any).text);
+        expect(data.displayName).toBe('Bob Wilson');
+      });
+
+      it('should validate user identification', async () => {
+        const result = await handlers.getJiraUser({});
+
+        expect(result.isError).toBe(true);
+        expect((result.content[0] as any).text).toContain('At least one of username, accountId, or email must be provided');
+      });
+
+      it('should handle user not found', async () => {
+        (mockClient.get as any).mockResolvedValue({ data: [] });
+
+        const result = await handlers.getJiraUser({ email: 'nonexistent@example.com' });
+
+        expect(result.isError).toBe(true);
+        expect((result.content[0] as any).text).toContain('User not found');
+      });
+    });
+
+    describe('getMyOpenIssues', () => {
+      it('should get current user open issues', async () => {
+        const mockCurrentUser = {
+          accountId: 'currentUser123',
+          displayName: 'Current User',
+        };
+
+        const mockIssues = {
+          issues: [
+            {
+              key: 'TEST-10',
+              fields: {
+                summary: 'My Task',
+                status: { name: 'In Progress' },
+                priority: { name: 'Medium' },
+              },
+            },
+          ],
+          total: 1,
+        };
+
+        (mockClient.get as any)
+          .mockResolvedValueOnce({ data: mockCurrentUser })
+          .mockResolvedValueOnce({ data: mockIssues });
+
+        const result = await handlers.getMyOpenIssues({});
+
+        expect(mockClient.get).toHaveBeenNthCalledWith(2, '/rest/api/3/search', {
+          params: expect.objectContaining({
+            jql: expect.stringContaining('assignee = "currentUser123"'),
+          }),
+        });
+
+        expect(result.isError).toBeUndefined();
+        const data = JSON.parse((result.content[0] as any).text);
+        expect(data.totalResults).toBe(1);
+      });
+
+      it('should filter by project', async () => {
+        (mockClient.get as any)
+          .mockResolvedValueOnce({ data: { accountId: 'user123' } })
+          .mockResolvedValueOnce({ data: { issues: [], total: 0 } });
+
+        await handlers.getMyOpenIssues({ project: 'TEST' });
+
+        expect(mockClient.get).toHaveBeenNthCalledWith(2, '/rest/api/3/search', {
+          params: expect.objectContaining({
+            jql: expect.stringContaining('project = TEST'),
+          }),
+        });
+      });
+
+      it('should include specific statuses', async () => {
+        (mockClient.get as any)
+          .mockResolvedValueOnce({ data: { accountId: 'user123' } })
+          .mockResolvedValueOnce({ data: { issues: [], total: 0 } });
+
+        await handlers.getMyOpenIssues({ 
+          includeStatuses: ['To Do', 'In Progress', 'In Review']
+        });
+
+        expect(mockClient.get).toHaveBeenNthCalledWith(2, '/rest/api/3/search', {
+          params: expect.objectContaining({
+            jql: expect.stringContaining('status in ("To Do","In Progress","In Review")'),
+          }),
+        });
+      });
+    });
+  });
+
+  describe('Board and Sprint methods', () => {
+    describe('listJiraBoards', () => {
+      it('should list boards successfully', async () => {
+        const mockBoards = {
+          values: [
+            {
+              id: 1,
+              name: 'Scrum Board',
+              type: 'scrum',
+              location: { projectKey: 'TEST' },
+            },
+            {
+              id: 2,
+              name: 'Kanban Board',
+              type: 'kanban',
+              location: { projectKey: 'TEST' },
+            },
+          ],
+          total: 2,
+          startAt: 0,
+          maxResults: 50,
+        };
+
+        (mockClient.get as any).mockResolvedValue({ data: mockBoards });
+
+        const result = await handlers.listJiraBoards({});
+
+        expect(mockClient.get).toHaveBeenCalledWith('/rest/agile/1.0/board', {
+          params: {
+            maxResults: 50,
+            startAt: 0,
+          },
+        });
+
+        expect(result.isError).toBeUndefined();
+        const data = JSON.parse((result.content[0] as any).text);
+        expect(data.totalBoards).toBe(2);
+        expect(data.boards).toHaveLength(2);
+        expect(data.boards[0].name).toBe('Scrum Board');
+      });
+
+      it('should filter boards by project', async () => {
+        (mockClient.get as any).mockResolvedValue({ 
+          data: { values: [], total: 0 } 
+        });
+
+        await handlers.listJiraBoards({ projectKeyOrId: 'TEST' });
+
+        expect(mockClient.get).toHaveBeenCalledWith('/rest/agile/1.0/board', {
+          params: {
+            maxResults: 50,
+            startAt: 0,
+            projectKeyOrId: 'TEST',
+          },
+        });
+      });
+
+      it('should filter boards by type', async () => {
+        (mockClient.get as any).mockResolvedValue({ 
+          data: { values: [], total: 0 } 
+        });
+
+        await handlers.listJiraBoards({ type: 'scrum' });
+
+        expect(mockClient.get).toHaveBeenCalledWith('/rest/agile/1.0/board', {
+          params: {
+            maxResults: 50,
+            startAt: 0,
+            type: 'scrum',
+          },
+        });
+      });
+    });
+
+    describe('listJiraSprints', () => {
+      it('should list sprints successfully', async () => {
+        const mockSprints = {
+          values: [
+            {
+              id: 1,
+              name: 'Sprint 1',
+              state: 'active',
+              startDate: '2024-01-01T00:00:00.000Z',
+              endDate: '2024-01-14T23:59:59.999Z',
+              boardId: 1,
+            },
+          ],
+          total: 1,
+          startAt: 0,
+          maxResults: 50,
+        };
+
+        (mockClient.get as any).mockResolvedValue({ data: mockSprints });
+
+        const result = await handlers.listJiraSprints({ boardId: 1 });
+
+        expect(mockClient.get).toHaveBeenCalledWith('/rest/agile/1.0/board/1/sprint', {
+          params: {
+            maxResults: 50,
+            startAt: 0,
+          },
+        });
+
+        expect(result.isError).toBeUndefined();
+        const data = JSON.parse((result.content[0] as any).text);
+        expect(data.totalSprints).toBe(1);
+        expect(data.sprints[0].name).toBe('Sprint 1');
+      });
+
+      it('should filter sprints by state', async () => {
+        (mockClient.get as any).mockResolvedValue({ 
+          data: { values: [], total: 0 } 
+        });
+
+        await handlers.listJiraSprints({ 
+          boardId: 1,
+          state: 'active' 
+        });
+
+        expect(mockClient.get).toHaveBeenCalledWith('/rest/agile/1.0/board/1/sprint', {
+          params: {
+            maxResults: 50,
+            startAt: 0,
+            state: 'active',
+          },
+        });
+      });
+
+      it('should validate required boardId', async () => {
+        const result = await handlers.listJiraSprints({ boardId: 0 });
+
+        expect(result.isError).toBe(true);
+        expect((result.content[0] as any).text).toContain('boardId is required');
+      });
+    });
+
+    describe('getJiraSprint', () => {
+      it('should get sprint details', async () => {
+        const mockSprint = {
+          id: 1,
+          name: 'Sprint 1',
+          state: 'active',
+          startDate: '2024-01-01T00:00:00.000Z',
+          endDate: '2024-01-14T23:59:59.999Z',
+          boardId: 1,
+          goal: 'Complete user stories',
+        };
+
+        const mockIssues = {
+          issues: [
+            {
+              key: 'TEST-1',
+              fields: {
+                summary: 'Sprint task',
+                status: { name: 'In Progress' },
+              },
+            },
+          ],
+          total: 1,
+        };
+
+        (mockClient.get as any)
+          .mockResolvedValueOnce({ data: mockSprint })
+          .mockResolvedValueOnce({ data: mockIssues });
+
+        const result = await handlers.getJiraSprint({ 
+          sprintId: 1,
+          includeIssues: true 
+        });
+
+        expect(mockClient.get).toHaveBeenCalledTimes(2);
+        expect(mockClient.get).toHaveBeenNthCalledWith(1, '/rest/agile/1.0/sprint/1');
+        expect(mockClient.get).toHaveBeenNthCalledWith(2, '/rest/agile/1.0/sprint/1/issue', {
+          params: {
+            maxResults: 100,
+            startAt: 0,
+          },
+        });
+
+        expect(result.isError).toBeUndefined();
+        const data = JSON.parse((result.content[0] as any).text);
+        expect(data.sprint.name).toBe('Sprint 1');
+        expect(data.issues).toHaveLength(1);
+      });
+
+      it('should get sprint without issues', async () => {
+        const mockSprint = {
+          id: 1,
+          name: 'Sprint 1',
+          state: 'active',
+        };
+
+        (mockClient.get as any).mockResolvedValue({ data: mockSprint });
+
+        const result = await handlers.getJiraSprint({ 
+          sprintId: 1,
+          includeIssues: false 
+        });
+
+        expect(mockClient.get).toHaveBeenCalledTimes(1);
+        expect(result.isError).toBeUndefined();
+        const data = JSON.parse((result.content[0] as any).text);
+        expect(data.issues).toBeUndefined();
+      });
+    });
+
+    describe('getMyTasksInCurrentSprint', () => {
+      it('should get current user tasks in active sprint', async () => {
+        const mockCurrentUser = {
+          accountId: 'user123',
+          displayName: 'John Doe',
+        };
+
+        const mockBoards = {
+          values: [{ id: 1, name: 'Sprint Board' }],
+        };
+
+        const mockSprints = {
+          values: [
+            { id: 1, name: 'Sprint 1', state: 'active' },
+          ],
+        };
+
+        const mockIssues = {
+          issues: [
+            {
+              key: 'TEST-5',
+              fields: {
+                summary: 'My sprint task',
+                status: { name: 'In Progress' },
+              },
+            },
+          ],
+          total: 1,
+        };
+
+        (mockClient.get as any)
+          .mockResolvedValueOnce({ data: mockCurrentUser })
+          .mockResolvedValueOnce({ data: mockBoards })
+          .mockResolvedValueOnce({ data: mockSprints })
+          .mockResolvedValueOnce({ data: mockIssues });
+
+        const result = await handlers.getMyTasksInCurrentSprint({ projectKey: 'TEST' });
+
+        expect(result.isError).toBeUndefined();
+        const data = JSON.parse((result.content[0] as any).text);
+        expect(data.sprint.name).toBe('Sprint 1');
+        expect(data.totalTasks).toBe(1);
+        expect(data.tasks[0].key).toBe('TEST-5');
+      });
+
+      it('should handle no active sprints', async () => {
+        (mockClient.get as any)
+          .mockResolvedValueOnce({ data: { accountId: 'user123' } })
+          .mockResolvedValueOnce({ data: { values: [{ id: 1 }] } })
+          .mockResolvedValueOnce({ data: { values: [] } });
+
+        const result = await handlers.getMyTasksInCurrentSprint({ projectKey: 'TEST' });
+
+        expect(result.isError).toBeUndefined();
+        expect((result.content[0] as any).text).toContain('No active sprint found');
+      });
+
+      it('should handle no boards found', async () => {
+        (mockClient.get as any)
+          .mockResolvedValueOnce({ data: { accountId: 'user123' } })
+          .mockResolvedValueOnce({ data: { values: [] } });
+
+        const result = await handlers.getMyTasksInCurrentSprint({ projectKey: 'TEST' });
+
+        expect(result.isError).toBeUndefined();
+        expect((result.content[0] as any).text).toContain('No boards found for project TEST');
+      });
+    });
+  });
+
+  describe('Activity and Worklog methods', () => {
+    describe('searchJiraIssuesByUser', () => {
+      it('should search issues by assignee', async () => {
+        const mockIssues = {
+          issues: [
+            {
+              key: 'TEST-20',
+              fields: {
+                summary: 'User task',
+                assignee: { displayName: 'Jane Doe' },
+                status: { name: 'Open' },
+              },
+            },
+          ],
+          total: 1,
+        };
+
+        (mockClient.get as any).mockResolvedValue({ data: mockIssues });
+
+        const result = await handlers.searchJiraIssuesByUser({
+          accountId: 'user456',
+          searchType: 'assignee',
+        });
+
+        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
+          params: expect.objectContaining({
+            jql: expect.stringContaining('assignee = "user456"'),
+          }),
+        });
+
+        expect(result.isError).toBeUndefined();
+        const data = JSON.parse((result.content[0] as any).text);
+        expect(data.totalResults).toBe(1);
+      });
+
+      it('should search issues by reporter', async () => {
+        (mockClient.get as any).mockResolvedValue({ 
+          data: { issues: [], total: 0 } 
+        });
+
+        await handlers.searchJiraIssuesByUser({
+          accountId: 'user789',
+          searchType: 'reporter',
+          project: 'TEST',
+        });
+
+        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
+          params: expect.objectContaining({
+            jql: expect.stringContaining('project = TEST AND reporter = "user789"'),
+          }),
+        });
+      });
+
+      it('should search issues by watcher', async () => {
+        (mockClient.get as any).mockResolvedValue({ 
+          data: { issues: [], total: 0 } 
+        });
+
+        await handlers.searchJiraIssuesByUser({
+          accountId: 'user999',
+          searchType: 'watcher',
+        });
+
+        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
+          params: expect.objectContaining({
+            jql: expect.stringContaining('watcher = "user999"'),
+          }),
+        });
+      });
+    });
+
+    describe('getUserJiraActivity', () => {
+      it('should get user activity', async () => {
+        const mockIssues = {
+          issues: [
+            {
+              key: 'TEST-30',
+              fields: {
+                summary: 'Recent activity',
+                updated: '2024-01-15T10:00:00.000Z',
+                status: { name: 'Done' },
+              },
+              changelog: {
+                histories: [
+                  {
+                    created: '2024-01-15T10:00:00.000Z',
+                    author: { displayName: 'John Doe' },
+                    items: [
+                      {
+                        field: 'status',
+                        fromString: 'In Progress',
+                        toString: 'Done',
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+          ],
+          total: 1,
+        };
+
+        (mockClient.get as any).mockResolvedValue({ data: mockIssues });
+
+        const result = await handlers.getUserJiraActivity({
+          accountId: 'user123',
+          startDate: '2024-01-01',
+          endDate: '2024-01-31',
+        });
+
+        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
+          params: expect.objectContaining({
+            jql: expect.stringContaining('updated >= 2024-01-01 AND updated <= 2024-01-31'),
+            expand: 'changelog',
+          }),
+        });
+
+        expect(result.isError).toBeUndefined();
+        const data = JSON.parse((result.content[0] as any).text);
+        expect(data.totalActivities).toBeGreaterThan(0);
+      });
+
+      it('should validate date range', async () => {
+        const result = await handlers.getUserJiraActivity({
+          accountId: 'user123',
+          startDate: '2024-01-31',
+          endDate: '2024-01-01', // End before start
+        });
+
+        expect(result.isError).toBe(true);
+        expect((result.content[0] as any).text).toContain('startDate must be before endDate');
+      });
+    });
+
+    describe('getUserJiraWorklog', () => {
+      it('should get user worklog entries', async () => {
+        const mockIssuesWithWorklog = {
+          issues: [
+            {
+              key: 'TEST-40',
+              fields: {
+                summary: 'Task with worklog',
+                worklog: {
+                  worklogs: [
+                    {
+                      id: 'worklog1',
+                      author: { 
+                        accountId: 'user123',
+                        displayName: 'John Doe' 
+                      },
+                      timeSpent: '2h',
+                      timeSpentSeconds: 7200,
+                      started: '2024-01-10T09:00:00.000Z',
+                      comment: 'Working on implementation',
+                    },
+                  ],
+                  total: 1,
+                },
+              },
+            },
+          ],
+          total: 1,
+        };
+
+        (mockClient.get as any).mockResolvedValue({ data: mockIssuesWithWorklog });
+
+        const result = await handlers.getUserJiraWorklog({
+          accountId: 'user123',
+          startDate: '2024-01-01',
+          endDate: '2024-01-31',
+        });
+
+        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
+          params: expect.objectContaining({
+            jql: expect.stringContaining('worklogAuthor = "user123"'),
+            fields: 'summary,worklog',
+          }),
+        });
+
+        expect(result.isError).toBeUndefined();
+        const data = JSON.parse((result.content[0] as any).text);
+        expect(data.totalTimeSpentSeconds).toBe(7200);
+        expect(data.totalTimeSpent).toBe('2h 0m');
+        expect(data.worklogs).toHaveLength(1);
+        expect(data.worklogs[0].comment).toBe('Working on implementation');
+      });
+
+      it('should calculate total time correctly', async () => {
+        const mockIssuesWithMultipleWorklogs = {
+          issues: [
+            {
+              key: 'TEST-50',
+              fields: {
+                summary: 'Task 1',
+                worklog: {
+                  worklogs: [
+                    {
+                      author: { accountId: 'user123' },
+                      timeSpentSeconds: 3600, // 1h
+                      started: '2024-01-10T09:00:00.000Z',
+                    },
+                    {
+                      author: { accountId: 'user123' },
+                      timeSpentSeconds: 5400, // 1h 30m
+                      started: '2024-01-11T09:00:00.000Z',
+                    },
+                  ],
+                },
+              },
+            },
+            {
+              key: 'TEST-51',
+              fields: {
+                summary: 'Task 2',
+                worklog: {
+                  worklogs: [
+                    {
+                      author: { accountId: 'user123' },
+                      timeSpentSeconds: 7200, // 2h
+                      started: '2024-01-12T09:00:00.000Z',
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        };
+
+        (mockClient.get as any).mockResolvedValue({ data: mockIssuesWithMultipleWorklogs });
+
+        const result = await handlers.getUserJiraWorklog({
+          accountId: 'user123',
+          startDate: '2024-01-01',
+        });
+
+        expect(result.isError).toBeUndefined();
+        const data = JSON.parse((result.content[0] as any).text);
+        expect(data.totalTimeSpentSeconds).toBe(16200); // 4h 30m total
+        expect(data.totalTimeSpent).toBe('4h 30m');
+        expect(data.worklogs).toHaveLength(3);
+      });
+
+      it('should filter by project', async () => {
+        (mockClient.get as any).mockResolvedValue({ 
+          data: { issues: [], total: 0 } 
+        });
+
+        await handlers.getUserJiraWorklog({
+          accountId: 'user123',
+          project: 'TEST',
+          startDate: '2024-01-01',
+        });
+
+        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
+          params: expect.objectContaining({
+            jql: expect.stringContaining('project = TEST'),
+          }),
+        });
+      });
+    });
+
+    describe('listUserJiraIssues', () => {
+      it('should list issues created by user', async () => {
+        const mockIssues = {
+          issues: [
+            {
+              key: 'TEST-60',
+              fields: {
+                summary: 'Created by user',
+                reporter: { displayName: 'John Doe' },
+                created: '2024-01-05T10:00:00.000Z',
+                status: { name: 'Open' },
+              },
+            },
+          ],
+          total: 1,
+        };
+
+        (mockClient.get as any).mockResolvedValue({ data: mockIssues });
+
+        const result = await handlers.listUserJiraIssues({
+          accountId: 'user123',
+          startDate: '2024-01-01',
+          endDate: '2024-01-31',
+        });
+
+        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
+          params: expect.objectContaining({
+            jql: expect.stringContaining('reporter = "user123"'),
+          }),
+        });
+
+        expect(result.isError).toBeUndefined();
+        const data = JSON.parse((result.content[0] as any).text);
+        expect(data.totalIssues).toBe(1);
+        expect(data.issues[0].key).toBe('TEST-60');
+      });
+
+      it('should filter by project and status', async () => {
+        (mockClient.get as any).mockResolvedValue({ 
+          data: { issues: [], total: 0 } 
+        });
+
+        await handlers.listUserJiraIssues({
+          accountId: 'user123',
+          project: 'TEST',
+          status: ['Open', 'In Progress'],
+        });
+
+        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
+          params: expect.objectContaining({
+            jql: expect.stringContaining('project = TEST AND status in ("Open","In Progress")'),
+          }),
+        });
+      });
+    });
+  });
+
+  describe('Error handling', () => {
+    it('should handle network errors', async () => {
+      const networkError = new Error('Network error');
+      (networkError as any).code = 'ECONNREFUSED';
+      
+      (mockClient.get as any).mockRejectedValue(networkError);
+
+      const result = await handlers.readJiraIssue({ issueKey: 'TEST-1' });
+
+      expect(result.isError).toBe(true);
+      expect((result.content[0] as any).text).toContain('Network error');
+    });
+
+    it('should handle authentication errors', async () => {
+      const authError = new Error('Unauthorized');
+      (authError as any).response = { status: 401, data: { message: 'Invalid credentials' } };
+      
+      (mockClient.get as any).mockRejectedValue(authError);
+
+      const result = await handlers.listJiraProjects({});
+
+      expect(result.isError).toBe(true);
+      expect((result.content[0] as any).text).toContain('Unauthorized');
+    });
+
+    it('should handle rate limiting', async () => {
+      const rateLimitError = new Error('Too Many Requests');
+      (rateLimitError as any).response = { 
+        status: 429, 
+        headers: { 'retry-after': '60' } 
+      };
+      
+      (mockClient.get as any).mockRejectedValue(rateLimitError);
+
+      const result = await handlers.searchJiraIssues({ jql: 'test' });
+
+      expect(result.isError).toBe(true);
+      expect((result.content[0] as any).text).toContain('Too Many Requests');
+    });
+
+    it('should handle permission errors', async () => {
+      const permissionError = new Error('Forbidden');
+      (permissionError as any).response = { 
+        status: 403, 
+        data: { message: 'You do not have permission to view this issue' } 
+      };
+      
+      (mockClient.get as any).mockRejectedValue(permissionError);
+
+      const result = await handlers.readJiraIssue({ issueKey: 'PRIVATE-1' });
+
+      expect(result.isError).toBe(true);
+      expect((result.content[0] as any).text).toContain('Forbidden');
     });
   });
 });
