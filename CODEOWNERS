@@ -1,0 +1,21 @@
+# CODEOWNERS file for automatic review requests
+# Each line is a file pattern followed by one or more owners.
+
+# Global owners for all files
+* @Vijay-Duke
+
+# Source code owners
+/src/ @Vijay-Duke
+
+# GitHub Actions workflows
+/.github/workflows/ @Vijay-Duke
+
+# Configuration files
+/*.json @Vijay-Duke
+/*.yml @Vijay-Duke
+/*.yaml @Vijay-Duke
+/.env* @Vijay-Duke
+
+# Documentation
+/*.md @Vijay-Duke
+/docs/ @Vijay-Duke
