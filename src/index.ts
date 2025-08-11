@@ -1,10 +1,7 @@
 #!/usr/bin/env node
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { createAtlassianClient } from './utils/http-client.js';
 import { confluenceTools } from './confluence/tools.js';
 import { jiraTools } from './jira/tools.js';
@@ -246,19 +243,23 @@ class AtlassianMCPServer {
 
           default:
             return {
-              content: [{ 
-                type: 'text', 
-                text: `Unknown tool: ${request.params.name}` 
-              }],
+              content: [
+                {
+                  type: 'text',
+                  text: `Unknown tool: ${request.params.name}`,
+                },
+              ],
               isError: true,
             };
         }
       } catch (error) {
         return {
-          content: [{ 
-            type: 'text', 
-            text: error instanceof Error ? error.message : 'An unknown error occurred' 
-          }],
+          content: [
+            {
+              type: 'text',
+              text: error instanceof Error ? error.message : 'An unknown error occurred',
+            },
+          ],
           isError: true,
         };
       }

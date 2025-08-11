@@ -16,7 +16,7 @@ describe('ConfluenceHandlers', () => {
         baseURL: 'https://test.atlassian.net',
       },
     } as unknown as AxiosInstance;
-    
+
     handlers = new ConfluenceHandlers(mockClient);
   });
 
@@ -45,7 +45,7 @@ describe('ConfluenceHandlers', () => {
 
       expect(result.isError).toBeUndefined();
       expect(result.content[0].type).toBe('text');
-      
+
       const data = JSON.parse((result.content[0] as any).text);
       expect(data).toEqual({
         id: '123',
@@ -68,20 +68,20 @@ describe('ConfluenceHandlers', () => {
         _links: { webui: '/spaces/DEMO/pages/456' },
       };
 
-      (mockClient.get as any).mockResolvedValue({ 
-        data: { results: [mockPage] } 
+      (mockClient.get as any).mockResolvedValue({
+        data: { results: [mockPage] },
       });
 
-      const result = await handlers.readConfluencePage({ 
+      const result = await handlers.readConfluencePage({
         title: 'Page By Title',
-        spaceKey: 'DEMO' 
+        spaceKey: 'DEMO',
       });
 
       expect(mockClient.get).toHaveBeenCalledWith('/wiki/rest/api/content', {
-        params: { 
+        params: {
           spaceKey: 'DEMO',
           title: 'Page By Title',
-          expand: 'body.storage,version,space' 
+          expand: 'body.storage,version,space',
         },
       });
 
@@ -102,9 +102,9 @@ describe('ConfluenceHandlers', () => {
 
       (mockClient.get as any).mockResolvedValue({ data: mockPage });
 
-      const result = await handlers.readConfluencePage({ 
+      const result = await handlers.readConfluencePage({
         pageId: '789',
-        format: 'markdown' 
+        format: 'markdown',
       });
 
       expect(result.isError).toBeUndefined();
@@ -118,28 +118,34 @@ describe('ConfluenceHandlers', () => {
       const result = await handlers.readConfluencePage({});
 
       expect(result.isError).toBe(true);
-      expect((result.content[0] as any).text).toContain('Validation failed: Either pageId or title must be provided');
+      expect((result.content[0] as any).text).toContain(
+        'Validation failed: Either pageId or title must be provided'
+      );
     });
 
     it('should return error when title provided without spaceKey', async () => {
       const result = await handlers.readConfluencePage({ title: 'Test' });
 
       expect(result.isError).toBe(true);
-      expect((result.content[0] as any).text).toContain('Validation failed: spaceKey is required when using title');
+      expect((result.content[0] as any).text).toContain(
+        'Validation failed: spaceKey is required when using title'
+      );
     });
 
     it('should handle no page found by title', async () => {
-      (mockClient.get as any).mockResolvedValue({ 
-        data: { results: [] } 
+      (mockClient.get as any).mockResolvedValue({
+        data: { results: [] },
       });
 
-      const result = await handlers.readConfluencePage({ 
+      const result = await handlers.readConfluencePage({
         title: 'Non-existent',
-        spaceKey: 'TEST' 
+        spaceKey: 'TEST',
       });
 
       expect(result.isError).toBeUndefined();
-      expect((result.content[0] as any).text).toContain('No page found with title "Non-existent" in space TEST');
+      expect((result.content[0] as any).text).toContain(
+        'No page found with title "Non-existent" in space TEST'
+      );
     });
 
     it('should handle API errors', async () => {
@@ -199,26 +205,28 @@ describe('ConfluenceHandlers', () => {
     });
 
     it('should limit results to 100 maximum', async () => {
-      (mockClient.get as any).mockResolvedValue({ 
-        data: { results: [], totalSize: 0, start: 0, limit: 100 } 
+      (mockClient.get as any).mockResolvedValue({
+        data: { results: [], totalSize: 0, start: 0, limit: 100 },
       });
 
       const result = await handlers.searchConfluencePages({ cql: 'test', limit: 200 });
 
       expect(result.isError).toBe(true);
-      expect((result.content[0] as any).text).toContain('maxResults must be an integer between 1 and 100');
+      expect((result.content[0] as any).text).toContain(
+        'maxResults must be an integer between 1 and 100'
+      );
     });
 
     it('should handle pagination parameters', async () => {
-      (mockClient.get as any).mockResolvedValue({ 
-        data: { results: [], totalSize: 50, start: 10, limit: 10 } 
+      (mockClient.get as any).mockResolvedValue({
+        data: { results: [], totalSize: 50, start: 10, limit: 10 },
       });
 
-      const result = await handlers.searchConfluencePages({ 
+      const result = await handlers.searchConfluencePages({
         cql: 'type = page',
         start: 10,
         limit: 10,
-        expand: 'body.storage'
+        expand: 'body.storage',
       });
 
       expect(mockClient.get).toHaveBeenCalledWith('/wiki/rest/api/content/search', {
@@ -272,8 +280,8 @@ describe('ConfluenceHandlers', () => {
     });
 
     it('should list spaces with different status', async () => {
-      (mockClient.get as any).mockResolvedValue({ 
-        data: { results: [], size: 0, start: 0, limit: 25 } 
+      (mockClient.get as any).mockResolvedValue({
+        data: { results: [], size: 0, start: 0, limit: 25 },
       });
 
       await handlers.listConfluenceSpaces({ status: 'archived' });
@@ -288,13 +296,13 @@ describe('ConfluenceHandlers', () => {
     });
 
     it('should handle pagination', async () => {
-      (mockClient.get as any).mockResolvedValue({ 
-        data: { results: [], size: 100, start: 50, limit: 10 } 
+      (mockClient.get as any).mockResolvedValue({
+        data: { results: [], size: 100, start: 50, limit: 10 },
       });
 
-      await handlers.listConfluenceSpaces({ 
+      await handlers.listConfluenceSpaces({
         limit: 10,
-        start: 50 
+        start: 50,
       });
 
       expect(mockClient.get).toHaveBeenCalledWith('/wiki/rest/api/space', {
@@ -317,9 +325,9 @@ describe('ConfluenceHandlers', () => {
               title: 'document.pdf',
               extensions: { mediaType: 'application/pdf', fileSize: 1024 },
               version: { number: 1 },
-              _links: { 
+              _links: {
                 download: '/download/attachments/123/document.pdf',
-                webui: '/spaces/TEST/pages/123/attachments' 
+                webui: '/spaces/TEST/pages/123/attachments',
               },
             },
           ],
@@ -348,13 +356,13 @@ describe('ConfluenceHandlers', () => {
     });
 
     it('should filter by mediaType', async () => {
-      (mockClient.get as any).mockResolvedValue({ 
-        data: { results: [], size: 0, start: 0, limit: 50 } 
+      (mockClient.get as any).mockResolvedValue({
+        data: { results: [], size: 0, start: 0, limit: 50 },
       });
 
-      await handlers.listConfluenceAttachments({ 
+      await handlers.listConfluenceAttachments({
         pageId: '123',
-        mediaType: 'image/png' 
+        mediaType: 'image/png',
       });
 
       expect(mockClient.get).toHaveBeenCalledWith('/wiki/rest/api/content/123/child/attachment', {
@@ -367,13 +375,13 @@ describe('ConfluenceHandlers', () => {
     });
 
     it('should filter by filename', async () => {
-      (mockClient.get as any).mockResolvedValue({ 
-        data: { results: [], size: 0, start: 0, limit: 50 } 
+      (mockClient.get as any).mockResolvedValue({
+        data: { results: [], size: 0, start: 0, limit: 50 },
       });
 
-      await handlers.listConfluenceAttachments({ 
+      await handlers.listConfluenceAttachments({
         pageId: '123',
-        filename: 'report.pdf' 
+        filename: 'report.pdf',
       });
 
       expect(mockClient.get).toHaveBeenCalledWith('/wiki/rest/api/content/123/child/attachment', {
@@ -433,8 +441,8 @@ describe('ConfluenceHandlers', () => {
     });
 
     it('should create page with parent', async () => {
-      (mockClient.post as any).mockResolvedValue({ 
-        data: { id: '1000', title: 'Child Page', _links: {} } 
+      (mockClient.post as any).mockResolvedValue({
+        data: { id: '1000', title: 'Child Page', _links: {} },
       });
 
       await handlers.createConfluencePage({
@@ -553,12 +561,13 @@ describe('ConfluenceHandlers', () => {
         minorEdit: true,
       });
 
-      expect(mockClient.put).toHaveBeenCalledWith('/wiki/rest/api/content/123', 
+      expect(mockClient.put).toHaveBeenCalledWith(
+        '/wiki/rest/api/content/123',
         expect.objectContaining({
-          version: { 
-            number: 1, 
+          version: {
+            number: 1,
             minorEdit: true,
-            message: 'Fixed typo'
+            message: 'Fixed typo',
           },
         })
       );
@@ -582,10 +591,10 @@ describe('ConfluenceHandlers', () => {
         data: {
           id: 'comment123',
           type: 'comment',
-          version: { 
+          version: {
             number: 1,
             by: { displayName: 'John Doe' },
-            when: '2024-01-01T00:00:00Z'
+            when: '2024-01-01T00:00:00Z',
           },
           _links: { webui: '/spaces/TEST/pages/123#comment-comment123' },
         },
@@ -619,8 +628,8 @@ describe('ConfluenceHandlers', () => {
     });
 
     it('should add reply to comment', async () => {
-      (mockClient.post as any).mockResolvedValue({ 
-        data: { id: 'reply123', _links: {} } 
+      (mockClient.post as any).mockResolvedValue({
+        data: { id: 'reply123', _links: {} },
       });
 
       await handlers.addConfluenceComment({
@@ -703,7 +712,7 @@ describe('ConfluenceHandlers', () => {
       expect(data.filename).toContain('.md');
       expect(data.mimeType).toBe('text/markdown');
       expect(data.base64Data).toBeDefined();
-      
+
       // Decode and check markdown content
       const content = Buffer.from(data.base64Data, 'base64').toString('utf-8');
       expect(content).toContain('# Header');
@@ -763,13 +772,13 @@ describe('ConfluenceHandlers', () => {
     });
 
     it('should filter labels by prefix', async () => {
-      (mockClient.get as any).mockResolvedValue({ 
-        data: { results: [], size: 0 } 
+      (mockClient.get as any).mockResolvedValue({
+        data: { results: [], size: 0 },
       });
 
-      await handlers.getConfluenceLabels({ 
+      await handlers.getConfluenceLabels({
         pageId: '123',
-        prefix: 'my' 
+        prefix: 'my',
       });
 
       expect(mockClient.get).toHaveBeenCalledWith('/wiki/rest/api/content/123/label', {
@@ -797,19 +806,13 @@ describe('ConfluenceHandlers', () => {
 
       const result = await handlers.addConfluenceLabels({
         pageId: '123',
-        labels: [
-          { name: 'important' },
-          { name: 'reviewed' },
-        ],
+        labels: [{ name: 'important' }, { name: 'reviewed' }],
       });
 
-      expect(mockClient.post).toHaveBeenCalledWith(
-        '/wiki/rest/api/content/123/label',
-        [
-          { prefix: 'global', name: 'important' },
-          { prefix: 'global', name: 'reviewed' },
-        ]
-      );
+      expect(mockClient.post).toHaveBeenCalledWith('/wiki/rest/api/content/123/label', [
+        { prefix: 'global', name: 'important' },
+        { prefix: 'global', name: 'reviewed' },
+      ]);
 
       expect(result.isError).toBeUndefined();
       const data = JSON.parse((result.content[0] as any).text);
@@ -832,17 +835,19 @@ describe('ConfluenceHandlers', () => {
     it('should upload attachment successfully', async () => {
       const mockResponse = {
         data: {
-          results: [{
-            id: 'att999',
-            title: 'upload.pdf',
-            extensions: { fileSize: 2048, comment: 'Test upload' },
-            metadata: { mediaType: 'application/pdf' },
-            version: { number: 1 },
-            _links: { 
-              download: '/download/attachments/123/upload.pdf',
-              webui: '/spaces/TEST/pages/123/attachments' 
+          results: [
+            {
+              id: 'att999',
+              title: 'upload.pdf',
+              extensions: { fileSize: 2048, comment: 'Test upload' },
+              metadata: { mediaType: 'application/pdf' },
+              version: { number: 1 },
+              _links: {
+                download: '/download/attachments/123/upload.pdf',
+                webui: '/spaces/TEST/pages/123/attachments',
+              },
             },
-          }],
+          ],
         },
       };
 
@@ -892,7 +897,7 @@ describe('ConfluenceHandlers', () => {
 
         expect(mockClient.get).toHaveBeenCalledWith('/api/user/current');
         expect(result.isError).toBeFalsy();
-        
+
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.accountId).toBe('user123');
         expect(data.displayName).toBe('John Doe');
@@ -913,9 +918,9 @@ describe('ConfluenceHandlers', () => {
         const result = await handlers.getConfluenceUser({ accountId: 'user456789012' });
 
         expect(mockClient.get).toHaveBeenCalledWith('/api/user', {
-          params: { accountId: 'user456789012' }
+          params: { accountId: 'user456789012' },
         });
-        
+
         expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.displayName).toBe('Jane Smith');
@@ -924,14 +929,16 @@ describe('ConfluenceHandlers', () => {
       it('should search user by username', async () => {
         const mockSearchResponse = {
           data: {
-            results: [{
-              user: {
-                accountId: 'user789',
-                displayName: 'Bob Wilson',
-                email: 'bob@example.com',
-              }
-            }]
-          }
+            results: [
+              {
+                user: {
+                  accountId: 'user789',
+                  displayName: 'Bob Wilson',
+                  email: 'bob@example.com',
+                },
+              },
+            ],
+          },
         };
 
         (mockClient.get as any).mockResolvedValue(mockSearchResponse);
@@ -947,7 +954,9 @@ describe('ConfluenceHandlers', () => {
         const result = await handlers.getConfluenceUser({});
 
         expect(result.isError).toBe(true);
-        expect((result.content[0] as any).text).toContain('At least one user identifier (username, accountId, or email) is required');
+        expect((result.content[0] as any).text).toContain(
+          'At least one user identifier (username, accountId, or email) is required'
+        );
       });
     });
 
@@ -956,25 +965,25 @@ describe('ConfluenceHandlers', () => {
         const mockResponse = {
           data: {
             results: [
-              { 
+              {
                 userKey: 'key1',
                 username: 'user1',
                 accountId: 'acc1',
                 displayName: 'User One',
-                active: true 
-              }
+                active: true,
+              },
             ],
             size: 1,
             start: 0,
             limit: 25,
-          }
+          },
         };
 
         (mockClient.get as any).mockResolvedValue(mockResponse);
 
-        const result = await handlers.findConfluenceUsers({ 
+        const result = await handlers.findConfluenceUsers({
           cql: 'type = user',
-          limit: 10 
+          limit: 10,
         });
 
         expect(mockClient.get).toHaveBeenCalledWith('/wiki/rest/api/user/search', {
@@ -982,7 +991,7 @@ describe('ConfluenceHandlers', () => {
             cql: 'type = user',
             limit: 10,
             start: 0,
-          }
+          },
         });
 
         expect(result.isError).toBeFalsy();
@@ -1022,7 +1031,7 @@ describe('ConfluenceHandlers', () => {
         const result = await handlers.getConfluenceSpace({ spaceKey: 'TEST' });
 
         expect(mockClient.get).toHaveBeenCalledWith('/api/space/TEST', {
-          params: { expand: 'description.plain,homepage' }
+          params: { expand: 'description.plain,homepage' },
         });
 
         expect(result.isError).toBeFalsy();
@@ -1044,12 +1053,12 @@ describe('ConfluenceHandlers', () => {
                 status: 'current',
                 space: { key: 'TEST' },
                 _links: { webui: '/pages/child1' },
-              }
+              },
             ],
             size: 1,
             start: 0,
             limit: 25,
-          }
+          },
         };
 
         (mockClient.get as any).mockResolvedValue(mockResponse);
@@ -1060,8 +1069,8 @@ describe('ConfluenceHandlers', () => {
           params: {
             limit: 25,
             start: 0,
-            expand: 'space'
-          }
+            expand: 'space',
+          },
         });
 
         expect(result.isError).toBeFalsy();
@@ -1078,7 +1087,12 @@ describe('ConfluenceHandlers', () => {
           title: 'Current Page',
           ancestors: [
             { id: 'root', title: 'Space Home', type: 'page', _links: { webui: '/pages/root' } },
-            { id: 'parent', title: 'Parent Page', type: 'page', _links: { webui: '/pages/parent' } },
+            {
+              id: 'parent',
+              title: 'Parent Page',
+              type: 'page',
+              _links: { webui: '/pages/parent' },
+            },
           ],
         };
 
@@ -1087,7 +1101,7 @@ describe('ConfluenceHandlers', () => {
         const result = await handlers.listConfluencePageAncestors({ pageId: '123' });
 
         expect(mockClient.get).toHaveBeenCalledWith('/api/content/123', {
-          params: { expand: 'ancestors' }
+          params: { expand: 'ancestors' },
         });
 
         expect(result.isError).toBeFalsy();
@@ -1235,7 +1249,7 @@ describe('ConfluenceHandlers', () => {
     it('should handle network errors', async () => {
       const networkError = new Error('Network error');
       (networkError as any).code = 'ECONNREFUSED';
-      
+
       (mockClient.get as any).mockRejectedValue(networkError);
 
       const result = await handlers.readConfluencePage({ pageId: '123' });
@@ -1247,7 +1261,7 @@ describe('ConfluenceHandlers', () => {
     it('should handle authentication errors', async () => {
       const authError = new Error('Unauthorized');
       (authError as any).response = { status: 401, data: { message: 'Invalid credentials' } };
-      
+
       (mockClient.get as any).mockRejectedValue(authError);
 
       const result = await handlers.listConfluenceSpaces({});
@@ -1258,11 +1272,11 @@ describe('ConfluenceHandlers', () => {
 
     it('should handle rate limiting', async () => {
       const rateLimitError = new Error('Too Many Requests');
-      (rateLimitError as any).response = { 
-        status: 429, 
-        headers: { 'retry-after': '60' } 
+      (rateLimitError as any).response = {
+        status: 429,
+        headers: { 'retry-after': '60' },
       };
-      
+
       (mockClient.get as any).mockRejectedValue(rateLimitError);
 
       const result = await handlers.searchConfluencePages({ cql: 'test' });

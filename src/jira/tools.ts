@@ -3,7 +3,8 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 export const jiraTools: Tool[] = [
   {
     name: 'get_jira_current_user',
-    description: 'Get details of the authenticated Jira user. Returns information about the current user including account ID, display name, email, and avatar URLs.',
+    description:
+      'Get details of the authenticated Jira user. Returns information about the current user including account ID, display name, email, and avatar URLs.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -11,7 +12,8 @@ export const jiraTools: Tool[] = [
   },
   {
     name: 'get_jira_user',
-    description: 'Get details for a specific Jira user by username, account ID, or email. Returns user profile information.',
+    description:
+      'Get details for a specific Jira user by username, account ID, or email. Returns user profile information.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -32,7 +34,8 @@ export const jiraTools: Tool[] = [
   },
   {
     name: 'search_jira_issues_by_user',
-    description: 'Search issues by user involvement. Can filter by assignee, reporter, creator, watcher, or all.',
+    description:
+      'Search issues by user involvement. Can filter by assignee, reporter, creator, watcher, or all.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -80,7 +83,8 @@ export const jiraTools: Tool[] = [
   },
   {
     name: 'list_user_jira_issues',
-    description: 'List issues for a specific user role (assignee, reporter, or creator) with optional date filtering.',
+    description:
+      'List issues for a specific user role (assignee, reporter, or creator) with optional date filtering.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -128,7 +132,8 @@ export const jiraTools: Tool[] = [
   },
   {
     name: 'get_user_jira_activity',
-    description: 'Get recent activity for a user including comments, status changes, and issue updates.',
+    description:
+      'Get recent activity for a user including comments, status changes, and issue updates.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -217,7 +222,8 @@ export const jiraTools: Tool[] = [
   },
   {
     name: 'read_jira_issue',
-    description: 'Retrieves detailed information about a specific Jira issue, including its fields, status, and transitions. Use this to get the full picture of a single issue.',
+    description:
+      'Retrieves detailed information about a specific Jira issue, including its fields, status, and transitions. Use this to get the full picture of a single issue.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -227,7 +233,8 @@ export const jiraTools: Tool[] = [
         },
         expand: {
           type: 'string',
-          description: 'A comma-separated list of additional properties to expand. Common options include `fields`, `transitions`, and `changelog`.',
+          description:
+            'A comma-separated list of additional properties to expand. Common options include `fields`, `transitions`, and `changelog`.',
           default: 'fields,transitions,changelog',
         },
       },
@@ -236,13 +243,15 @@ export const jiraTools: Tool[] = [
   },
   {
     name: 'search_jira_issues',
-    description: 'Searches for Jira issues using Jira Query Language (JQL). This is the primary way to find issues that match specific criteria.',
+    description:
+      'Searches for Jira issues using Jira Query Language (JQL). This is the primary way to find issues that match specific criteria.',
     inputSchema: {
       type: 'object',
       properties: {
         jql: {
           type: 'string',
-          description: 'A JQL query string. For example, to find all open issues in project "PROJ", use: `project = PROJ AND status = Open`.',
+          description:
+            'A JQL query string. For example, to find all open issues in project "PROJ", use: `project = PROJ AND status = Open`.',
         },
         maxResults: {
           type: 'number',
@@ -258,7 +267,8 @@ export const jiraTools: Tool[] = [
         },
         fields: {
           type: 'string',
-          description: 'A comma-separated list of fields to include for each issue in the response. By default, it returns all fields (`*all`).',
+          description:
+            'A comma-separated list of fields to include for each issue in the response. By default, it returns all fields (`*all`).',
           default: '*all',
         },
       },
@@ -267,13 +277,15 @@ export const jiraTools: Tool[] = [
   },
   {
     name: 'list_jira_projects',
-    description: 'Lists all Jira projects that the user has permission to view. This is useful for discovering available projects to work with.',
+    description:
+      'Lists all Jira projects that the user has permission to view. This is useful for discovering available projects to work with.',
     inputSchema: {
       type: 'object',
       properties: {
         expand: {
           type: 'string',
-          description: 'A comma-separated list of properties to expand for each project. Common options are `description`, `lead`, and `issueTypes`.',
+          description:
+            'A comma-separated list of properties to expand for each project. Common options are `description`, `lead`, and `issueTypes`.',
           default: 'description,lead,issueTypes',
         },
       },
@@ -281,7 +293,8 @@ export const jiraTools: Tool[] = [
   },
   {
     name: 'create_jira_issue',
-    description: 'Creates a new issue in a Jira project. You must specify the project, issue type, and a summary. Other fields like description, priority, and assignee are optional.',
+    description:
+      'Creates a new issue in a Jira project. You must specify the project, issue type, and a summary. Other fields like description, priority, and assignee are optional.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -291,7 +304,8 @@ export const jiraTools: Tool[] = [
         },
         issueType: {
           type: 'string',
-          description: 'The name of the issue type (e.g., "Bug", "Task", "Story"). This must be a valid issue type in the specified project.',
+          description:
+            'The name of the issue type (e.g., "Bug", "Task", "Story"). This must be a valid issue type in the specified project.',
         },
         summary: {
           type: 'string',
@@ -303,7 +317,8 @@ export const jiraTools: Tool[] = [
         },
         priority: {
           type: 'string',
-          description: 'The priority level for the issue (e.g., "High", "Medium", "Low"). Must be a valid priority in the project.',
+          description:
+            'The priority level for the issue (e.g., "High", "Medium", "Low"). Must be a valid priority in the project.',
         },
         assignee: {
           type: 'string',
@@ -321,7 +336,8 @@ export const jiraTools: Tool[] = [
         },
         customFields: {
           type: 'object',
-          description: 'A JSON object for setting custom fields. The keys are the custom field IDs (e.g., "customfield_10010") and the values are the data to be set.',
+          description:
+            'A JSON object for setting custom fields. The keys are the custom field IDs (e.g., "customfield_10010") and the values are the data to be set.',
         },
       },
       required: ['projectKey', 'issueType', 'summary'],
@@ -329,13 +345,15 @@ export const jiraTools: Tool[] = [
   },
   {
     name: 'add_jira_comment',
-    description: 'Adds a comment to an existing Jira issue. You can also control the visibility of the comment.',
+    description:
+      'Adds a comment to an existing Jira issue. You can also control the visibility of the comment.',
     inputSchema: {
       type: 'object',
       properties: {
         issueKey: {
           type: 'string',
-          description: 'The key of the issue to which the comment will be added (e.g., "PROJ-123").',
+          description:
+            'The key of the issue to which the comment will be added (e.g., "PROJ-123").',
         },
         body: {
           type: 'string',
@@ -343,7 +361,8 @@ export const jiraTools: Tool[] = [
         },
         visibility: {
           type: 'object',
-          description: 'An object that sets the visibility of the comment to a specific project role or group. Optional.',
+          description:
+            'An object that sets the visibility of the comment to a specific project role or group. Optional.',
           properties: {
             type: {
               type: 'string',
@@ -362,7 +381,8 @@ export const jiraTools: Tool[] = [
   },
   {
     name: 'list_jira_boards',
-    description: 'List accessible Jira boards (Scrum and Kanban). Can be filtered by project and board type.',
+    description:
+      'List accessible Jira boards (Scrum and Kanban). Can be filtered by project and board type.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -392,7 +412,8 @@ export const jiraTools: Tool[] = [
   },
   {
     name: 'list_jira_sprints',
-    description: 'List sprints for a given board. Can filter by sprint state (active, closed, future).',
+    description:
+      'List sprints for a given board. Can filter by sprint state (active, closed, future).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -423,7 +444,8 @@ export const jiraTools: Tool[] = [
   },
   {
     name: 'get_jira_sprint',
-    description: 'Get detailed information about a specific sprint, including its issues, dates, and goals.',
+    description:
+      'Get detailed information about a specific sprint, including its issues, dates, and goals.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -437,7 +459,8 @@ export const jiraTools: Tool[] = [
   },
   {
     name: 'get_my_tasks_in_current_sprint',
-    description: 'Fetch all issues assigned to the current user in the active sprint(s). Optionally filter by board or project.',
+    description:
+      'Fetch all issues assigned to the current user in the active sprint(s). Optionally filter by board or project.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -454,7 +477,8 @@ export const jiraTools: Tool[] = [
   },
   {
     name: 'get_my_open_issues',
-    description: 'Fetch all open (unresolved) issues assigned to the current user. Returns issues grouped by status and sorted by priority.',
+    description:
+      'Fetch all open (unresolved) issues assigned to the current user. Returns issues grouped by status and sorted by priority.',
     inputSchema: {
       type: 'object',
       properties: {

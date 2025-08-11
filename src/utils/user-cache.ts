@@ -27,9 +27,9 @@ export class UserCache {
 
   constructor(config: Partial<CacheConfig> = {}) {
     this.config = {
-      maxSize: 1000,        // Max 1000 users in cache
+      maxSize: 1000, // Max 1000 users in cache
       ttlMs: 15 * 60 * 1000, // 15 minutes TTL
-      ...config
+      ...config,
     };
   }
 
@@ -39,21 +39,21 @@ export class UserCache {
   get(identifier: string): CachedUser | null {
     const key = this.normalizeKey(identifier);
     const cached = this.cache.get(key);
-    
+
     if (!cached) {
       return null;
     }
-    
+
     // Check TTL
     if (Date.now() - cached.cachedAt > this.config.ttlMs) {
       this.cache.delete(key);
       this.accessOrder.delete(key);
       return null;
     }
-    
+
     // Update access order for LRU
     this.accessOrder.set(key, ++this.accessCounter);
-    
+
     return cached;
   }
 
@@ -63,17 +63,17 @@ export class UserCache {
   set(user: Omit<CachedUser, 'cachedAt'>): void {
     const cachedUser: CachedUser = {
       ...user,
-      cachedAt: Date.now()
+      cachedAt: Date.now(),
     };
-    
+
     // Store under multiple keys for different lookup methods
     const keys = this.generateKeys(user);
-    
-    keys.forEach(key => {
+
+    keys.forEach((key) => {
       this.cache.set(key, cachedUser);
       this.accessOrder.set(key, ++this.accessCounter);
     });
-    
+
     // Enforce size limit with LRU eviction
     this.evictIfNeeded();
   }
@@ -83,7 +83,7 @@ export class UserCache {
    */
   delete(identifier: string): void {
     const keys = this.findRelatedKeys(identifier);
-    keys.forEach(key => {
+    keys.forEach((key) => {
       this.cache.delete(key);
       this.accessOrder.delete(key);
     });
@@ -107,21 +107,20 @@ export class UserCache {
     oldestEntry: number | null;
     memoryUsageKB: number;
   } {
-    const oldestTimestamp = Array.from(this.cache.values())
-      .reduce((oldest, user) => 
-        oldest === null || user.cachedAt < oldest ? user.cachedAt : oldest, 
-        null as number | null
-      );
-    
+    const oldestTimestamp = Array.from(this.cache.values()).reduce(
+      (oldest, user) => (oldest === null || user.cachedAt < oldest ? user.cachedAt : oldest),
+      null as number | null
+    );
+
     // Rough memory usage calculation
     const avgEntrySize = 200; // bytes per cache entry
     const memoryUsageKB = Math.round((this.cache.size * avgEntrySize) / 1024);
-    
+
     return {
       size: this.cache.size,
       hitRate: 0, // Would need to track hits/misses for this
       oldestEntry: oldestTimestamp,
-      memoryUsageKB
+      memoryUsageKB,
     };
   }
 
@@ -137,22 +136,22 @@ export class UserCache {
    */
   private generateKeys(user: Omit<CachedUser, 'cachedAt'>): string[] {
     const keys: string[] = [];
-    
+
     // Always include accountId
     if (user.accountId) {
       keys.push(this.normalizeKey(user.accountId));
     }
-    
+
     // Include displayName if available
     if (user.displayName) {
       keys.push(this.normalizeKey(user.displayName));
     }
-    
+
     // Include email if available (though we're deprecating email lookup)
     if (user.emailAddress) {
       keys.push(this.normalizeKey(user.emailAddress));
     }
-    
+
     return keys;
   }
 
@@ -162,7 +161,7 @@ export class UserCache {
   private findRelatedKeys(identifier: string): string[] {
     const normalizedId = this.normalizeKey(identifier);
     const relatedKeys: string[] = [];
-    
+
     // Find the cached user first
     const cachedUser = this.cache.get(normalizedId);
     if (cachedUser) {
@@ -172,7 +171,7 @@ export class UserCache {
       // Just the provided identifier
       relatedKeys.push(normalizedId);
     }
-    
+
     return relatedKeys;
   }
 
@@ -184,20 +183,20 @@ export class UserCache {
       // Find LRU entry
       let lruKey: string | null = null;
       let lruAccessTime = Infinity;
-      
+
       for (const [key, accessTime] of this.accessOrder) {
         if (accessTime < lruAccessTime) {
           lruAccessTime = accessTime;
           lruKey = key;
         }
       }
-      
+
       if (lruKey) {
         const user = this.cache.get(lruKey);
         if (user) {
           // Remove all keys for this user
           const keysToRemove = this.generateKeys(user);
-          keysToRemove.forEach(key => {
+          keysToRemove.forEach((key) => {
             this.cache.delete(key);
             this.accessOrder.delete(key);
           });
@@ -212,14 +211,14 @@ export class UserCache {
   maintenance(): void {
     const now = Date.now();
     const expiredKeys: string[] = [];
-    
+
     for (const [key, user] of this.cache) {
       if (now - user.cachedAt > this.config.ttlMs) {
         expiredKeys.push(key);
       }
     }
-    
-    expiredKeys.forEach(key => {
+
+    expiredKeys.forEach((key) => {
       this.cache.delete(key);
       this.accessOrder.delete(key);
     });

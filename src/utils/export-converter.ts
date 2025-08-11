@@ -6,10 +6,10 @@ export class ExportConverter {
    */
   static htmlToMarkdown(html: string): string {
     let md = html;
-    
+
     // Remove style tags and their content
     md = md.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
-    
+
     // Convert headers
     md = md.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '\n# $1\n');
     md = md.replace(/<h2[^>]*>(.*?)<\/h2>/gi, '\n## $1\n');
@@ -17,21 +17,21 @@ export class ExportConverter {
     md = md.replace(/<h4[^>]*>(.*?)<\/h4>/gi, '\n#### $1\n');
     md = md.replace(/<h5[^>]*>(.*?)<\/h5>/gi, '\n##### $1\n');
     md = md.replace(/<h6[^>]*>(.*?)<\/h6>/gi, '\n###### $1\n');
-    
+
     // Convert bold and italic
     md = md.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
     md = md.replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**');
     md = md.replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*');
     md = md.replace(/<i[^>]*>(.*?)<\/i>/gi, '*$1*');
-    
+
     // Convert links
     md = md.replace(/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
-    
+
     // Convert line breaks and paragraphs
     md = md.replace(/<br\s*\/?>/gi, '\n');
     md = md.replace(/<p[^>]*>/gi, '\n\n');
     md = md.replace(/<\/p>/gi, '');
-    
+
     // Convert lists
     md = md.replace(/<ul[^>]*>/gi, '\n');
     md = md.replace(/<\/ul>/gi, '\n');
@@ -40,14 +40,14 @@ export class ExportConverter {
     md = md.replace(/<li[^>]*>(.*?)<\/li>/gi, (match, content) => {
       return `\n* ${content.trim()}`;
     });
-    
+
     // Convert code blocks
     md = md.replace(/<pre[^>]*><code[^>]*>([\s\S]*?)<\/code><\/pre>/gi, '\n```\n$1\n```\n');
     md = md.replace(/<code[^>]*>(.*?)<\/code>/gi, '`$1`');
-    
+
     // Convert blockquotes
     md = md.replace(/<blockquote[^>]*>(.*?)<\/blockquote>/gi, '\n> $1\n');
-    
+
     // Convert tables - basic support
     md = md.replace(/<table[^>]*>/gi, '\n');
     md = md.replace(/<\/table>/gi, '\n');
@@ -59,14 +59,14 @@ export class ExportConverter {
     md = md.replace(/<\/tr>/gi, '|');
     md = md.replace(/<th[^>]*>(.*?)<\/th>/gi, ' $1 |');
     md = md.replace(/<td[^>]*>(.*?)<\/td>/gi, ' $1 |');
-    
+
     // Remove remaining HTML tags
     md = md.replace(/<div[^>]*>/gi, '\n');
     md = md.replace(/<\/div>/gi, '');
     md = md.replace(/<span[^>]*>/gi, '');
     md = md.replace(/<\/span>/gi, '');
     md = md.replace(/<[^>]+>/g, '');
-    
+
     // Clean up entities
     md = md.replace(/&nbsp;/g, ' ');
     md = md.replace(/&lt;/g, '<');
@@ -74,11 +74,11 @@ export class ExportConverter {
     md = md.replace(/&amp;/g, '&');
     md = md.replace(/&quot;/g, '"');
     md = md.replace(/&#39;/g, "'");
-    
+
     // Clean up excessive whitespace
     md = md.replace(/\n{4,}/g, '\n\n\n');
     md = md.replace(/^\s+$/gm, '');
-    
+
     return md.trim();
   }
 
@@ -86,7 +86,7 @@ export class ExportConverter {
    * Process images in HTML content
    */
   static async processImages(
-    html: string, 
+    html: string,
     client: AxiosInstance,
     embedImages: boolean = true
   ): Promise<{ html: string; images: Array<{ url: string; base64?: string; size: number }> }> {
@@ -94,27 +94,27 @@ export class ExportConverter {
     const images: Array<{ url: string; base64?: string; size: number; tag: string }> = [];
     let match;
     let processedHtml = html;
-    
+
     while ((match = imgRegex.exec(html)) !== null) {
       images.push({
         tag: match[0],
         url: match[1],
-        size: 0
+        size: 0,
       });
     }
-    
+
     if (!embedImages) {
-      return { 
-        html: processedHtml, 
-        images: images.map(img => ({ url: img.url, size: img.size })) 
+      return {
+        html: processedHtml,
+        images: images.map((img) => ({ url: img.url, size: img.size })),
       };
     }
-    
+
     // Download and embed images
     for (const img of images) {
       try {
         let imageUrl = img.url;
-        
+
         // Security: Only process images from the same Atlassian domain or relative paths.
         // This is to prevent SSRF attacks where the server could be forced to make requests
         // to arbitrary internal or external services.
@@ -136,30 +136,31 @@ export class ExportConverter {
           // Ensure relative URLs are handled correctly, assuming they are relative to the domain root
           imageUrl = '/' + imageUrl;
         }
-        
+
         // Download image
         const response = await client.get(imageUrl, {
           responseType: 'arraybuffer',
-          timeout: 30000
+          timeout: 30000,
         });
-        
+
         if (response.status === 200 && response.data) {
           let mimeType = response.headers['content-type'] || 'image/png';
           if (!mimeType.startsWith('image/')) {
             if (imageUrl.includes('.png')) mimeType = 'image/png';
-            else if (imageUrl.includes('.jpg') || imageUrl.includes('.jpeg')) mimeType = 'image/jpeg';
+            else if (imageUrl.includes('.jpg') || imageUrl.includes('.jpeg'))
+              mimeType = 'image/jpeg';
             else if (imageUrl.includes('.gif')) mimeType = 'image/gif';
             else if (imageUrl.includes('.svg')) mimeType = 'image/svg+xml';
             else mimeType = 'image/png';
           }
-          
+
           const base64Data = Buffer.from(response.data).toString('base64');
           const dataUri = `data:${mimeType};base64,${base64Data}`;
-          
+
           // Replace image src with data URI
           const newImgTag = img.tag.replace(img.url, dataUri);
           processedHtml = processedHtml.replace(img.tag, newImgTag);
-          
+
           img.base64 = base64Data;
           img.size = response.data.byteLength;
         }
@@ -167,14 +168,14 @@ export class ExportConverter {
         console.error(`Failed to process image ${img.url}:`, error);
       }
     }
-    
-    return { 
-      html: processedHtml, 
-      images: images.map(img => ({ 
-        url: img.url, 
+
+    return {
+      html: processedHtml,
+      images: images.map((img) => ({
+        url: img.url,
         base64: img.base64,
-        size: img.size 
-      }))
+        size: img.size,
+      })),
     };
   }
 
@@ -186,7 +187,8 @@ export class ExportConverter {
     title: string,
     includeStyles: boolean = false
   ): string {
-    const css = includeStyles ? `
+    const css = includeStyles
+      ? `
       <style>
         @page { size: A4; margin: 2cm; }
         @media print {
@@ -265,8 +267,9 @@ export class ExportConverter {
           color: #666;
         }
       </style>
-    ` : '';
-    
+    `
+      : '';
+
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -324,7 +327,7 @@ ${content}
 - **Export Date:** ${new Date().toLocaleString()}
 ${metadata.sourceUrl ? `- **Source URL:** ${metadata.sourceUrl}` : ''}
 `;
-    
+
     return frontMatter;
   }
 }

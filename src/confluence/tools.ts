@@ -3,7 +3,8 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 export const confluenceTools: Tool[] = [
   {
     name: 'get_confluence_current_user',
-    description: 'Get details of the authenticated Confluence user. Returns information about the current user including account ID, display name, email, and profile picture.',
+    description:
+      'Get details of the authenticated Confluence user. Returns information about the current user including account ID, display name, email, and profile picture.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -11,7 +12,8 @@ export const confluenceTools: Tool[] = [
   },
   {
     name: 'get_confluence_user',
-    description: 'Get details for a specific Confluence user by username, account ID, or email. Returns user profile information.',
+    description:
+      'Get details for a specific Confluence user by username, account ID, or email. Returns user profile information.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -32,7 +34,8 @@ export const confluenceTools: Tool[] = [
   },
   {
     name: 'search_confluence_pages_by_user',
-    description: 'Search pages created or updated by a specific user. Can filter by creator, last modifier, or both.',
+    description:
+      'Search pages created or updated by a specific user. Can filter by creator, last modifier, or both.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -71,7 +74,8 @@ export const confluenceTools: Tool[] = [
   },
   {
     name: 'list_user_confluence_pages',
-    description: 'List all pages authored by a specific user within an optional space or time range.',
+    description:
+      'List all pages authored by a specific user within an optional space or time range.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -130,7 +134,8 @@ export const confluenceTools: Tool[] = [
         },
         limit: {
           type: 'number',
-          description: 'The maximum number of attachments to return. Default is 25, maximum is 100.',
+          description:
+            'The maximum number of attachments to return. Default is 25, maximum is 100.',
           default: 25,
           minimum: 1,
           maximum: 100,
@@ -145,7 +150,8 @@ export const confluenceTools: Tool[] = [
   },
   {
     name: 'read_confluence_page',
-    description: 'Retrieves the content of a Confluence page. You can specify the page by its ID or by its title and space key. The content can be returned in raw storage format (XHTML) or converted to Markdown.',
+    description:
+      'Retrieves the content of a Confluence page. You can specify the page by its ID or by its title and space key. The content can be returned in raw storage format (XHTML) or converted to Markdown.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -159,16 +165,19 @@ export const confluenceTools: Tool[] = [
         },
         spaceKey: {
           type: 'string',
-          description: 'The key of the space where the page is located (e.g., "DEV"). Required when using `title`.',
+          description:
+            'The key of the space where the page is located (e.g., "DEV"). Required when using `title`.',
         },
         expand: {
           type: 'string',
-          description: 'A comma-separated list of properties to expand in the response (e.g., "body.storage,version,space").',
+          description:
+            'A comma-separated list of properties to expand in the response (e.g., "body.storage,version,space").',
           default: 'body.storage,version,space',
         },
         format: {
           type: 'string',
-          description: 'The desired format for the page content. `storage` returns Confluence\'s native XHTML format. `markdown` converts the content to Markdown.',
+          description:
+            "The desired format for the page content. `storage` returns Confluence's native XHTML format. `markdown` converts the content to Markdown.",
           enum: ['storage', 'markdown'],
           default: 'storage',
         },
@@ -177,17 +186,20 @@ export const confluenceTools: Tool[] = [
   },
   {
     name: 'search_confluence_pages',
-    description: 'Performs a search for Confluence pages using Confluence Query Language (CQL). This is useful for finding pages that match specific criteria.',
+    description:
+      'Performs a search for Confluence pages using Confluence Query Language (CQL). This is useful for finding pages that match specific criteria.',
     inputSchema: {
       type: 'object',
       properties: {
         cql: {
           type: 'string',
-          description: 'The CQL query string. For example, to find all pages in the "DEV" space containing the word "architecture", use: `space = DEV AND text ~ "architecture"`.',
+          description:
+            'The CQL query string. For example, to find all pages in the "DEV" space containing the word "architecture", use: `space = DEV AND text ~ "architecture"`.',
         },
         limit: {
           type: 'number',
-          description: 'The maximum number of pages to return. The default is 25, and the maximum is 100.',
+          description:
+            'The maximum number of pages to return. The default is 25, and the maximum is 100.',
           default: 25,
           minimum: 1,
           maximum: 100,
@@ -199,7 +211,8 @@ export const confluenceTools: Tool[] = [
         },
         expand: {
           type: 'string',
-          description: 'A comma-separated list of properties to expand for each page in the results.',
+          description:
+            'A comma-separated list of properties to expand for each page in the results.',
         },
       },
       required: ['cql'],
@@ -207,18 +220,21 @@ export const confluenceTools: Tool[] = [
   },
   {
     name: 'list_confluence_spaces',
-    description: 'Lists all Confluence spaces that the user has permission to view. Can be filtered by type and status.',
+    description:
+      'Lists all Confluence spaces that the user has permission to view. Can be filtered by type and status.',
     inputSchema: {
       type: 'object',
       properties: {
         type: {
           type: 'string',
-          description: 'Filter spaces by type: `global` for site-wide spaces or `personal` for user spaces.',
+          description:
+            'Filter spaces by type: `global` for site-wide spaces or `personal` for user spaces.',
           enum: ['global', 'personal'],
         },
         status: {
           type: 'string',
-          description: 'Filter spaces by status: `current` for active spaces or `archived` for archived spaces. Default is `current`.',
+          description:
+            'Filter spaces by status: `current` for active spaces or `archived` for archived spaces. Default is `current`.',
           enum: ['current', 'archived'],
           default: 'current',
         },
@@ -234,7 +250,8 @@ export const confluenceTools: Tool[] = [
   },
   {
     name: 'get_confluence_space',
-    description: 'Get details of a specific Confluence space by its key. Returns space information including name, type, status, and description.',
+    description:
+      'Get details of a specific Confluence space by its key. Returns space information including name, type, status, and description.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -253,7 +270,8 @@ export const confluenceTools: Tool[] = [
   },
   {
     name: 'list_confluence_attachments',
-    description: 'Lists all attachments for a specific Confluence page. Can be filtered by filename or media type.',
+    description:
+      'Lists all attachments for a specific Confluence page. Can be filtered by filename or media type.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -263,7 +281,8 @@ export const confluenceTools: Tool[] = [
         },
         mediaType: {
           type: 'string',
-          description: 'Filter attachments by their MIME type (e.g., "image/png", "application/pdf").',
+          description:
+            'Filter attachments by their MIME type (e.g., "image/png", "application/pdf").',
         },
         filename: {
           type: 'string',
@@ -271,7 +290,8 @@ export const confluenceTools: Tool[] = [
         },
         limit: {
           type: 'number',
-          description: 'The maximum number of attachments to return. Default is 50, maximum is 100.',
+          description:
+            'The maximum number of attachments to return. Default is 50, maximum is 100.',
           default: 50,
           minimum: 1,
           maximum: 100,
@@ -287,7 +307,8 @@ export const confluenceTools: Tool[] = [
   },
   {
     name: 'download_confluence_attachment',
-    description: 'Downloads a specific Confluence attachment and returns its content as a base64-encoded string. This is useful for reading the content of files attached to a page.',
+    description:
+      'Downloads a specific Confluence attachment and returns its content as a base64-encoded string. This is useful for reading the content of files attached to a page.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -297,7 +318,8 @@ export const confluenceTools: Tool[] = [
         },
         version: {
           type: 'number',
-          description: 'The version number of the attachment to download. If not specified, the latest version is downloaded.',
+          description:
+            'The version number of the attachment to download. If not specified, the latest version is downloaded.',
         },
       },
       required: ['attachmentId'],
@@ -305,7 +327,8 @@ export const confluenceTools: Tool[] = [
   },
   {
     name: 'upload_confluence_attachment',
-    description: 'Upload a file attachment to a Confluence page. The file should be provided as a base64-encoded string.',
+    description:
+      'Upload a file attachment to a Confluence page. The file should be provided as a base64-encoded string.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -327,7 +350,8 @@ export const confluenceTools: Tool[] = [
         },
         minorEdit: {
           type: 'boolean',
-          description: 'Set to true if this is a minor edit that should not notify watchers. Default is false.',
+          description:
+            'Set to true if this is a minor edit that should not notify watchers. Default is false.',
           default: false,
         },
       },
@@ -336,7 +360,8 @@ export const confluenceTools: Tool[] = [
   },
   {
     name: 'download_confluence_page_complete',
-    description: 'Performs a comprehensive download of a Confluence page, including its full content, metadata, and optionally, all of its attachments. Attachments are base64-encoded.',
+    description:
+      'Performs a comprehensive download of a Confluence page, including its full content, metadata, and optionally, all of its attachments. Attachments are base64-encoded.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -346,7 +371,8 @@ export const confluenceTools: Tool[] = [
         },
         includeAttachments: {
           type: 'boolean',
-          description: 'If true, all attachments on the page will be downloaded and included in the response. Default is true.',
+          description:
+            'If true, all attachments on the page will be downloaded and included in the response. Default is true.',
           default: true,
         },
         attachmentTypes: {
@@ -354,11 +380,13 @@ export const confluenceTools: Tool[] = [
           items: {
             type: 'string',
           },
-          description: 'An array of MIME types to filter attachments by (e.g., ["image/png", "application/pdf"]). If not specified, all attachment types are included.',
+          description:
+            'An array of MIME types to filter attachments by (e.g., ["image/png", "application/pdf"]). If not specified, all attachment types are included.',
         },
         maxAttachmentSize: {
           type: 'number',
-          description: 'The maximum size in bytes for an individual attachment to be downloaded. Default is 50MB.',
+          description:
+            'The maximum size in bytes for an individual attachment to be downloaded. Default is 50MB.',
           default: 52428800,
         },
       },
@@ -367,7 +395,8 @@ export const confluenceTools: Tool[] = [
   },
   {
     name: 'create_confluence_page',
-    description: 'Creates a new page or blog post in a Confluence space. Content can be provided in Markdown or Confluence storage format (XHTML).',
+    description:
+      'Creates a new page or blog post in a Confluence space. Content can be provided in Markdown or Confluence storage format (XHTML).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -381,15 +410,18 @@ export const confluenceTools: Tool[] = [
         },
         content: {
           type: 'string',
-          description: 'The main content of the page or blog post. Can be in Markdown or Confluence storage format (XHTML).',
+          description:
+            'The main content of the page or blog post. Can be in Markdown or Confluence storage format (XHTML).',
         },
         parentId: {
           type: 'string',
-          description: 'The ID of a parent page, which will make the new page a child of that page. Optional.',
+          description:
+            'The ID of a parent page, which will make the new page a child of that page. Optional.',
         },
         type: {
           type: 'string',
-          description: 'The type of content to create. Can be `page` or `blogpost`. Default is `page`.',
+          description:
+            'The type of content to create. Can be `page` or `blogpost`. Default is `page`.',
           enum: ['page', 'blogpost'],
           default: 'page',
         },
@@ -399,7 +431,8 @@ export const confluenceTools: Tool[] = [
   },
   {
     name: 'update_confluence_page',
-    description: 'Updates an existing Confluence page. You must provide the page ID and its current version number to prevent conflicts. You can update the title, content, or both.',
+    description:
+      'Updates an existing Confluence page. You must provide the page ID and its current version number to prevent conflicts. You can update the title, content, or both.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -413,15 +446,18 @@ export const confluenceTools: Tool[] = [
         },
         content: {
           type: 'string',
-          description: 'The new content for the page, in Markdown or storage format. If not provided, the content remains unchanged.',
+          description:
+            'The new content for the page, in Markdown or storage format. If not provided, the content remains unchanged.',
         },
         version: {
           type: 'number',
-          description: 'The current version number of the page. This is required to ensure you are not overwriting someone else\'s changes.',
+          description:
+            "The current version number of the page. This is required to ensure you are not overwriting someone else's changes.",
         },
         minorEdit: {
           type: 'boolean',
-          description: 'Set to true if this is a minor edit that should not notify watchers. Default is false.',
+          description:
+            'Set to true if this is a minor edit that should not notify watchers. Default is false.',
           default: false,
         },
         versionComment: {
@@ -434,7 +470,8 @@ export const confluenceTools: Tool[] = [
   },
   {
     name: 'list_confluence_page_children',
-    description: 'List child pages under a given Confluence page. Returns a hierarchical list of direct child pages.',
+    description:
+      'List child pages under a given Confluence page. Returns a hierarchical list of direct child pages.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -444,7 +481,8 @@ export const confluenceTools: Tool[] = [
         },
         limit: {
           type: 'number',
-          description: 'The maximum number of child pages to return. Default is 25, maximum is 100.',
+          description:
+            'The maximum number of child pages to return. Default is 25, maximum is 100.',
           default: 25,
           minimum: 1,
           maximum: 100,
@@ -465,7 +503,8 @@ export const confluenceTools: Tool[] = [
   },
   {
     name: 'list_confluence_page_ancestors',
-    description: 'Retrieve the parent hierarchy of a Confluence page. Returns the full ancestry path from root to the immediate parent.',
+    description:
+      'Retrieve the parent hierarchy of a Confluence page. Returns the full ancestry path from root to the immediate parent.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -479,7 +518,8 @@ export const confluenceTools: Tool[] = [
   },
   {
     name: 'add_confluence_comment',
-    description: 'Adds a comment to a Confluence page. Can also be used to reply to an existing comment.',
+    description:
+      'Adds a comment to a Confluence page. Can also be used to reply to an existing comment.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -489,11 +529,13 @@ export const confluenceTools: Tool[] = [
         },
         content: {
           type: 'string',
-          description: 'The text of the comment. Can be plain text or Confluence storage format (XHTML).',
+          description:
+            'The text of the comment. Can be plain text or Confluence storage format (XHTML).',
         },
         parentCommentId: {
           type: 'string',
-          description: 'The ID of an existing comment to which this comment should be a reply. Optional.',
+          description:
+            'The ID of an existing comment to which this comment should be a reply. Optional.',
         },
       },
       required: ['pageId', 'content'],
@@ -501,7 +543,8 @@ export const confluenceTools: Tool[] = [
   },
   {
     name: 'find_confluence_users',
-    description: 'Searches for Confluence users based on various criteria. This is useful for finding user details like account IDs.',
+    description:
+      'Searches for Confluence users based on various criteria. This is useful for finding user details like account IDs.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -572,7 +615,8 @@ export const confluenceTools: Tool[] = [
   },
   {
     name: 'add_confluence_page_label',
-    description: 'Adds one or more labels to a Confluence page. Labels are useful for organizing and categorizing content.',
+    description:
+      'Adds one or more labels to a Confluence page. Labels are useful for organizing and categorizing content.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -587,7 +631,8 @@ export const confluenceTools: Tool[] = [
             properties: {
               prefix: {
                 type: 'string',
-                description: 'The prefix for the label (e.g., "global", "my", "team"). "global" is the default if not provided.',
+                description:
+                  'The prefix for the label (e.g., "global", "my", "team"). "global" is the default if not provided.',
               },
               name: {
                 type: 'string',
@@ -604,7 +649,8 @@ export const confluenceTools: Tool[] = [
   },
   {
     name: 'export_confluence_page',
-    description: 'Exports a Confluence page to either HTML or Markdown format. All images in the page content are embedded directly into the exported file as base64 data, making it self-contained.',
+    description:
+      'Exports a Confluence page to either HTML or Markdown format. All images in the page content are embedded directly into the exported file as base64 data, making it self-contained.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -614,7 +660,8 @@ export const confluenceTools: Tool[] = [
         },
         format: {
           type: 'string',
-          description: 'The desired export format. Can be `html` or `markdown`. Both formats will have images embedded.',
+          description:
+            'The desired export format. Can be `html` or `markdown`. Both formats will have images embedded.',
           enum: ['html', 'markdown'],
         },
       },
@@ -623,7 +670,8 @@ export const confluenceTools: Tool[] = [
   },
   {
     name: 'get_my_recent_confluence_pages',
-    description: 'List pages recently created or updated by the current user. Returns pages where you are the creator or last modifier.',
+    description:
+      'List pages recently created or updated by the current user. Returns pages where you are the creator or last modifier.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -648,7 +696,8 @@ export const confluenceTools: Tool[] = [
   },
   {
     name: 'get_confluence_pages_mentioning_me',
-    description: 'Search for pages that mention the current user. Returns pages where you have been @mentioned.',
+    description:
+      'Search for pages that mention the current user. Returns pages where you have been @mentioned.',
     inputSchema: {
       type: 'object',
       properties: {

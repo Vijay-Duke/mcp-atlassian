@@ -246,22 +246,18 @@ export class SimplePdfExport {
         }
       </style>
     `;
-    
+
     // Clean and process content
     let processedContent = content;
-    
+
     // Remove Confluence-specific classes that might break styling
     processedContent = processedContent.replace(/class="[^"]*"/g, '');
-    
+
     // Fix relative URLs
-    processedContent = processedContent.replace(
-      /src="\/wiki\//g,
-      `src="${baseUrl}/wiki/`
-    ).replace(
-      /href="\/wiki\//g,
-      `href="${baseUrl}/wiki/`
-    );
-    
+    processedContent = processedContent
+      .replace(/src="\/wiki\//g, `src="${baseUrl}/wiki/`)
+      .replace(/href="\/wiki\//g, `href="${baseUrl}/wiki/`);
+
     // Build the HTML document
     const html = `<!DOCTYPE html>
 <html lang="en">
@@ -294,7 +290,7 @@ export class SimplePdfExport {
   </div>
 </body>
 </html>`;
-    
+
     return html;
   }
 }

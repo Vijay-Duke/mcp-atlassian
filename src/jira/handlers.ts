@@ -1,8 +1,8 @@
 import { AxiosInstance } from 'axios';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { 
-  ReadJiraIssueArgs, 
-  SearchJiraIssuesArgs, 
+import {
+  ReadJiraIssueArgs,
+  SearchJiraIssuesArgs,
   ListJiraProjectsArgs,
   CreateJiraIssueArgs,
   AddJiraCommentArgs,
@@ -27,14 +27,14 @@ import {
   IssueSearchResult,
   UserProfileResponse,
   JiraIssueCreatePayload,
-  JiraCommentPayload
+  JiraCommentPayload,
 } from '../types/index.js';
 import { formatApiError } from '../utils/http-client.js';
-import { 
-  JqlBuilder, 
-  validateAccountId, 
+import {
+  JqlBuilder,
+  validateAccountId,
   validateProjectKeys,
-  escapeJqlString 
+  escapeJqlString,
 } from '../utils/jql-sanitizer.js';
 import {
   validatePagination,
@@ -43,10 +43,14 @@ import {
   validateEnum,
   validateUserIdentification,
   validateString,
-  validateNumber
+  validateNumber,
 } from '../utils/input-validator.js';
 import { getUserCache, createCacheKey, CachedUser } from '../utils/user-cache.js';
-import { createEnhancedError, createValidationError, createUserNotFoundError } from '../utils/error-handler.js';
+import {
+  createEnhancedError,
+  createValidationError,
+  createUserNotFoundError,
+} from '../utils/error-handler.js';
 import { formatSeconds } from '../utils/time-formatter.js';
 
 export class JiraHandlers {
@@ -61,17 +65,24 @@ export class JiraHandlers {
     try {
       const { issueKey, expand = 'fields,transitions,changelog' } = args;
 
-      const issueKeyValidation = validateString(issueKey, 'issueKey', { required: true, maxLength: 255, pattern: /^[A-Z]+-[0-9]+$/ });
+      const issueKeyValidation = validateString(issueKey, 'issueKey', {
+        required: true,
+        maxLength: 255,
+        pattern: /^[A-Z]+-[0-9]+$/,
+      });
       if (!issueKeyValidation.isValid) {
         return createValidationError(issueKeyValidation.errors, 'readJiraIssue', 'jira');
       }
 
-      const response = await this.client.get(`/rest/api/3/issue/${issueKeyValidation.sanitizedValue}`, {
-        params: { expand },
-      });
+      const response = await this.client.get(
+        `/rest/api/3/issue/${issueKeyValidation.sanitizedValue}`,
+        {
+          params: { expand },
+        }
+      );
 
       const issue: JiraIssue = response.data;
-      
+
       const result = {
         id: issue.id,
         key: issue.key,
@@ -90,7 +101,7 @@ export class JiraHandlers {
           labels: issue.fields.labels,
           components: issue.fields.components?.map((c: any) => c.name),
         },
-        transitions: issue.transitions?.map(t => ({
+        transitions: issue.transitions?.map((t) => ({
           id: t.id,
           name: t.name,
           to: t.to.name,
@@ -180,7 +191,7 @@ export class JiraHandlers {
         projectType: project.projectTypeKey,
         lead: project.lead?.displayName,
         webUrl: `${this.client.defaults.baseURL}/projects/${project.key}`,
-        issueTypes: project.issueTypes?.map(it => ({
+        issueTypes: project.issueTypes?.map((it) => ({
           name: it.name,
           description: it.description,
         })),
@@ -204,26 +215,35 @@ export class JiraHandlers {
 
   async createJiraIssue(args: CreateJiraIssueArgs): Promise<CallToolResult> {
     try {
-      const { 
-        projectKey, 
-        issueType, 
-        summary, 
-        description, 
-        priority, 
+      const {
+        projectKey,
+        issueType,
+        summary,
+        description,
+        priority,
         assignee,
         labels,
         components,
-        customFields 
+        customFields,
       } = args;
 
-      const projectKeyValidation = validateString(projectKey, 'projectKey', { required: true, pattern: /^[A-Z][A-Z0-9_]*$/ });
-      if (!projectKeyValidation.isValid) return createValidationError(projectKeyValidation.errors, 'createJiraIssue', 'jira');
+      const projectKeyValidation = validateString(projectKey, 'projectKey', {
+        required: true,
+        pattern: /^[A-Z][A-Z0-9_]*$/,
+      });
+      if (!projectKeyValidation.isValid)
+        return createValidationError(projectKeyValidation.errors, 'createJiraIssue', 'jira');
 
       const issueTypeValidation = validateString(issueType, 'issueType', { required: true });
-      if (!issueTypeValidation.isValid) return createValidationError(issueTypeValidation.errors, 'createJiraIssue', 'jira');
+      if (!issueTypeValidation.isValid)
+        return createValidationError(issueTypeValidation.errors, 'createJiraIssue', 'jira');
 
-      const summaryValidation = validateString(summary, 'summary', { required: true, maxLength: 255 });
-      if (!summaryValidation.isValid) return createValidationError(summaryValidation.errors, 'createJiraIssue', 'jira');
+      const summaryValidation = validateString(summary, 'summary', {
+        required: true,
+        maxLength: 255,
+      });
+      if (!summaryValidation.isValid)
+        return createValidationError(summaryValidation.errors, 'createJiraIssue', 'jira');
 
       const issueData: JiraIssueCreatePayload = {
         fields: {
@@ -234,8 +254,11 @@ export class JiraHandlers {
       };
 
       if (description) {
-        const descriptionValidation = validateString(description, 'description', { maxLength: 32767 });
-        if (!descriptionValidation.isValid) return createValidationError(descriptionValidation.errors, 'createJiraIssue', 'jira');
+        const descriptionValidation = validateString(description, 'description', {
+          maxLength: 32767,
+        });
+        if (!descriptionValidation.isValid)
+          return createValidationError(descriptionValidation.errors, 'createJiraIssue', 'jira');
         issueData.fields.description = {
           type: 'doc',
           version: 1,
@@ -255,13 +278,15 @@ export class JiraHandlers {
 
       if (priority) {
         const priorityValidation = validateString(priority, 'priority');
-        if (!priorityValidation.isValid) return createValidationError(priorityValidation.errors, 'createJiraIssue', 'jira');
+        if (!priorityValidation.isValid)
+          return createValidationError(priorityValidation.errors, 'createJiraIssue', 'jira');
         issueData.fields.priority = { name: priorityValidation.sanitizedValue };
       }
 
       if (assignee) {
         const assigneeValidation = validateString(assignee, 'assignee');
-        if (!assigneeValidation.isValid) return createValidationError(assigneeValidation.errors, 'createJiraIssue', 'jira');
+        if (!assigneeValidation.isValid)
+          return createValidationError(assigneeValidation.errors, 'createJiraIssue', 'jira');
         issueData.fields.assignee = { accountId: assigneeValidation.sanitizedValue };
       }
 
@@ -270,7 +295,7 @@ export class JiraHandlers {
       }
 
       if (components && components.length > 0) {
-        issueData.fields.components = components.map(name => ({ name }));
+        issueData.fields.components = components.map((name) => ({ name }));
       }
 
       if (customFields) {
@@ -301,11 +326,16 @@ export class JiraHandlers {
     try {
       const { issueKey, body, visibility } = args;
 
-      const issueKeyValidation = validateString(issueKey, 'issueKey', { required: true, pattern: /^[A-Z]+-[0-9]+$/ });
-      if (!issueKeyValidation.isValid) return createValidationError(issueKeyValidation.errors, 'addJiraComment', 'jira');
+      const issueKeyValidation = validateString(issueKey, 'issueKey', {
+        required: true,
+        pattern: /^[A-Z]+-[0-9]+$/,
+      });
+      if (!issueKeyValidation.isValid)
+        return createValidationError(issueKeyValidation.errors, 'addJiraComment', 'jira');
 
       const bodyValidation = validateString(body, 'body', { required: true, maxLength: 32767 });
-      if (!bodyValidation.isValid) return createValidationError(bodyValidation.errors, 'addJiraComment', 'jira');
+      if (!bodyValidation.isValid)
+        return createValidationError(bodyValidation.errors, 'addJiraComment', 'jira');
 
       const commentData: JiraCommentPayload = {
         body: {
@@ -329,17 +359,14 @@ export class JiraHandlers {
         commentData.visibility = visibility;
       }
 
-      const response = await this.client.post(
-        `/rest/api/3/issue/${issueKey}/comment`,
-        commentData
-      );
+      const response = await this.client.post(`/rest/api/3/issue/${issueKey}/comment`, commentData);
 
       const result = {
         id: response.data.id,
         created: response.data.created,
         author: response.data.author?.displayName,
-        body: body,
-        issueKey: issueKey,
+        body,
+        issueKey,
       };
 
       return {
@@ -356,7 +383,7 @@ export class JiraHandlers {
   async getJiraCurrentUser(): Promise<CallToolResult> {
     try {
       const response = await this.client.get('/rest/api/3/myself');
-      
+
       const user: JiraUser = response.data;
       const result = {
         accountId: user.accountId,
@@ -385,25 +412,27 @@ export class JiraHandlers {
       const { projectKeyOrId, type, startAt = 0, maxResults = 50 } = args;
 
       const paginationValidation = validatePagination(startAt, maxResults);
-      if (!paginationValidation.isValid) return createValidationError(paginationValidation.errors, 'listJiraBoards', 'jira');
-      
+      if (!paginationValidation.isValid)
+        return createValidationError(paginationValidation.errors, 'listJiraBoards', 'jira');
+
       const params: any = {
         startAt: paginationValidation.sanitizedValue!.startAt,
         maxResults: paginationValidation.sanitizedValue!.maxResults,
       };
-      
+
       if (projectKeyOrId) {
         const projectKeyValidation = validateString(projectKeyOrId, 'projectKeyOrId');
-        if (!projectKeyValidation.isValid) return createValidationError(projectKeyValidation.errors, 'listJiraBoards', 'jira');
+        if (!projectKeyValidation.isValid)
+          return createValidationError(projectKeyValidation.errors, 'listJiraBoards', 'jira');
         params.projectKeyOrId = projectKeyValidation.sanitizedValue;
       }
-      
+
       if (type) {
         params.type = type;
       }
 
       const response = await this.client.get('/rest/agile/1.0/board', { params });
-      
+
       const boards = response.data.values.map((board: JiraBoard) => ({
         id: board.id,
         name: board.name,
@@ -434,26 +463,35 @@ export class JiraHandlers {
   async listJiraSprints(args: ListJiraSprintsArgs): Promise<CallToolResult> {
     try {
       const { boardId, state, startAt = 0, maxResults = 50 } = args;
-      
-      const boardIdValidation = validateNumber(boardId, 'boardId', { required: true, integer: true });
-      if (!boardIdValidation.isValid) return createValidationError(boardIdValidation.errors, 'listJiraSprints', 'jira');
+
+      const boardIdValidation = validateNumber(boardId, 'boardId', {
+        required: true,
+        integer: true,
+      });
+      if (!boardIdValidation.isValid)
+        return createValidationError(boardIdValidation.errors, 'listJiraSprints', 'jira');
 
       const paginationValidation = validatePagination(startAt, maxResults);
-      if (!paginationValidation.isValid) return createValidationError(paginationValidation.errors, 'listJiraSprints', 'jira');
+      if (!paginationValidation.isValid)
+        return createValidationError(paginationValidation.errors, 'listJiraSprints', 'jira');
 
       const params: any = {
         startAt: paginationValidation.sanitizedValue!.startAt,
         maxResults: paginationValidation.sanitizedValue!.maxResults,
       };
-      
+
       if (state) {
         const stateValidation = validateEnum(state, 'state', ['future', 'active', 'closed']);
-        if (!stateValidation.isValid) return createValidationError(stateValidation.errors, 'listJiraSprints', 'jira');
+        if (!stateValidation.isValid)
+          return createValidationError(stateValidation.errors, 'listJiraSprints', 'jira');
         params.state = stateValidation.sanitizedValue;
       }
 
-      const response = await this.client.get(`/rest/agile/1.0/board/${boardIdValidation.sanitizedValue}/sprint`, { params });
-      
+      const response = await this.client.get(
+        `/rest/agile/1.0/board/${boardIdValidation.sanitizedValue}/sprint`,
+        { params }
+      );
+
       const sprints = response.data.values.map((sprint: JiraSprint) => ({
         id: sprint.id,
         name: sprint.name,
@@ -487,12 +525,18 @@ export class JiraHandlers {
   async getJiraSprint(args: GetJiraSprintArgs): Promise<CallToolResult> {
     try {
       const { sprintId } = args;
-      
-      const sprintIdValidation = validateNumber(sprintId, 'sprintId', { required: true, integer: true });
-      if (!sprintIdValidation.isValid) return createValidationError(sprintIdValidation.errors, 'getJiraSprint', 'jira');
 
-      const response = await this.client.get(`/rest/agile/1.0/sprint/${sprintIdValidation.sanitizedValue}`);
-      
+      const sprintIdValidation = validateNumber(sprintId, 'sprintId', {
+        required: true,
+        integer: true,
+      });
+      if (!sprintIdValidation.isValid)
+        return createValidationError(sprintIdValidation.errors, 'getJiraSprint', 'jira');
+
+      const response = await this.client.get(
+        `/rest/agile/1.0/sprint/${sprintIdValidation.sanitizedValue}`
+      );
+
       const sprint: JiraSprint = response.data;
       const result: any = {
         id: sprint.id,
@@ -503,16 +547,16 @@ export class JiraHandlers {
         completeDate: sprint.completeDate,
         goal: sprint.goal,
         originBoardId: sprint.originBoardId,
-        webUrl: sprint.originBoardId 
+        webUrl: sprint.originBoardId
           ? `${this.client.defaults.baseURL}/secure/RapidBoard.jspa?rapidView=${sprint.originBoardId}&view=planning&selectedIssue=none&sprint=${sprint.id}`
           : undefined,
       };
 
       try {
         const issuesResponse = await this.client.get(`/rest/agile/1.0/sprint/${sprintId}/issue`, {
-          params: { maxResults: 100 }
+          params: { maxResults: 100 },
         });
-        
+
         result.issueCount = issuesResponse.data.total;
         result.issues = issuesResponse.data.issues.map((issue: any) => ({
           key: issue.key,
@@ -540,12 +584,19 @@ export class JiraHandlers {
     try {
       // First get the current user
       const currentUser = await this._getCurrentUser();
-      
+
       let jql = `assignee = "${currentUser.accountId}" AND sprint in openSprints()`;
-      
+
       if (args.projectKey) {
-        const projectKeyValidation = validateString(args.projectKey, 'projectKey', { pattern: /^[A-Z][A-Z0-9_]*$/ });
-        if (!projectKeyValidation.isValid) return createValidationError(projectKeyValidation.errors, 'getMyTasksInCurrentSprint', 'jira');
+        const projectKeyValidation = validateString(args.projectKey, 'projectKey', {
+          pattern: /^[A-Z][A-Z0-9_]*$/,
+        });
+        if (!projectKeyValidation.isValid)
+          return createValidationError(
+            projectKeyValidation.errors,
+            'getMyTasksInCurrentSprint',
+            'jira'
+          );
         jql = `project = ${projectKeyValidation.sanitizedValue} AND ${jql}`;
       }
 
@@ -553,12 +604,20 @@ export class JiraHandlers {
       let sprintInfo = null;
       if (args.boardId) {
         const boardIdValidation = validateNumber(args.boardId, 'boardId', { integer: true });
-        if (!boardIdValidation.isValid) return createValidationError(boardIdValidation.errors, 'getMyTasksInCurrentSprint', 'jira');
+        if (!boardIdValidation.isValid)
+          return createValidationError(
+            boardIdValidation.errors,
+            'getMyTasksInCurrentSprint',
+            'jira'
+          );
         try {
-          const sprintResponse = await this.client.get(`/rest/agile/1.0/board/${boardIdValidation.sanitizedValue}/sprint`, {
-            params: { state: 'active' }
-          });
-          
+          const sprintResponse = await this.client.get(
+            `/rest/agile/1.0/board/${boardIdValidation.sanitizedValue}/sprint`,
+            {
+              params: { state: 'active' },
+            }
+          );
+
           if (sprintResponse.data.values && sprintResponse.data.values.length > 0) {
             const activeSprint = sprintResponse.data.values[0];
             sprintInfo = {
@@ -579,7 +638,8 @@ export class JiraHandlers {
         params: {
           jql,
           maxResults: 100,
-          fields: 'summary,status,priority,issuetype,created,updated,description,components,labels,sprint',
+          fields:
+            'summary,status,priority,issuetype,created,updated,description,components,labels,sprint',
         },
       });
 
@@ -616,26 +676,32 @@ export class JiraHandlers {
   async getMyOpenIssues(args: GetMyOpenIssuesArgs): Promise<CallToolResult> {
     try {
       const { projectKeys, maxResults = 50 } = args;
-      
+
       // First get the current user
       const currentUser = await this._getCurrentUser();
-      
+
       let jql = `assignee = "${currentUser.accountId}" AND resolution = Unresolved`;
-      
+
       if (projectKeys && projectKeys.length > 0) {
-        const projectKeysValidation = validateStringArray(projectKeys, 'projectKeys', { pattern: /^[A-Z][A-Z0-9_]*$/ });
-        if (!projectKeysValidation.isValid) return createValidationError(projectKeysValidation.errors, 'getMyOpenIssues', 'jira');
-        const projectFilter = projectKeysValidation.sanitizedValue!.map((key: string) => `"${key}"`).join(', ');
+        const projectKeysValidation = validateStringArray(projectKeys, 'projectKeys', {
+          pattern: /^[A-Z][A-Z0-9_]*$/,
+        });
+        if (!projectKeysValidation.isValid)
+          return createValidationError(projectKeysValidation.errors, 'getMyOpenIssues', 'jira');
+        const projectFilter = projectKeysValidation
+          .sanitizedValue!.map((key: string) => `"${key}"`)
+          .join(', ');
         jql = `project in (${projectFilter}) AND ${jql}`;
       }
-      
+
       jql += ' ORDER BY priority DESC, updated DESC';
 
       const response = await this.client.get('/rest/api/3/search', {
         params: {
           jql,
           maxResults: Math.min(maxResults, 100),
-          fields: 'summary,status,priority,issuetype,created,updated,project,components,labels,duedate',
+          fields:
+            'summary,status,priority,issuetype,created,updated,project,components,labels,duedate',
         },
       });
 
@@ -685,7 +751,7 @@ export class JiraHandlers {
     try {
       const { username, accountId, email } = args;
       const cache = getUserCache();
-      
+
       // Try cache first
       let cacheKey: string;
       try {
@@ -701,9 +767,9 @@ export class JiraHandlers {
             accountType: cachedUser.accountType,
             avatarUrls: cachedUser.avatarUrls,
             profileUrl: `${this.client.defaults.baseURL}/people/${cachedUser.accountId}`,
-            source: 'cache'
+            source: 'cache',
           };
-          
+
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };
@@ -711,62 +777,66 @@ export class JiraHandlers {
       } catch (e) {
         // Invalid cache key, proceed with API lookup
       }
-      
+
       // Prioritize accountId lookup (most secure)
       let user: JiraUser | null = null;
-      
+
       if (accountId) {
         try {
           const validatedAccountId = validateAccountId(accountId);
           const response = await this.client.get(`/rest/api/3/user`, {
-            params: { accountId: validatedAccountId }
+            params: { accountId: validatedAccountId },
           });
           user = response.data;
         } catch (e) {
           // User not found by accountId
         }
       }
-      
+
       // Fallback to username search with strict matching (deprecated - warn user)
       if (!user && username) {
         try {
           const response = await this.client.get('/rest/api/3/user/search', {
-            params: { query: escapeJqlString(username), maxResults: 10 }
+            params: { query: escapeJqlString(username), maxResults: 10 },
           });
-          
+
           if (response.data && response.data.length > 0) {
             // Strict matching: find exact match by displayName or accountId
-            user = response.data.find((u: JiraUser) => 
-              u.displayName === username ||
-              u.accountId === username
-            ) || null;
-            
+            user =
+              response.data.find(
+                (u: JiraUser) => u.displayName === username || u.accountId === username
+              ) || null;
+
             // Warn about deprecated username usage
             if (user) {
-              console.warn(`Warning: Username lookup is deprecated. Use accountId '${user.accountId}' instead.`);
+              console.warn(
+                `Warning: Username lookup is deprecated. Use accountId '${user.accountId}' instead.`
+              );
             }
           }
         } catch (e) {
           // User not found by username
         }
       }
-      
+
       // Email search removed for privacy reasons - accountId should be used instead
       if (!user && email) {
         return {
-          content: [{ 
-            type: 'text', 
-            text: 'Email-based user lookup has been disabled for privacy reasons. Please use accountId instead.' 
-          }],
+          content: [
+            {
+              type: 'text',
+              text: 'Email-based user lookup has been disabled for privacy reasons. Please use accountId instead.',
+            },
+          ],
           isError: true,
         };
       }
-      
+
       if (!user) {
         const identifier = accountId || username || email || 'unknown';
         return createUserNotFoundError(identifier, 'jira');
       }
-      
+
       // Cache the user data for future lookups
       const cachedUserData: Omit<CachedUser, 'cachedAt'> = {
         accountId: user.accountId,
@@ -778,11 +848,11 @@ export class JiraHandlers {
         avatarUrls: user.avatarUrls,
       };
       cache.set(cachedUserData);
-      
+
       const result = {
         ...cachedUserData,
         profileUrl: `${this.client.defaults.baseURL}/people/${user.accountId}`,
-        source: 'api'
+        source: 'api',
       };
 
       return {
@@ -792,24 +862,33 @@ export class JiraHandlers {
       return createEnhancedError(error, {
         operation: 'get user profile',
         component: 'jira',
-        userInput: { 
-          username: args.username, 
-          accountId: args.accountId, 
-          email: args.email 
+        userInput: {
+          username: args.username,
+          accountId: args.accountId,
+          email: args.email,
         },
         suggestions: [
           'Verify the user identifier is correct',
           'Use accountId for best performance and security',
-          'Check that the user exists in your Atlassian instance'
-        ]
+          'Check that the user exists in your Atlassian instance',
+        ],
       });
     }
   }
 
   async searchJiraIssuesByUser(args: SearchJiraIssuesByUserArgs): Promise<CallToolResult> {
     try {
-      const { username, accountId, searchType, projectKeys, status, issueType, maxResults = 50, startAt = 0 } = args;
-      
+      const {
+        username,
+        accountId,
+        searchType,
+        projectKeys,
+        status,
+        issueType,
+        maxResults = 50,
+        startAt = 0,
+      } = args;
+
       // Get user's accountId if not provided
       let userAccountId = accountId;
       if (!userAccountId && username) {
@@ -820,18 +899,18 @@ export class JiraHandlers {
         const userData = JSON.parse((userResult.content[0] as any).text);
         userAccountId = userData.accountId;
       }
-      
+
       if (!userAccountId) {
         return {
           content: [{ type: 'text', text: 'User account ID or username is required' }],
           isError: true,
         };
       }
-      
+
       // Validate and sanitize inputs
       const validatedAccountId = validateAccountId(userAccountId);
       const jqlBuilder = new JqlBuilder();
-      
+
       // Build JQL query based on search type using secure builder
       if (searchType === 'assignee') {
         jqlBuilder.equals('assignee', validatedAccountId);
@@ -844,23 +923,23 @@ export class JiraHandlers {
       } else if (searchType === 'all') {
         jqlBuilder.orEquals(['assignee', 'reporter', 'creator', 'watcher'], validatedAccountId);
       }
-      
+
       // Add project filter if specified
       if (projectKeys && projectKeys.length > 0) {
         const validatedProjectKeys = validateProjectKeys(projectKeys);
         jqlBuilder.in('project', validatedProjectKeys);
       }
-      
+
       // Add status filter if specified
       if (status) {
         jqlBuilder.equals('status', status);
       }
-      
-      // Add issue type filter if specified  
+
+      // Add issue type filter if specified
       if (issueType) {
         jqlBuilder.equals('issuetype', issueType);
       }
-      
+
       // Build final JQL with ordering
       let jql = jqlBuilder.build();
       if (jql) {
@@ -914,88 +993,119 @@ export class JiraHandlers {
 
   async listUserJiraIssues(args: ListUserJiraIssuesArgs): Promise<CallToolResult> {
     try {
-      const { username, accountId, role, projectKeys, startDate, endDate, maxResults = 50, startAt = 0 } = args;
-      
+      const {
+        username,
+        accountId,
+        role,
+        projectKeys,
+        startDate,
+        endDate,
+        maxResults = 50,
+        startAt = 0,
+      } = args;
+
       // Validate inputs
       const userValidation = validateUserIdentification({ username, accountId });
       if (!userValidation.isValid) {
         return {
-          content: [{ type: 'text', text: `Input validation failed: ${userValidation.errors.join(', ')}` }],
+          content: [
+            { type: 'text', text: `Input validation failed: ${userValidation.errors.join(', ')}` },
+          ],
           isError: true,
         };
       }
-      
+
       const roleValidation = validateEnum(role, 'role', ['assignee', 'reporter', 'creator'], true);
       if (!roleValidation.isValid) {
         return {
-          content: [{ type: 'text', text: `Role validation failed: ${roleValidation.errors.join(', ')}` }],
+          content: [
+            { type: 'text', text: `Role validation failed: ${roleValidation.errors.join(', ')}` },
+          ],
           isError: true,
         };
       }
-      
+
       const paginationValidation = validatePagination(startAt, maxResults);
       if (!paginationValidation.isValid) {
         return {
-          content: [{ type: 'text', text: `Pagination validation failed: ${paginationValidation.errors.join(', ')}` }],
+          content: [
+            {
+              type: 'text',
+              text: `Pagination validation failed: ${paginationValidation.errors.join(', ')}`,
+            },
+          ],
           isError: true,
         };
       }
-      
+
       const dateValidation = validateDateRange(startDate, endDate);
       if (!dateValidation.isValid) {
         return {
-          content: [{ type: 'text', text: `Date validation failed: ${dateValidation.errors.join(', ')}` }],
+          content: [
+            { type: 'text', text: `Date validation failed: ${dateValidation.errors.join(', ')}` },
+          ],
           isError: true,
         };
       }
-      
+
       let validatedProjectKeys: string[] | undefined;
       if (projectKeys) {
         const projectValidation = validateStringArray(projectKeys, 'projectKeys', {
           pattern: /^[A-Z0-9]{1,10}$/,
-          maxItems: 20
+          maxItems: 20,
         });
         if (!projectValidation.isValid) {
           return {
-            content: [{ type: 'text', text: `Project keys validation failed: ${projectValidation.errors.join(', ')}` }],
+            content: [
+              {
+                type: 'text',
+                text: `Project keys validation failed: ${projectValidation.errors.join(', ')}`,
+              },
+            ],
             isError: true,
           };
         }
         validatedProjectKeys = projectValidation.sanitizedValue;
       }
-      
+
       // Get user's accountId if not provided
       let userAccountId = userValidation.sanitizedValue?.accountId;
       if (!userAccountId && userValidation.sanitizedValue?.username) {
-        const userResult = await this.getJiraUser({ username: userValidation.sanitizedValue.username });
+        const userResult = await this.getJiraUser({
+          username: userValidation.sanitizedValue.username,
+        });
         if (userResult.isError) {
           return userResult;
         }
         const userData = JSON.parse((userResult.content[0] as any).text);
         userAccountId = userData.accountId;
       }
-      
+
       if (!userAccountId) {
         return {
           content: [{ type: 'text', text: 'Could not resolve user account ID' }],
           isError: true,
         };
       }
-      
+
       // Build secure JQL query using JQL Builder
       const jqlBuilder = new JqlBuilder();
       const validatedAccountId = validateAccountId(userAccountId);
-      
-      jqlBuilder.equals(roleValidation.sanitizedValue!, validatedAccountId);
-      
+
+      jqlBuilder.equals(roleValidation.sanitizedValue, validatedAccountId);
+
       if (validatedProjectKeys && validatedProjectKeys.length > 0) {
         jqlBuilder.in('project', validatedProjectKeys);
       }
-      
+
       if (dateValidation.sanitizedValue) {
-        jqlBuilder.dateRange('created', dateValidation.sanitizedValue.startDate, dateValidation.sanitizedValue.endDate);
+        jqlBuilder.dateRange(
+          'created',
+          dateValidation.sanitizedValue.startDate,
+          dateValidation.sanitizedValue.endDate
+        );
       }
-      
+
       const jql = jqlBuilder.build() + ' ORDER BY created DESC';
 
       const response = await this.client.get('/rest/api/3/search', {
@@ -1003,7 +1113,8 @@ export class JiraHandlers {
           jql,
           maxResults: paginationValidation.sanitizedValue!.maxResults,
           startAt: paginationValidation.sanitizedValue!.startAt,
-          fields: 'summary,status,priority,issuetype,assignee,reporter,created,updated,project,resolution',
+          fields:
+            'summary,status,priority,issuetype,assignee,reporter,created,updated,project,resolution',
         },
       });
 
@@ -1027,7 +1138,7 @@ export class JiraHandlers {
         user: userAccountId,
         dateRange: {
           start: startDate || 'unlimited',
-          end: endDate || 'unlimited'
+          end: endDate || 'unlimited',
         },
         totalIssues: response.data.total,
         startAt: response.data.startAt,
@@ -1048,14 +1159,24 @@ export class JiraHandlers {
 
   async getUserJiraActivity(args: GetUserJiraActivityArgs): Promise<CallToolResult> {
     try {
-      const { username, accountId, activityType = 'all', projectKeys, days = 30, maxResults = 50, startAt = 0 } = args;
+      const {
+        username,
+        accountId,
+        activityType = 'all',
+        projectKeys,
+        days = 30,
+        maxResults = 50,
+        startAt = 0,
+      } = args;
 
       const userValidation = validateUserIdentification({ username, accountId });
-      if (!userValidation.isValid) return createValidationError(userValidation.errors, 'getUserJiraActivity', 'jira');
+      if (!userValidation.isValid)
+        return createValidationError(userValidation.errors, 'getUserJiraActivity', 'jira');
 
       const paginationValidation = validatePagination(startAt, maxResults);
-      if (!paginationValidation.isValid) return createValidationError(paginationValidation.errors, 'getUserJiraActivity', 'jira');
-      
+      if (!paginationValidation.isValid)
+        return createValidationError(paginationValidation.errors, 'getUserJiraActivity', 'jira');
+
       // Get user's accountId if not provided
       let userAccountId = userValidation.sanitizedValue?.accountId;
       if (!userAccountId && userValidation.sanitizedValue?.username) {
@@ -1066,28 +1187,28 @@ export class JiraHandlers {
         const userData = JSON.parse((userResult.content[0] as any).text);
         userAccountId = userData.accountId;
       }
-      
+
       if (!userAccountId) {
         return {
           content: [{ type: 'text', text: 'User account ID or username is required' }],
           isError: true,
         };
       }
-      
+
       // Calculate date range for activity
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
-      
+
       // Build JQL query for recent activity
       let jql = `(assignee = "${userAccountId}" OR reporter = "${userAccountId}" OR creator = "${userAccountId}")`;
       jql += ` AND updated >= -${days}d`;
-      
+
       if (projectKeys && projectKeys.length > 0) {
-        const projectFilter = projectKeys.map(key => `"${key}"`).join(', ');
+        const projectFilter = projectKeys.map((key) => `"${key}"`).join(', ');
         jql = `project in (${projectFilter}) AND ${jql}`;
       }
-      
+
       jql += ' ORDER BY updated DESC';
 
       const response = await this.client.get('/rest/api/3/search', {
@@ -1095,14 +1216,15 @@ export class JiraHandlers {
           jql,
           maxResults: Math.min(maxResults, 100),
           startAt,
-          fields: 'summary,status,priority,issuetype,assignee,reporter,created,updated,project,comment,worklog',
+          fields:
+            'summary,status,priority,issuetype,assignee,reporter,created,updated,project,comment,worklog',
           expand: 'changelog',
         },
       });
 
       // Process issues and extract activity
       const activity: any[] = [];
-      
+
       for (const issue of response.data.issues) {
         // Add issue updates
         if (issue.fields.updated) {
@@ -1117,9 +1239,12 @@ export class JiraHandlers {
             });
           }
         }
-        
+
         // Add comments if requested
-        if ((activityType === 'comments' || activityType === 'all') && issue.fields.comment?.comments) {
+        if (
+          (activityType === 'comments' || activityType === 'all') &&
+          issue.fields.comment?.comments
+        ) {
           for (const comment of issue.fields.comment.comments) {
             if (comment.author?.accountId === userAccountId) {
               const commentDate = new Date(comment.created);
@@ -1134,9 +1259,12 @@ export class JiraHandlers {
             }
           }
         }
-        
+
         // Add transitions if requested
-        if ((activityType === 'transitions' || activityType === 'all') && issue.changelog?.histories) {
+        if (
+          (activityType === 'transitions' || activityType === 'all') &&
+          issue.changelog?.histories
+        ) {
           for (const history of issue.changelog.histories) {
             if (history.author?.accountId === userAccountId) {
               const changeDate = new Date(history.created);
@@ -1157,7 +1285,7 @@ export class JiraHandlers {
           }
         }
       }
-      
+
       // Sort activity by date
       activity.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -1186,76 +1314,100 @@ export class JiraHandlers {
 
   async getUserJiraWorklog(args: GetUserJiraWorklogArgs): Promise<CallToolResult> {
     try {
-      const { username, accountId, startDate, endDate, projectKeys, maxResults = 50, startAt = 0 } = args;
-      
+      const {
+        username,
+        accountId,
+        startDate,
+        endDate,
+        projectKeys,
+        maxResults = 50,
+        startAt = 0,
+      } = args;
+
       // Validate inputs
       const userValidation = validateUserIdentification({ username, accountId });
       if (!userValidation.isValid) {
         return {
-          content: [{ type: 'text', text: `Input validation failed: ${userValidation.errors.join(', ')}` }],
+          content: [
+            { type: 'text', text: `Input validation failed: ${userValidation.errors.join(', ')}` },
+          ],
           isError: true,
         };
       }
-      
+
       const paginationValidation = validatePagination(startAt, maxResults);
       if (!paginationValidation.isValid) {
         return {
-          content: [{ type: 'text', text: `Pagination validation failed: ${paginationValidation.errors.join(', ')}` }],
+          content: [
+            {
+              type: 'text',
+              text: `Pagination validation failed: ${paginationValidation.errors.join(', ')}`,
+            },
+          ],
           isError: true,
         };
       }
-      
+
       const dateValidation = validateDateRange(startDate, endDate);
       if (!dateValidation.isValid) {
         return {
-          content: [{ type: 'text', text: `Date validation failed: ${dateValidation.errors.join(', ')}` }],
+          content: [
+            { type: 'text', text: `Date validation failed: ${dateValidation.errors.join(', ')}` },
+          ],
           isError: true,
         };
       }
-      
+
       let validatedProjectKeys: string[] | undefined;
       if (projectKeys) {
         const projectValidation = validateStringArray(projectKeys, 'projectKeys', {
           pattern: /^[A-Z0-9]{1,10}$/,
-          maxItems: 20
+          maxItems: 20,
         });
         if (!projectValidation.isValid) {
           return {
-            content: [{ type: 'text', text: `Project keys validation failed: ${projectValidation.errors.join(', ')}` }],
+            content: [
+              {
+                type: 'text',
+                text: `Project keys validation failed: ${projectValidation.errors.join(', ')}`,
+              },
+            ],
             isError: true,
           };
         }
         validatedProjectKeys = projectValidation.sanitizedValue;
       }
-      
+
       // Get user's accountId if not provided (with caching)
       let userAccountId = userValidation.sanitizedValue?.accountId;
       if (!userAccountId && userValidation.sanitizedValue?.username) {
-        const userResult = await this.getJiraUser({ username: userValidation.sanitizedValue.username });
+        const userResult = await this.getJiraUser({
+          username: userValidation.sanitizedValue.username,
+        });
         if (userResult.isError) {
           return userResult;
         }
         const userData = JSON.parse((userResult.content[0] as any).text);
         userAccountId = userData.accountId;
       }
-      
+
       if (!userAccountId) {
         return {
           content: [{ type: 'text', text: 'Could not resolve user account ID' }],
           isError: true,
         };
       }
-      
+
       // Build secure JQL query using JQL Builder
       const jqlBuilder = new JqlBuilder();
       const validatedAccountId = validateAccountId(userAccountId);
-      
+
       jqlBuilder.equals('worklogAuthor', validatedAccountId);
-      
+
       if (validatedProjectKeys && validatedProjectKeys.length > 0) {
         jqlBuilder.in('project', validatedProjectKeys);
       }
-      
+
       // Add date filtering for worklog dates (optimized for performance)
       if (dateValidation.sanitizedValue) {
         if (dateValidation.sanitizedValue.startDate) {
@@ -1265,7 +1417,7 @@ export class JiraHandlers {
           jqlBuilder.raw(`worklogDate <= "${dateValidation.sanitizedValue.endDate}"`);
         }
       }
-      
+
       const jql = jqlBuilder.build();
 
       // Use batch API call with worklog expansion for optimal performance
@@ -1281,7 +1433,7 @@ export class JiraHandlers {
 
       const worklogs: WorklogEntry[] = [];
       let totalTimeSpent = 0;
-      
+
       for (const issue of response.data.issues) {
         if (issue.fields.worklog?.worklogs) {
           for (const worklog of issue.fields.worklog.worklogs) {
@@ -1303,7 +1455,7 @@ export class JiraHandlers {
           }
         }
       }
-      
+
       // Sort worklogs by date
       worklogs.sort((a, b) => new Date(b.started).getTime() - new Date(a.started).getTime());
 
@@ -1311,7 +1463,7 @@ export class JiraHandlers {
         user: userAccountId,
         dateRange: {
           start: dateValidation.sanitizedValue?.startDate || 'unlimited',
-          end: dateValidation.sanitizedValue?.endDate || 'unlimited'
+          end: dateValidation.sanitizedValue?.endDate || 'unlimited',
         },
         totalWorklogs: worklogs.length,
         totalTimeSpentSeconds: totalTimeSpent,
@@ -1330,8 +1482,8 @@ export class JiraHandlers {
         suggestions: [
           'Verify the user exists and has logged work',
           'Check date range is reasonable (not too large)',
-          'Ensure you have permission to view worklogs'
-        ]
+          'Ensure you have permission to view worklogs',
+        ],
       });
     }
   }

@@ -19,7 +19,7 @@ export function createAtlassianClient(): AxiosInstance {
       password: apiToken,
     },
     headers: {
-      'Accept': 'application/json',
+      Accept: 'application/json',
       'Content-Type': 'application/json',
     },
     timeout: 30000,
@@ -30,7 +30,7 @@ export function createAtlassianClient(): AxiosInstance {
   // Add proxy configuration using https-proxy-agent
   const httpsProxy = process.env.HTTPS_PROXY || process.env.https_proxy;
   const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy;
-  
+
   if (httpsProxy || httpProxy) {
     const proxyUrl = httpsProxy || httpProxy;
     axiosConfig.httpsAgent = new HttpsProxyAgent(proxyUrl!);
@@ -56,11 +56,11 @@ export function createAtlassianClient(): AxiosInstance {
 export function formatApiError(error: unknown): string {
   if (axios.isAxiosError(error)) {
     const axiosError = error as AxiosError<AtlassianErrorResponse>;
-    
+
     if (axiosError.response) {
       const status = axiosError.response.status;
       const data = axiosError.response.data;
-      
+
       switch (status) {
         case 401:
           return 'Authentication failed. Please check your API token and email.';
@@ -90,6 +90,6 @@ export function formatApiError(error: unknown): string {
       return `Network error: Unable to reach Atlassian API${details}. ${axiosError.message}`;
     }
   }
-  
+
   return error instanceof Error ? error.message : 'An unknown error occurred';
 }

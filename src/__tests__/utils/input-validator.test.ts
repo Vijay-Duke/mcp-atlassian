@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { 
-  validateString, 
-  validateNumber, 
-  validatePagination, 
+import {
+  validateString,
+  validateNumber,
+  validatePagination,
   validateEnum,
   validateUserIdentification,
   validateStringArray,
   validateDateRange,
-  validateDateString
+  validateDateString,
 } from '../../utils/input-validator.js';
 
 describe('Input Validator', () => {
@@ -32,8 +32,8 @@ describe('Input Validator', () => {
     });
 
     it('should validate string pattern', () => {
-      const result = validateString('invalid-email', 'email', { 
-        pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ 
+      const result = validateString('invalid-email', 'email', {
+        pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
       });
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('email has invalid format');
@@ -55,7 +55,7 @@ describe('Input Validator', () => {
       const result = validateString('Valid String', 'testField', {
         required: true,
         minLength: 5,
-        maxLength: 20
+        maxLength: 20,
       });
       expect(result.isValid).toBe(true);
       expect(result.sanitizedValue).toBe('Valid String');
@@ -121,7 +121,7 @@ describe('Input Validator', () => {
         required: true,
         min: 10,
         max: 20,
-        integer: true
+        integer: true,
       });
       expect(result.isValid).toBe(true);
       expect(result.sanitizedValue).toBe(15);
@@ -153,7 +153,7 @@ describe('Input Validator', () => {
       expect(result.isValid).toBe(true);
       expect(result.sanitizedValue).toEqual({
         startAt: 0,
-        maxResults: 50
+        maxResults: 50,
       });
     });
 
@@ -162,7 +162,7 @@ describe('Input Validator', () => {
       expect(result.isValid).toBe(true);
       expect(result.sanitizedValue).toEqual({
         startAt: 10,
-        maxResults: 25
+        maxResults: 25,
       });
     });
 
@@ -246,25 +246,29 @@ describe('Input Validator', () => {
     it('should reject email (privacy)', () => {
       const result = validateUserIdentification({ email: 'john@example.com' });
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('Email-based user lookup is disabled for privacy reasons. Please use accountId instead.');
+      expect(result.errors).toContain(
+        'Email-based user lookup is disabled for privacy reasons. Please use accountId instead.'
+      );
     });
 
     it('should accept both username and accountId', () => {
       const result = validateUserIdentification({
         username: 'john.doe',
-        accountId: 'user123456789'
+        accountId: 'user123456789',
       });
       expect(result.isValid).toBe(true);
       expect(result.sanitizedValue).toEqual({
         username: 'john.doe',
-        accountId: 'user123456789'
+        accountId: 'user123456789',
       });
     });
 
     it('should reject when no identifier provided', () => {
       const result = validateUserIdentification({});
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('At least one user identifier (username, accountId, or email) is required');
+      expect(result.errors).toContain(
+        'At least one user identifier (username, accountId, or email) is required'
+      );
     });
 
     it('should validate accountId pattern', () => {
@@ -347,8 +351,8 @@ describe('Input Validator', () => {
     });
 
     it('should validate pattern in items', () => {
-      const result = validateStringArray(['valid', 'invalid!'], 'testArray', { 
-        pattern: /^[a-zA-Z0-9]+$/ 
+      const result = validateStringArray(['valid', 'invalid!'], 'testArray', {
+        pattern: /^[a-zA-Z0-9]+$/,
       });
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('testArray[1] has invalid format: invalid!');
@@ -361,7 +365,7 @@ describe('Input Validator', () => {
       expect(result.isValid).toBe(true);
       expect(result.sanitizedValue).toEqual({
         startDate: '2024-01-01',
-        endDate: '2024-12-31'
+        endDate: '2024-12-31',
       });
     });
 
@@ -370,7 +374,7 @@ describe('Input Validator', () => {
       expect(result.isValid).toBe(true);
       expect(result.sanitizedValue).toEqual({
         startDate: '2024-01-01',
-        endDate: undefined
+        endDate: undefined,
       });
     });
 
@@ -379,7 +383,7 @@ describe('Input Validator', () => {
       expect(result.isValid).toBe(true);
       expect(result.sanitizedValue).toEqual({
         startDate: undefined,
-        endDate: '2024-12-31'
+        endDate: '2024-12-31',
       });
     });
 
@@ -408,7 +412,7 @@ describe('Input Validator', () => {
       expect(result.isValid).toBe(true);
       expect(result.sanitizedValue).toEqual({
         startDate: '2024-06-15',
-        endDate: '2024-06-15'
+        endDate: '2024-06-15',
       });
     });
 
@@ -417,7 +421,7 @@ describe('Input Validator', () => {
       expect(result.isValid).toBe(true);
       expect(result.sanitizedValue).toEqual({
         startDate: '2024-02-29',
-        endDate: '2024-03-01'
+        endDate: '2024-03-01',
       });
     });
 

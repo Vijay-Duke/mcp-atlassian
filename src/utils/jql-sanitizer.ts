@@ -12,15 +12,15 @@ export function escapeJqlString(value: string): string {
   if (typeof value !== 'string') {
     throw new Error('JQL string escape requires a string input');
   }
-  
+
   // Escape special JQL characters
   return value
-    .replace(/\\/g, '\\\\')    // Escape backslashes first
-    .replace(/"/g, '\\"')      // Escape double quotes
-    .replace(/'/g, "\\'")      // Escape single quotes
-    .replace(/\n/g, '\\n')     // Escape newlines
-    .replace(/\r/g, '\\r')     // Escape carriage returns
-    .replace(/\t/g, '\\t');    // Escape tabs
+    .replace(/\\/g, '\\\\') // Escape backslashes first
+    .replace(/"/g, '\\"') // Escape double quotes
+    .replace(/'/g, "\\'") // Escape single quotes
+    .replace(/\n/g, '\\n') // Escape newlines
+    .replace(/\r/g, '\\r') // Escape carriage returns
+    .replace(/\t/g, '\\t'); // Escape tabs
 }
 
 /**
@@ -32,13 +32,13 @@ export function validateJqlField(fieldName: string): string {
   if (typeof fieldName !== 'string') {
     throw new Error('JQL field name must be a string');
   }
-  
+
   // Allow only alphanumeric, underscore, and dot for field names
   const validFieldPattern = /^[a-zA-Z][a-zA-Z0-9_.]*$/;
   if (!validFieldPattern.test(fieldName)) {
     throw new Error(`Invalid JQL field name: ${fieldName}`);
   }
-  
+
   return fieldName;
 }
 
@@ -47,7 +47,7 @@ export function validateJqlField(fieldName: string): string {
  */
 export class JqlBuilder {
   private conditions: string[] = [];
-  
+
   /**
    * Adds an equals condition
    * @param field - Field name
@@ -59,7 +59,7 @@ export class JqlBuilder {
     this.conditions.push(`${validField} = "${escapedValue}"`);
     return this;
   }
-  
+
   /**
    * Adds an IN condition
    * @param field - Field name
@@ -67,24 +67,24 @@ export class JqlBuilder {
    */
   in(field: string, values: string[]): this {
     const validField = validateJqlField(field);
-    const escapedValues = values.map(v => `"${escapeJqlString(v)}"`);
+    const escapedValues = values.map((v) => `"${escapeJqlString(v)}"`);
     this.conditions.push(`${validField} IN (${escapedValues.join(', ')})`);
     return this;
   }
-  
+
   /**
    * Adds an OR condition combining multiple field-value pairs for the same value
    * @param fields - Array of field names
    * @param value - The value to match against all fields
    */
   orEquals(fields: string[], value: string): this {
-    const validFields = fields.map(f => validateJqlField(f));
+    const validFields = fields.map((f) => validateJqlField(f));
     const escapedValue = escapeJqlString(value);
-    const orConditions = validFields.map(f => `${f} = "${escapedValue}"`);
+    const orConditions = validFields.map((f) => `${f} = "${escapedValue}"`);
     this.conditions.push(`(${orConditions.join(' OR ')})`);
     return this;
   }
-  
+
   /**
    * Adds a date range condition
    * @param field - Field name
@@ -93,20 +93,20 @@ export class JqlBuilder {
    */
   dateRange(field: string, startDate?: string, endDate?: string): this {
     const validField = validateJqlField(field);
-    
+
     if (startDate) {
       this.validateDateFormat(startDate);
       this.conditions.push(`${validField} >= "${startDate}"`);
     }
-    
+
     if (endDate) {
       this.validateDateFormat(endDate);
       this.conditions.push(`${validField} <= "${endDate}"`);
     }
-    
+
     return this;
   }
-  
+
   /**
    * Adds a custom condition (use with caution - no automatic escaping)
    * @param condition - Raw JQL condition
@@ -115,7 +115,7 @@ export class JqlBuilder {
     this.conditions.push(condition);
     return this;
   }
-  
+
   /**
    * Validates date format (YYYY-MM-DD)
    */
@@ -124,21 +124,21 @@ export class JqlBuilder {
     if (!datePattern.test(date)) {
       throw new Error(`Invalid date format: ${date}. Expected YYYY-MM-DD`);
     }
-    
+
     // Validate actual date
     const parsedDate = new Date(date);
     if (isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== date) {
       throw new Error(`Invalid date: ${date}`);
     }
   }
-  
+
   /**
    * Builds the final JQL query string
    */
   build(): string {
     return this.conditions.join(' AND ');
   }
-  
+
   /**
    * Clears all conditions
    */
@@ -156,18 +156,20 @@ export function validateProjectKeys(projectKeys: string[]): string[] {
   if (!Array.isArray(projectKeys)) {
     throw new Error('Project keys must be an array');
   }
-  
-  return projectKeys.map(key => {
+
+  return projectKeys.map((key) => {
     if (typeof key !== 'string') {
       throw new Error('Project key must be a string');
     }
-    
+
     // Project keys should be uppercase letters and numbers, typically 2-10 chars
     const projectKeyPattern = /^[A-Z0-9]{1,10}$/;
     if (!projectKeyPattern.test(key)) {
-      throw new Error(`Invalid project key format: ${key}. Expected uppercase letters and numbers, 1-10 characters`);
+      throw new Error(
+        `Invalid project key format: ${key}. Expected uppercase letters and numbers, 1-10 characters`
+      );
     }
-    
+
     return key;
   });
 }
@@ -180,12 +182,12 @@ export function validateAccountId(accountId: string): string {
   if (typeof accountId !== 'string') {
     throw new Error('Account ID must be a string');
   }
-  
+
   // Atlassian account IDs are typically UUIDs or similar format
   const accountIdPattern = /^[a-zA-Z0-9:_-]+$/;
   if (!accountIdPattern.test(accountId) || accountId.length < 10) {
     throw new Error(`Invalid account ID format: ${accountId}`);
   }
-  
+
   return accountId;
 }

@@ -56,7 +56,7 @@ export class ContentConverter {
       if (line.includes('</ac:structured-macro>')) {
         inCodeBlock = false;
       }
-      
+
       if (line.startsWith('<ul>') || line.startsWith('<ol>')) {
         inList = true;
       }
@@ -64,9 +64,15 @@ export class ContentConverter {
         inList = false;
       }
 
-      if (line.trim() && !inList && !inCodeBlock && 
-          !line.startsWith('<h') && !line.startsWith('<ac:') && 
-          !line.startsWith('<ul') && !line.startsWith('<ol')) {
+      if (
+        line.trim() &&
+        !inList &&
+        !inCodeBlock &&
+        !line.startsWith('<h') &&
+        !line.startsWith('<ac:') &&
+        !line.startsWith('<ul') &&
+        !line.startsWith('<ol')
+      ) {
         processedLines.push(`<p>${line}</p>`);
       } else {
         processedLines.push(line);
@@ -147,14 +153,15 @@ export class ContentConverter {
    */
   static isStorageFormat(content: string): boolean {
     // This check is now just a hint for conversion, not for security.
-    return content.includes('<') && (
-      content.includes('<p>') ||
-      content.includes('<h1>') ||
-      content.includes('<h2>') ||
-      content.includes('<h3>') ||
-      content.includes('<ac:') ||
-      content.includes('<ul>') ||
-      content.includes('<ol>')
+    return (
+      content.includes('<') &&
+      (content.includes('<p>') ||
+        content.includes('<h1>') ||
+        content.includes('<h2>') ||
+        content.includes('<h3>') ||
+        content.includes('<ac:') ||
+        content.includes('<ul>') ||
+        content.includes('<ol>'))
     );
   }
 

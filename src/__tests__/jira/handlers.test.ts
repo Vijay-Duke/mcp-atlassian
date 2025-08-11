@@ -16,7 +16,7 @@ describe('JiraHandlers', () => {
         baseURL: 'https://test.atlassian.net',
       },
     } as unknown as AxiosInstance;
-    
+
     handlers = new JiraHandlers(mockClient);
   });
 
@@ -44,9 +44,7 @@ describe('JiraHandlers', () => {
           labels: ['test', 'bug'],
           components: [{ name: 'Backend' }],
         },
-        transitions: [
-          { id: '21', name: 'In Progress', to: { name: 'In Progress' } },
-        ],
+        transitions: [{ id: '21', name: 'In Progress', to: { name: 'In Progress' } }],
       };
 
       (mockClient.get as any).mockResolvedValue({ data: mockIssue });
@@ -68,7 +66,7 @@ describe('JiraHandlers', () => {
     it('should handle issue not found', async () => {
       const notFoundError = new Error('Issue not found');
       (notFoundError as any).response = { status: 404 };
-      
+
       (mockClient.get as any).mockRejectedValue(notFoundError);
 
       const result = await handlers.readJiraIssue({ issueKey: 'NONEXIST-1' });
@@ -147,26 +145,28 @@ describe('JiraHandlers', () => {
     });
 
     it('should limit results to 100 maximum', async () => {
-      (mockClient.get as any).mockResolvedValue({ 
-        data: { issues: [], total: 0, startAt: 0, maxResults: 100 } 
+      (mockClient.get as any).mockResolvedValue({
+        data: { issues: [], total: 0, startAt: 0, maxResults: 100 },
       });
 
       const result = await handlers.searchJiraIssues({ jql: 'test', maxResults: 200 });
 
       expect(result.isError).toBe(true);
-      expect((result.content[0] as any).text).toContain('maxResults must be an integer between 1 and 100');
+      expect((result.content[0] as any).text).toContain(
+        'maxResults must be an integer between 1 and 100'
+      );
     });
 
     it('should handle pagination', async () => {
-      (mockClient.get as any).mockResolvedValue({ 
-        data: { issues: [], total: 100, startAt: 50, maxResults: 25 } 
+      (mockClient.get as any).mockResolvedValue({
+        data: { issues: [], total: 100, startAt: 50, maxResults: 25 },
       });
 
-      await handlers.searchJiraIssues({ 
+      await handlers.searchJiraIssues({
         jql: 'project = TEST',
         startAt: 50,
         maxResults: 25,
-        fields: 'summary,status'
+        fields: 'summary,status',
       });
 
       expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
@@ -180,10 +180,11 @@ describe('JiraHandlers', () => {
     });
 
     it('should handle complex JQL queries', async () => {
-      const complexJql = 'project = TEST AND status in (Open, "In Progress") AND assignee = currentUser() ORDER BY priority DESC';
-      
-      (mockClient.get as any).mockResolvedValue({ 
-        data: { issues: [], total: 0, startAt: 0, maxResults: 50 } 
+      const complexJql =
+        'project = TEST AND status in (Open, "In Progress") AND assignee = currentUser() ORDER BY priority DESC';
+
+      (mockClient.get as any).mockResolvedValue({
+        data: { issues: [], total: 0, startAt: 0, maxResults: 50 },
       });
 
       const result = await handlers.searchJiraIssues({ jql: complexJql });
@@ -196,7 +197,7 @@ describe('JiraHandlers', () => {
           fields: '*all',
         },
       });
-      
+
       expect(result.isError).toBeFalsy();
     });
   });
@@ -288,8 +289,8 @@ describe('JiraHandlers', () => {
     });
 
     it('should create issue with assignee', async () => {
-      (mockClient.post as any).mockResolvedValue({ 
-        data: { id: '10003', key: 'TEST-3' } 
+      (mockClient.post as any).mockResolvedValue({
+        data: { id: '10003', key: 'TEST-3' },
       });
 
       await handlers.createJiraIssue({
@@ -299,7 +300,8 @@ describe('JiraHandlers', () => {
         assignee: 'user1234567890',
       });
 
-      expect(mockClient.post).toHaveBeenCalledWith('/rest/api/3/issue', 
+      expect(mockClient.post).toHaveBeenCalledWith(
+        '/rest/api/3/issue',
         expect.objectContaining({
           fields: expect.objectContaining({
             assignee: { accountId: 'user1234567890' },
@@ -309,8 +311,8 @@ describe('JiraHandlers', () => {
     });
 
     it('should create issue with labels and components', async () => {
-      (mockClient.post as any).mockResolvedValue({ 
-        data: { id: '10004', key: 'TEST-4' } 
+      (mockClient.post as any).mockResolvedValue({
+        data: { id: '10004', key: 'TEST-4' },
       });
 
       await handlers.createJiraIssue({
@@ -321,7 +323,8 @@ describe('JiraHandlers', () => {
         components: ['UI', 'Backend'],
       });
 
-      expect(mockClient.post).toHaveBeenCalledWith('/rest/api/3/issue', 
+      expect(mockClient.post).toHaveBeenCalledWith(
+        '/rest/api/3/issue',
         expect.objectContaining({
           fields: expect.objectContaining({
             labels: ['frontend', 'urgent'],
@@ -381,21 +384,18 @@ describe('JiraHandlers', () => {
         body: 'Test comment',
       });
 
-      expect(mockClient.post).toHaveBeenCalledWith(
-        '/rest/api/3/issue/TEST-1/comment',
-        {
-          body: {
-            type: 'doc',
-            version: 1,
-            content: [
-              {
-                type: 'paragraph',
-                content: [{ type: 'text', text: 'Test comment' }],
-              },
-            ],
-          },
-        }
-      );
+      expect(mockClient.post).toHaveBeenCalledWith('/rest/api/3/issue/TEST-1/comment', {
+        body: {
+          type: 'doc',
+          version: 1,
+          content: [
+            {
+              type: 'paragraph',
+              content: [{ type: 'text', text: 'Test comment' }],
+            },
+          ],
+        },
+      });
 
       expect(result.isError).toBeFalsy();
       const data = JSON.parse((result.content[0] as any).text);
@@ -404,8 +404,8 @@ describe('JiraHandlers', () => {
     });
 
     it('should handle markdown comment', async () => {
-      (mockClient.post as any).mockResolvedValue({ 
-        data: { id: 'comment456' } 
+      (mockClient.post as any).mockResolvedValue({
+        data: { id: 'comment456' },
       });
 
       await handlers.addJiraComment({
@@ -447,7 +447,7 @@ describe('JiraHandlers', () => {
 
         expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/myself');
         expect(result.isError).toBeFalsy();
-        
+
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.accountId).toBe('user1234567890');
         expect(data.displayName).toBe('John Doe');
@@ -468,9 +468,9 @@ describe('JiraHandlers', () => {
         const result = await handlers.getJiraUser({ accountId: 'user456789012' });
 
         expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/user', {
-          params: { accountId: 'user456789012' }
+          params: { accountId: 'user456789012' },
         });
-        
+
         expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.displayName).toBe('Jane Smith');
@@ -482,7 +482,7 @@ describe('JiraHandlers', () => {
             accountId: 'user7890123456',
             displayName: 'Bob Wilson',
             emailAddress: 'bob@example.com',
-          }
+          },
         ];
 
         (mockClient.get as any).mockResolvedValue({ data: mockSearchResponse });
@@ -490,14 +490,18 @@ describe('JiraHandlers', () => {
         const result = await handlers.getJiraUser({ email: 'bob@example.com' });
 
         expect(result.isError).toBe(true);
-        expect((result.content[0] as any).text).toContain('Email-based user lookup has been disabled for privacy reasons');
+        expect((result.content[0] as any).text).toContain(
+          'Email-based user lookup has been disabled for privacy reasons'
+        );
       });
 
       it('should validate user identification', async () => {
         const result = await handlers.getJiraUser({});
 
         expect(result.isError).toBe(true);
-        expect((result.content[0] as any).text).toContain('**User Not Found**: Could not locate user "unknown"');
+        expect((result.content[0] as any).text).toContain(
+          '**User Not Found**: Could not locate user "unknown"'
+        );
       });
 
       it('should handle user not found', async () => {
@@ -506,7 +510,9 @@ describe('JiraHandlers', () => {
         const result = await handlers.getJiraUser({ username: 'nonexistent' });
 
         expect(result.isError).toBe(true);
-        expect((result.content[0] as any).text).toContain('**User Not Found**: Could not locate user "nonexistent"');
+        expect((result.content[0] as any).text).toContain(
+          '**User Not Found**: Could not locate user "nonexistent"'
+        );
       });
     });
 
@@ -567,8 +573,8 @@ describe('JiraHandlers', () => {
           .mockResolvedValueOnce({ data: { accountId: 'user1234567890' } })
           .mockResolvedValueOnce({ data: { issues: [], total: 0 } });
 
-        await handlers.getMyOpenIssues({ 
-          maxResults: 20
+        await handlers.getMyOpenIssues({
+          maxResults: 20,
         });
 
         expect(mockClient.get).toHaveBeenNthCalledWith(2, '/rest/api/3/search', {
@@ -622,8 +628,8 @@ describe('JiraHandlers', () => {
       });
 
       it('should filter boards by project', async () => {
-        (mockClient.get as any).mockResolvedValue({ 
-          data: { values: [], total: 0 } 
+        (mockClient.get as any).mockResolvedValue({
+          data: { values: [], total: 0 },
         });
 
         await handlers.listJiraBoards({ projectKeyOrId: 'TEST' });
@@ -638,8 +644,8 @@ describe('JiraHandlers', () => {
       });
 
       it('should filter boards by type', async () => {
-        (mockClient.get as any).mockResolvedValue({ 
-          data: { values: [], total: 0 } 
+        (mockClient.get as any).mockResolvedValue({
+          data: { values: [], total: 0 },
         });
 
         await handlers.listJiraBoards({ type: 'scrum' });
@@ -690,13 +696,13 @@ describe('JiraHandlers', () => {
       });
 
       it('should filter sprints by state', async () => {
-        (mockClient.get as any).mockResolvedValue({ 
-          data: { values: [], total: 0 } 
+        (mockClient.get as any).mockResolvedValue({
+          data: { values: [], total: 0 },
         });
 
-        await handlers.listJiraSprints({ 
+        await handlers.listJiraSprints({
           boardId: 1,
-          state: 'active' 
+          state: 'active',
         });
 
         expect(mockClient.get).toHaveBeenCalledWith('/rest/agile/1.0/board/1/sprint', {
@@ -717,7 +723,6 @@ describe('JiraHandlers', () => {
     });
 
     describe('getJiraSprint', () => {
-
       it('should get sprint without issues', async () => {
         const mockSprint = {
           id: 1,
@@ -729,8 +734,8 @@ describe('JiraHandlers', () => {
           .mockResolvedValueOnce({ data: mockSprint })
           .mockResolvedValueOnce({ data: { issues: [], total: 0 } });
 
-        const result = await handlers.getJiraSprint({ 
-          sprintId: 1
+        const result = await handlers.getJiraSprint({
+          sprintId: 1,
         });
 
         expect(mockClient.get).toHaveBeenCalledTimes(2);
@@ -739,7 +744,6 @@ describe('JiraHandlers', () => {
         expect(data.issues).toEqual([]);
       });
     });
-
   });
 
   describe('Activity and Worklog methods', () => {
@@ -778,8 +782,8 @@ describe('JiraHandlers', () => {
       });
 
       it('should search issues by reporter', async () => {
-        (mockClient.get as any).mockResolvedValue({ 
-          data: { issues: [], total: 0 } 
+        (mockClient.get as any).mockResolvedValue({
+          data: { issues: [], total: 0 },
         });
 
         await handlers.searchJiraIssuesByUser({
@@ -796,8 +800,8 @@ describe('JiraHandlers', () => {
       });
 
       it('should search issues by watcher', async () => {
-        (mockClient.get as any).mockResolvedValue({ 
-          data: { issues: [], total: 0 } 
+        (mockClient.get as any).mockResolvedValue({
+          data: { issues: [], total: 0 },
         });
 
         await handlers.searchJiraIssuesByUser({
@@ -813,7 +817,6 @@ describe('JiraHandlers', () => {
       });
     });
 
-
     describe('getUserJiraWorklog', () => {
       it('should get user worklog entries', async () => {
         const mockIssuesWithWorklog = {
@@ -826,9 +829,9 @@ describe('JiraHandlers', () => {
                   worklogs: [
                     {
                       id: 'worklog1',
-                      author: { 
+                      author: {
                         accountId: 'user1234567890',
-                        displayName: 'John Doe' 
+                        displayName: 'John Doe',
                       },
                       timeSpent: '2h',
                       timeSpentSeconds: 7200,
@@ -924,8 +927,8 @@ describe('JiraHandlers', () => {
       });
 
       it('should filter by project', async () => {
-        (mockClient.get as any).mockResolvedValue({ 
-          data: { issues: [], total: 0 } 
+        (mockClient.get as any).mockResolvedValue({
+          data: { issues: [], total: 0 },
         });
 
         await handlers.getUserJiraWorklog({
@@ -981,8 +984,8 @@ describe('JiraHandlers', () => {
       });
 
       it('should filter by project and status', async () => {
-        (mockClient.get as any).mockResolvedValue({ 
-          data: { issues: [], total: 0 } 
+        (mockClient.get as any).mockResolvedValue({
+          data: { issues: [], total: 0 },
         });
 
         await handlers.listUserJiraIssues({
@@ -1004,7 +1007,7 @@ describe('JiraHandlers', () => {
     it('should handle network errors', async () => {
       const networkError = new Error('Network error');
       (networkError as any).code = 'ECONNREFUSED';
-      
+
       (mockClient.get as any).mockRejectedValue(networkError);
 
       const result = await handlers.readJiraIssue({ issueKey: 'TEST-1' });
@@ -1016,7 +1019,7 @@ describe('JiraHandlers', () => {
     it('should handle authentication errors', async () => {
       const authError = new Error('Unauthorized');
       (authError as any).response = { status: 401, data: { message: 'Invalid credentials' } };
-      
+
       (mockClient.get as any).mockRejectedValue(authError);
 
       const result = await handlers.listJiraProjects({});
@@ -1027,11 +1030,11 @@ describe('JiraHandlers', () => {
 
     it('should handle rate limiting', async () => {
       const rateLimitError = new Error('Too Many Requests');
-      (rateLimitError as any).response = { 
-        status: 429, 
-        headers: { 'retry-after': '60' } 
+      (rateLimitError as any).response = {
+        status: 429,
+        headers: { 'retry-after': '60' },
       };
-      
+
       (mockClient.get as any).mockRejectedValue(rateLimitError);
 
       const result = await handlers.searchJiraIssues({ jql: 'test' });
@@ -1042,11 +1045,11 @@ describe('JiraHandlers', () => {
 
     it('should handle permission errors', async () => {
       const permissionError = new Error('Forbidden');
-      (permissionError as any).response = { 
-        status: 403, 
-        data: { message: 'You do not have permission to view this issue' } 
+      (permissionError as any).response = {
+        status: 403,
+        data: { message: 'You do not have permission to view this issue' },
       };
-      
+
       (mockClient.get as any).mockRejectedValue(permissionError);
 
       const result = await handlers.readJiraIssue({ issueKey: 'PRIVATE-1' });

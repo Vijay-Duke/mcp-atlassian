@@ -258,18 +258,18 @@ export interface ConfluencePageUpdatePayload {
 }
 
 export interface ConfluenceCommentPayload {
-    type: 'comment',
-    container: {
-        id: string;
-        type: 'page',
-    },
-    body: {
-        storage: {
-            value: string;
-            representation: 'storage',
-        },
-    },
-    ancestors?: { id: string }[];
+  type: 'comment';
+  container: {
+    id: string;
+    type: 'page';
+  };
+  body: {
+    storage: {
+      value: string;
+      representation: 'storage';
+    };
+  };
+  ancestors?: { id: string }[];
 }
 
 export interface ListJiraBoardsArgs {

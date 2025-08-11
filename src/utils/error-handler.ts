@@ -14,7 +14,15 @@ export interface ErrorContext {
 }
 
 export interface EnhancedError {
-  type: 'validation' | 'authentication' | 'permission' | 'notFound' | 'rateLimit' | 'network' | 'server' | 'unknown';
+  type:
+    | 'validation'
+    | 'authentication'
+    | 'permission'
+    | 'notFound'
+    | 'rateLimit'
+    | 'network'
+    | 'server'
+    | 'unknown';
   message: string;
   details: string;
   suggestions: string[];
@@ -28,7 +36,7 @@ export interface EnhancedError {
  */
 export function createEnhancedError(error: unknown, context: ErrorContext): CallToolResult {
   const enhancedError = analyzeError(error, context);
-  
+
   const errorMessage = `
 **Error in ${enhancedError.context.component.toUpperCase()}**: ${enhancedError.message}
 
@@ -37,7 +45,7 @@ export function createEnhancedError(error: unknown, context: ErrorContext): Call
 **Details**: ${enhancedError.details}
 
 **Suggestions**:
-${enhancedError.suggestions.map(s => `• ${s}`).join('\n')}
+${enhancedError.suggestions.map((s) => `• ${s}`).join('\n')}
 
 **Type**: ${enhancedError.type}${enhancedError.statusCode ? ` (HTTP ${enhancedError.statusCode})` : ''}
 **Retryable**: ${enhancedError.retryable ? 'Yes' : 'No'}
@@ -57,7 +65,7 @@ function analyzeError(error: unknown, context: ErrorContext): EnhancedError {
   if (error && typeof error === 'object' && 'isAxiosError' in error) {
     return analyzeAxiosError(error as AxiosError, context);
   }
-  
+
   // Handle validation errors
   if (error instanceof Error && error.message.includes('validation')) {
     return {
@@ -67,16 +75,16 @@ function analyzeError(error: unknown, context: ErrorContext): EnhancedError {
       suggestions: [
         'Check that all required parameters are provided',
         'Verify parameter formats match expected patterns',
-        'Review the tool documentation for parameter requirements'
+        'Review the tool documentation for parameter requirements',
       ],
       retryable: true,
-      context
+      context,
     };
   }
-  
+
   // Handle generic errors
   const errorMessage = error instanceof Error ? error.message : String(error);
-  
+
   return {
     type: 'unknown',
     message: 'An unexpected error occurred',
@@ -85,10 +93,10 @@ function analyzeError(error: unknown, context: ErrorContext): EnhancedError {
       'Check your network connection',
       'Verify your Atlassian credentials are valid',
       'Try the request again in a few moments',
-      'Contact support if the issue persists'
+      'Contact support if the issue persists',
     ],
     retryable: true,
-    context
+    context,
   };
 }
 
@@ -98,7 +106,7 @@ function analyzeError(error: unknown, context: ErrorContext): EnhancedError {
 function analyzeAxiosError(error: AxiosError, context: ErrorContext): EnhancedError {
   const status = error.response?.status;
   const responseData = error.response?.data as any;
-  
+
   switch (status) {
     case 400:
       return {
@@ -109,13 +117,13 @@ function analyzeAxiosError(error: AxiosError, context: ErrorContext): EnhancedEr
           'Verify all parameters are correctly formatted',
           'Check that project keys exist and are accessible',
           'Ensure date formats use YYYY-MM-DD pattern',
-          'Review JQL syntax if using custom queries'
+          'Review JQL syntax if using custom queries',
         ],
         retryable: true,
         statusCode: 400,
-        context
+        context,
       };
-      
+
     case 401:
       return {
         type: 'authentication',
@@ -125,29 +133,30 @@ function analyzeAxiosError(error: AxiosError, context: ErrorContext): EnhancedEr
           'Check that ATLASSIAN_API_TOKEN is set correctly',
           'Verify ATLASSIAN_EMAIL matches your Atlassian account',
           'Generate a new API token from https://id.atlassian.com/manage-profile/security/api-tokens',
-          'Ensure your API token has not expired'
+          'Ensure your API token has not expired',
         ],
         retryable: false,
         statusCode: 401,
-        context
+        context,
       };
-      
+
     case 403:
       return {
         type: 'permission',
         message: 'Permission denied',
-        details: getApiErrorDetails(responseData) || 'You do not have permission to access this resource',
+        details:
+          getApiErrorDetails(responseData) || 'You do not have permission to access this resource',
         suggestions: [
           'Check that your user has the necessary permissions in Jira/Confluence',
           'Verify the project or space is accessible to your account',
           'Contact your Atlassian administrator for access',
-          'Ensure you are using the correct site URL (ATLASSIAN_BASE_URL)'
+          'Ensure you are using the correct site URL (ATLASSIAN_BASE_URL)',
         ],
         retryable: false,
         statusCode: 403,
-        context
+        context,
       };
-      
+
     case 404:
       return {
         type: 'notFound',
@@ -156,9 +165,9 @@ function analyzeAxiosError(error: AxiosError, context: ErrorContext): EnhancedEr
         suggestions: getNotFoundSuggestions(context),
         retryable: false,
         statusCode: 404,
-        context
+        context,
       };
-      
+
     case 429:
       return {
         type: 'rateLimit',
@@ -168,13 +177,13 @@ function analyzeAxiosError(error: AxiosError, context: ErrorContext): EnhancedEr
           'Wait a few minutes before retrying',
           'Reduce the frequency of requests',
           'Consider implementing request batching',
-          'Use pagination to make smaller requests'
+          'Use pagination to make smaller requests',
         ],
         retryable: true,
         statusCode: 429,
-        context
+        context,
       };
-      
+
     case 500:
     case 502:
     case 503:
@@ -186,13 +195,13 @@ function analyzeAxiosError(error: AxiosError, context: ErrorContext): EnhancedEr
           'Wait a few minutes and try again',
           'Check Atlassian Status page for service outages',
           'Reduce request complexity if possible',
-          'Contact Atlassian support if the issue persists'
+          'Contact Atlassian support if the issue persists',
         ],
         retryable: true,
         statusCode: status,
-        context
+        context,
       };
-      
+
     default:
       return {
         type: 'network',
@@ -202,11 +211,11 @@ function analyzeAxiosError(error: AxiosError, context: ErrorContext): EnhancedEr
           'Check your internet connection',
           'Verify ATLASSIAN_BASE_URL is correct',
           'Try the request again',
-          'Check if the Atlassian service is available'
+          'Check if the Atlassian service is available',
         ],
         retryable: true,
         statusCode: status,
-        context
+        context,
       };
   }
 }
@@ -216,22 +225,22 @@ function analyzeAxiosError(error: AxiosError, context: ErrorContext): EnhancedEr
  */
 function getApiErrorDetails(responseData: any): string | null {
   if (!responseData) return null;
-  
+
   // Jira error format
   if (responseData.errorMessages && Array.isArray(responseData.errorMessages)) {
     return responseData.errorMessages.join('; ');
   }
-  
+
   // Confluence error format
   if (responseData.message) {
     return responseData.message;
   }
-  
+
   // Generic error details
   if (typeof responseData === 'string') {
     return responseData;
   }
-  
+
   return null;
 }
 
@@ -241,36 +250,36 @@ function getApiErrorDetails(responseData: any): string | null {
 function getNotFoundSuggestions(context: ErrorContext): string[] {
   const baseSuggestions = [
     'Verify the resource identifier is correct',
-    'Check that the resource exists and is accessible'
+    'Check that the resource exists and is accessible',
   ];
-  
+
   if (context.operation.includes('user')) {
     return [
       ...baseSuggestions,
       'Ensure the username or accountId is valid',
       'Check that the user exists in your Atlassian instance',
-      'Try using accountId instead of username'
+      'Try using accountId instead of username',
     ];
   }
-  
+
   if (context.operation.includes('issue')) {
     return [
       ...baseSuggestions,
       'Verify the issue key format (e.g., PROJ-123)',
       'Check that the issue exists and you have access to view it',
-      'Ensure the project key is correct'
+      'Ensure the project key is correct',
     ];
   }
-  
+
   if (context.operation.includes('project')) {
     return [
       ...baseSuggestions,
       'Verify the project key is correct',
       'Check that the project exists and is accessible',
-      'Ensure you have permission to view the project'
+      'Ensure you have permission to view the project',
     ];
   }
-  
+
   return baseSuggestions;
 }
 
@@ -278,7 +287,7 @@ function getNotFoundSuggestions(context: ErrorContext): string[] {
  * Creates a validation error response
  */
 export function createValidationError(
-  errors: string[], 
+  errors: string[],
   operation: string,
   component: 'jira' | 'confluence' = 'jira'
 ): CallToolResult {
@@ -288,10 +297,10 @@ export function createValidationError(
     suggestions: [
       'Review the input parameters and their formats',
       'Check the tool documentation for requirements',
-      'Ensure all required fields are provided'
-    ]
+      'Ensure all required fields are provided',
+    ],
   };
-  
+
   const validationError = new Error(`Validation failed: ${errors.join(', ')}`);
   return createEnhancedError(validationError, context);
 }
@@ -308,17 +317,18 @@ export function createUserNotFoundError(
     component,
     userInput: { identifier },
     suggestions: [
-      'Use the user\'s accountId instead of username or email',
+      "Use the user's accountId instead of username or email",
       'Verify the user exists in your Atlassian instance',
       'Check that the user has not been deactivated',
-      'Ensure you have permission to view user information'
-    ]
+      'Ensure you have permission to view user information',
+    ],
   };
-  
+
   return {
-    content: [{
-      type: 'text',
-      text: `
+    content: [
+      {
+        type: 'text',
+        text: `
 **User Not Found**: Could not locate user "${identifier}"
 
 **Operation**: ${context.operation}
@@ -331,8 +341,9 @@ export function createUserNotFoundError(
 
 **Why This Matters**:
 For privacy and security, email-based lookups are disabled. Username lookups are deprecated and may not work reliably. AccountId is the recommended approach.
-      `.trim()
-    }],
-    isError: true
+      `.trim(),
+      },
+    ],
+    isError: true,
   };
 }
