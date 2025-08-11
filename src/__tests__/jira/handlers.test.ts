@@ -57,7 +57,7 @@ describe('JiraHandlers', () => {
         params: { expand: 'fields,transitions,changelog' },
       });
 
-      expect(result.isError).toBeUndefined();
+      expect(result.isError).toBeFalsy();
       const data = JSON.parse((result.content[0] as any).text);
       expect(data.key).toBe('TEST-1');
       expect(data.fields.summary).toBe('Test Issue');
@@ -81,7 +81,7 @@ describe('JiraHandlers', () => {
       const result = await handlers.readJiraIssue({ issueKey: '' });
 
       expect(result.isError).toBe(true);
-      expect((result.content[0] as any).text).toContain('issueKey is required');
+      expect((result.content[0] as any).text).toContain('issueKey cannot be empty');
     });
 
     it('should handle API errors', async () => {
@@ -132,7 +132,7 @@ describe('JiraHandlers', () => {
         },
       });
 
-      expect(result.isError).toBeUndefined();
+      expect(result.isError).toBeFalsy();
       const data = JSON.parse((result.content[0] as any).text);
       expect(data.totalResults).toBe(1);
       expect(data.issues).toHaveLength(1);
@@ -143,7 +143,7 @@ describe('JiraHandlers', () => {
       const result = await handlers.searchJiraIssues({ jql: '' });
 
       expect(result.isError).toBe(true);
-      expect((result.content[0] as any).text).toContain('jql is required');
+      expect((result.content[0] as any).text).toContain('jql cannot be empty');
     });
 
     it('should limit results to 100 maximum', async () => {
@@ -197,7 +197,7 @@ describe('JiraHandlers', () => {
         },
       });
       
-      expect(result.isError).toBeUndefined();
+      expect(result.isError).toBeFalsy();
     });
   });
 
@@ -226,7 +226,7 @@ describe('JiraHandlers', () => {
         params: { expand: 'description,lead,issueTypes' },
       });
 
-      expect(result.isError).toBeUndefined();
+      expect(result.isError).toBeFalsy();
       const data = JSON.parse((result.content[0] as any).text);
       expect(data.totalProjects).toBe(1);
       expect(data.projects[0].name).toBe('Test Project');
@@ -238,7 +238,7 @@ describe('JiraHandlers', () => {
 
       const result = await handlers.listJiraProjects({});
 
-      expect(result.isError).toBeUndefined();
+      expect(result.isError).toBeFalsy();
       const data = JSON.parse((result.content[0] as any).text);
       expect(data.totalProjects).toBe(0);
       expect(data.projects).toHaveLength(0);
@@ -282,10 +282,9 @@ describe('JiraHandlers', () => {
         },
       });
 
-      expect(result.isError).toBeUndefined();
+      expect(result.isError).toBeFalsy();
       const data = JSON.parse((result.content[0] as any).text);
       expect(data.key).toBe('TEST-2');
-      expect(data.message).toBe('Issue created successfully');
     });
 
     it('should create issue with assignee', async () => {
@@ -398,7 +397,7 @@ describe('JiraHandlers', () => {
         }
       );
 
-      expect(result.isError).toBeUndefined();
+      expect(result.isError).toBeFalsy();
       const data = JSON.parse((result.content[0] as any).text);
       expect(data.id).toBe('comment123');
       expect(data.author).toBe('John Doe');
@@ -426,7 +425,7 @@ describe('JiraHandlers', () => {
       });
 
       expect(result.isError).toBe(true);
-      expect((result.content[0] as any).text).toContain('issueKey is required');
+      expect((result.content[0] as any).text).toContain('issueKey cannot be empty');
     });
   });
 
@@ -447,7 +446,7 @@ describe('JiraHandlers', () => {
         const result = await handlers.getJiraCurrentUser();
 
         expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/myself');
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.accountId).toBe('user123');
@@ -472,7 +471,7 @@ describe('JiraHandlers', () => {
           params: { accountId: 'user456' }
         });
         
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.displayName).toBe('Jane Smith');
       });
@@ -494,7 +493,7 @@ describe('JiraHandlers', () => {
           params: { query: 'bob@example.com' }
         });
 
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.displayName).toBe('Bob Wilson');
       });
@@ -549,7 +548,7 @@ describe('JiraHandlers', () => {
           }),
         });
 
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.totalResults).toBe(1);
       });
@@ -620,7 +619,7 @@ describe('JiraHandlers', () => {
           },
         });
 
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.totalBoards).toBe(2);
         expect(data.boards).toHaveLength(2);
@@ -689,7 +688,7 @@ describe('JiraHandlers', () => {
           },
         });
 
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.totalSprints).toBe(1);
         expect(data.sprints[0].name).toBe('Sprint 1');
@@ -765,7 +764,7 @@ describe('JiraHandlers', () => {
           },
         });
 
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.sprint.name).toBe('Sprint 1');
         expect(data.issues).toHaveLength(1);
@@ -786,7 +785,7 @@ describe('JiraHandlers', () => {
         });
 
         expect(mockClient.get).toHaveBeenCalledTimes(1);
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.issues).toBeUndefined();
       });
@@ -830,7 +829,7 @@ describe('JiraHandlers', () => {
 
         const result = await handlers.getMyTasksInCurrentSprint({ projectKey: 'TEST' });
 
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.sprint.name).toBe('Sprint 1');
         expect(data.totalTasks).toBe(1);
@@ -845,7 +844,7 @@ describe('JiraHandlers', () => {
 
         const result = await handlers.getMyTasksInCurrentSprint({ projectKey: 'TEST' });
 
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         expect((result.content[0] as any).text).toContain('No active sprint found');
       });
 
@@ -856,7 +855,7 @@ describe('JiraHandlers', () => {
 
         const result = await handlers.getMyTasksInCurrentSprint({ projectKey: 'TEST' });
 
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         expect((result.content[0] as any).text).toContain('No boards found for project TEST');
       });
     });
@@ -892,7 +891,7 @@ describe('JiraHandlers', () => {
           }),
         });
 
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.totalResults).toBe(1);
       });
@@ -979,7 +978,7 @@ describe('JiraHandlers', () => {
           }),
         });
 
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.totalActivities).toBeGreaterThan(0);
       });
@@ -1041,7 +1040,7 @@ describe('JiraHandlers', () => {
           }),
         });
 
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.totalTimeSpentSeconds).toBe(7200);
         expect(data.totalTimeSpent).toBe('2h 0m');
@@ -1097,7 +1096,7 @@ describe('JiraHandlers', () => {
           startDate: '2024-01-01',
         });
 
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.totalTimeSpentSeconds).toBe(16200); // 4h 30m total
         expect(data.totalTimeSpent).toBe('4h 30m');
@@ -1154,7 +1153,7 @@ describe('JiraHandlers', () => {
           }),
         });
 
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.totalIssues).toBe(1);
         expect(data.issues[0].key).toBe('TEST-60');

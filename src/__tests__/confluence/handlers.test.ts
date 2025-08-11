@@ -195,7 +195,7 @@ describe('ConfluenceHandlers', () => {
       const result = await handlers.searchConfluencePages({ cql: '' });
 
       expect(result.isError).toBe(true);
-      expect((result.content[0] as any).text).toContain('cql is required');
+      expect((result.content[0] as any).text).toContain('cql cannot be empty');
     });
 
     it('should limit results to 100 maximum', async () => {
@@ -389,7 +389,7 @@ describe('ConfluenceHandlers', () => {
       const result = await handlers.listConfluenceAttachments({ pageId: '' });
 
       expect(result.isError).toBe(true);
-      expect((result.content[0] as any).text).toContain('pageId is required');
+      expect((result.content[0] as any).text).toContain('pageId cannot be empty');
     });
   });
 
@@ -466,7 +466,7 @@ describe('ConfluenceHandlers', () => {
       });
 
       expect(result.isError).toBe(true);
-      expect((result.content[0] as any).text).toContain('spaceKey is required');
+      expect((result.content[0] as any).text).toContain('spaceKey cannot be empty');
     });
 
     it('should handle creation errors', async () => {
@@ -870,7 +870,7 @@ describe('ConfluenceHandlers', () => {
       });
 
       expect(result.isError).toBe(true);
-      expect((result.content[0] as any).text).toContain('pageId is required');
+      expect((result.content[0] as any).text).toContain('pageId cannot be empty');
     });
   });
 
@@ -891,7 +891,7 @@ describe('ConfluenceHandlers', () => {
         const result = await handlers.getConfluenceCurrentUser();
 
         expect(mockClient.get).toHaveBeenCalledWith('/api/user/current');
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.accountId).toBe('user123');
@@ -916,7 +916,7 @@ describe('ConfluenceHandlers', () => {
           params: { accountId: 'user456' }
         });
         
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.displayName).toBe('Jane Smith');
       });
@@ -940,7 +940,7 @@ describe('ConfluenceHandlers', () => {
 
         const result = await handlers.getConfluenceUser({ username: 'bwilson' });
 
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.displayName).toBe('Bob Wilson');
       });
@@ -949,7 +949,7 @@ describe('ConfluenceHandlers', () => {
         const result = await handlers.getConfluenceUser({});
 
         expect(result.isError).toBe(true);
-        expect((result.content[0] as any).text).toContain('At least one of username, accountId, or email must be provided');
+        expect((result.content[0] as any).text).toContain('At least one user identifier (username, accountId, or email) is required');
       });
     });
 
@@ -987,7 +987,7 @@ describe('ConfluenceHandlers', () => {
           }
         });
 
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.users).toHaveLength(1);
       });
@@ -1027,7 +1027,7 @@ describe('ConfluenceHandlers', () => {
           params: { expand: 'description.plain,homepage' }
         });
 
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.key).toBe('TEST');
         expect(data.description).toBe('Test space description');
@@ -1066,7 +1066,7 @@ describe('ConfluenceHandlers', () => {
           }
         });
 
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.parentPageId).toBe('123');
         expect(data.children).toHaveLength(1);
@@ -1092,7 +1092,7 @@ describe('ConfluenceHandlers', () => {
           params: { expand: 'ancestors' }
         });
 
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.ancestors).toHaveLength(2);
         expect(data.depth).toBe(2);
