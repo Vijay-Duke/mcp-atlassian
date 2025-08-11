@@ -29,7 +29,7 @@ describe('Jira Tools', () => {
     it('should have non-empty names and descriptions', () => {
       jiraTools.forEach((tool) => {
         expect(tool.name.length).toBeGreaterThan(0);
-        expect(tool.description.length).toBeGreaterThan(0);
+        expect((tool.description || '').length).toBeGreaterThan(0);
       });
     });
 
@@ -77,11 +77,11 @@ describe('Jira Tools', () => {
       const searchTool = jiraTools.find((tool) => tool.name === 'search_jira_issues');
 
       expect(searchTool).toBeDefined();
-      expect(searchTool?.description.toLowerCase()).toContain('search');
+      expect((searchTool?.description || '').toLowerCase()).toContain('search');
 
       const properties = searchTool?.inputSchema.properties || {};
       expect(properties).toHaveProperty('jql');
-      expect(properties.jql.type).toBe('string');
+      expect((properties.jql as any)?.type).toBe('string');
     });
 
     it('should include list_jira_projects', () => {
@@ -98,7 +98,7 @@ describe('Jira Tools', () => {
       const createIssueTool = jiraTools.find((tool) => tool.name === 'create_jira_issue');
 
       expect(createIssueTool).toBeDefined();
-      expect(createIssueTool?.description.toLowerCase()).toContain('create');
+      expect((createIssueTool?.description || '').toLowerCase()).toContain('create');
 
       const properties = createIssueTool?.inputSchema.properties || {};
       expect(properties).toHaveProperty('projectKey');
@@ -139,9 +139,9 @@ describe('Jira Tools', () => {
       const properties = userSearchTool?.inputSchema.properties || {};
       expect(properties).toHaveProperty('searchType');
       expect(properties.searchType).toHaveProperty('enum');
-      expect(properties.searchType.enum).toContain('assignee');
-      expect(properties.searchType.enum).toContain('reporter');
-      expect(properties.searchType.enum).toContain('creator');
+      expect((properties.searchType as any)?.enum).toContain('assignee');
+      expect((properties.searchType as any)?.enum).toContain('reporter');
+      expect((properties.searchType as any)?.enum).toContain('creator');
     });
 
     it('should include worklog functionality', () => {
@@ -290,7 +290,7 @@ describe('Jira Tools', () => {
 
     it('should support user-centric operations', () => {
       const userOperations = jiraTools.filter(
-        (tool) => tool.name.includes('user') || tool.description.toLowerCase().includes('user')
+        (tool) => tool.name.includes('user') || (tool.description || '').toLowerCase().includes('user')
       );
 
       expect(userOperations.length).toBeGreaterThan(3);
@@ -301,8 +301,8 @@ describe('Jira Tools', () => {
         (tool) =>
           tool.name.includes('board') ||
           tool.name.includes('sprint') ||
-          tool.description.toLowerCase().includes('sprint') ||
-          tool.description.toLowerCase().includes('board')
+          (tool.description || '').toLowerCase().includes('sprint') ||
+          (tool.description || '').toLowerCase().includes('board')
       );
 
       expect(agileOperations.length).toBeGreaterThan(2);
@@ -335,7 +335,7 @@ describe('Jira Tools', () => {
       expect(searchTool).toBeDefined();
       const properties = searchTool?.inputSchema.properties || {};
       expect(properties.jql).toBeDefined();
-      expect(properties.jql.description).toContain('JQL');
+      expect((properties.jql as any)?.description).toContain('JQL');
     });
 
     it('should have boardId parameter in sprint tools', () => {
@@ -344,7 +344,7 @@ describe('Jira Tools', () => {
       expect(sprintTool).toBeDefined();
       const properties = sprintTool?.inputSchema.properties || {};
       expect(properties.boardId).toBeDefined();
-      expect(properties.boardId.type).toBe('number');
+      expect((properties.boardId as any)?.type).toBe('number');
     });
 
     it('should have issueKey parameters where needed', () => {
@@ -356,7 +356,7 @@ describe('Jira Tools', () => {
         if (tool) {
           const properties = tool.inputSchema.properties || {};
           expect(properties).toHaveProperty('issueKey');
-          expect(properties.issueKey.type).toBe('string');
+          expect((properties.issueKey as any)?.type).toBe('string');
         }
       });
     });
@@ -369,8 +369,8 @@ describe('Jira Tools', () => {
         expect(properties).toHaveProperty('startDate');
         expect(properties).toHaveProperty('endDate');
 
-        expect(properties.startDate.type).toBe('string');
-        expect(properties.endDate.type).toBe('string');
+        expect((properties.startDate as any)?.type).toBe('string');
+        expect((properties.endDate as any)?.type).toBe('string');
       }
     });
   });

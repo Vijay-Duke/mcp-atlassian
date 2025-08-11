@@ -29,7 +29,7 @@ describe('Confluence Tools', () => {
     it('should have non-empty names and descriptions', () => {
       confluenceTools.forEach((tool) => {
         expect(tool.name.length).toBeGreaterThan(0);
-        expect(tool.description.length).toBeGreaterThan(0);
+        expect((tool.description || '').length).toBeGreaterThan(0);
       });
     });
 
@@ -80,11 +80,11 @@ describe('Confluence Tools', () => {
       const searchTool = confluenceTools.find((tool) => tool.name === 'search_confluence_pages');
 
       expect(searchTool).toBeDefined();
-      expect(searchTool?.description).toContain('search');
+      expect(searchTool?.description || '').toContain('search');
 
       const properties = searchTool?.inputSchema.properties || {};
       expect(properties).toHaveProperty('cql');
-      expect(properties.cql.type).toBe('string');
+      expect((properties.cql as any)?.type).toBe('string');
     });
 
     it('should include list_confluence_spaces', () => {
@@ -102,7 +102,7 @@ describe('Confluence Tools', () => {
       const createPageTool = confluenceTools.find((tool) => tool.name === 'create_confluence_page');
 
       expect(createPageTool).toBeDefined();
-      expect(createPageTool?.description.toLowerCase()).toContain('create');
+      expect((createPageTool?.description || '').toLowerCase()).toContain('create');
 
       const properties = createPageTool?.inputSchema.properties || {};
       expect(properties).toHaveProperty('spaceKey');
@@ -154,8 +154,8 @@ describe('Confluence Tools', () => {
       const properties = userSearchTool?.inputSchema.properties || {};
       expect(properties).toHaveProperty('searchType');
       expect(properties.searchType).toHaveProperty('enum');
-      expect(properties.searchType.enum).toContain('creator');
-      expect(properties.searchType.enum).toContain('lastModifier');
+      expect((properties.searchType as any)?.enum).toContain('creator');
+      expect((properties.searchType as any)?.enum).toContain('lastModifier');
     });
 
     it('should include export functionality', () => {
@@ -166,8 +166,8 @@ describe('Confluence Tools', () => {
       const properties = exportTool?.inputSchema.properties || {};
       expect(properties).toHaveProperty('format');
       expect(properties.format).toHaveProperty('enum');
-      expect(properties.format.enum).toContain('html');
-      expect(properties.format.enum).toContain('markdown');
+      expect((properties.format as any)?.enum).toContain('html');
+      expect((properties.format as any)?.enum).toContain('markdown');
     });
   });
 
@@ -283,7 +283,7 @@ describe('Confluence Tools', () => {
 
     it('should support user-centric operations', () => {
       const userOperations = confluenceTools.filter(
-        (tool) => tool.name.includes('user') || tool.description.toLowerCase().includes('user')
+        (tool) => tool.name.includes('user') || (tool.description || '').toLowerCase().includes('user')
       );
 
       expect(userOperations.length).toBeGreaterThan(2);

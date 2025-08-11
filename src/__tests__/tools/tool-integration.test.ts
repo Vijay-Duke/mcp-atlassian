@@ -87,18 +87,18 @@ describe('Tool Integration', () => {
 
         // If they have user identity fields, they should follow consistent patterns
         if (properties.username) {
-          expect(properties.username.type).toBe('string');
-          expect(properties.username.description.toLowerCase()).toContain('username');
+          expect((properties.username as any)?.type).toBe('string');
+          expect((properties.username as any)?.description.toLowerCase()).toContain('username');
         }
 
         if (properties.accountId) {
-          expect(properties.accountId.type).toBe('string');
-          expect(properties.accountId.description.toLowerCase()).toContain('account');
+          expect((properties.accountId as any)?.type).toBe('string');
+          expect((properties.accountId as any)?.description.toLowerCase()).toContain('account');
         }
 
         if (properties.email) {
-          expect(properties.email.type).toBe('string');
-          expect(properties.email.description.toLowerCase()).toContain('email');
+          expect((properties.email as any)?.type).toBe('string');
+          expect((properties.email as any)?.description.toLowerCase()).toContain('email');
         }
       });
     });
@@ -134,12 +134,12 @@ describe('Tool Integration', () => {
         // Should use consistent naming patterns
         if (properties.limit || properties.maxResults) {
           const limitParam = properties.limit || properties.maxResults;
-          expect(limitParam.type).toBe('number');
+          expect((limitParam as any)?.type).toBe('number');
         }
 
         if (properties.start || properties.startAt) {
           const startParam = properties.start || properties.startAt;
-          expect(startParam.type).toBe('number');
+          expect((startParam as any)?.type).toBe('number');
         }
       });
     });
@@ -167,13 +167,13 @@ describe('Tool Integration', () => {
       if (confluenceSearch) {
         const properties = confluenceSearch.inputSchema.properties || {};
         expect(properties).toHaveProperty('cql');
-        expect(properties.cql.description.toLowerCase()).toContain('cql');
+        expect((properties.cql as any)?.description.toLowerCase()).toContain('cql');
       }
 
       if (jiraSearch) {
         const properties = jiraSearch.inputSchema.properties || {};
         expect(properties).toHaveProperty('jql');
-        expect(properties.jql.description.toLowerCase()).toContain('jql');
+        expect((properties.jql as any)?.description.toLowerCase()).toContain('jql');
       }
     });
   });
@@ -226,7 +226,7 @@ describe('Tool Integration', () => {
 
       confluenceSpecific.forEach((feature) => {
         const hasFeature = confluenceTools.some(
-          (tool) => tool.name.includes(feature) || tool.description.toLowerCase().includes(feature)
+          (tool) => tool.name.includes(feature) || (tool.description || '').toLowerCase().includes(feature)
         );
         expect(hasFeature).toBe(true);
       });
@@ -237,7 +237,7 @@ describe('Tool Integration', () => {
 
       jiraSpecific.forEach((feature) => {
         const hasFeature = jiraTools.some(
-          (tool) => tool.name.includes(feature) || tool.description.toLowerCase().includes(feature)
+          (tool) => tool.name.includes(feature) || (tool.description || '').toLowerCase().includes(feature)
         );
         expect(hasFeature).toBe(true);
       });
@@ -248,8 +248,8 @@ describe('Tool Integration', () => {
         (tool) =>
           tool.name.includes('board') ||
           tool.name.includes('sprint') ||
-          tool.description.toLowerCase().includes('agile') ||
-          tool.description.toLowerCase().includes('scrum')
+          (tool.description || '').toLowerCase().includes('agile') ||
+          (tool.description || '').toLowerCase().includes('scrum')
       );
 
       expect(agileTools.length).toBeGreaterThan(1);
