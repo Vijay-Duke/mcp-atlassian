@@ -82,7 +82,7 @@ export const jiraTools: Tool[] = [
     },
   },
   {
-    name: 'list_issues_for_user_role',
+    name: 'list_issues_by_user_role',
     description:
       'List issues where a user has a specific role (assignee, reporter, or creator). Includes date filtering for finding issues within specific time periods.',
     inputSchema: {
@@ -133,7 +133,7 @@ export const jiraTools: Tool[] = [
   {
     name: 'get_user_activity_history',
     description:
-      'Retrieve a user\'s recent activity history including comments they\'ve made, status changes they\'ve performed, and issues they\'ve updated. Shows what actions a user has taken recently.',
+      'Get a stream of recent user activity, such as issue comments, status changes, and field updates. Can filter by activity type and project.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -337,7 +337,7 @@ export const jiraTools: Tool[] = [
         customFields: {
           type: 'object',
           description:
-            'A JSON object for setting custom fields. The keys are the custom field IDs (e.g., "customfield_10010") and the values are the data to be set.',
+            'A JSON object for setting custom fields. The keys are the custom field IDs (e.g., "customfield_10010") and the values are the data to be set. **For example: `{"customfield_10010": "Value for custom field"}`**.',
         },
       },
       required: ['projectKey', 'issueType', 'summary'],

@@ -233,7 +233,7 @@ describe('Jira Tools', () => {
           tool.name === 'get_my_current_sprint_issues' ||
           tool.name === 'get_my_unresolved_issues' ||
           tool.name === 'search_issues_by_user_involvement' ||
-          tool.name === 'list_issues_for_user_role' ||
+          tool.name === 'list_issues_by_user_role' ||
           tool.name === 'get_user_activity_history' ||
           tool.name === 'get_user_time_tracking' ||
           tool.name === 'list_agile_boards' ||
