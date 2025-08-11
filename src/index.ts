@@ -69,7 +69,6 @@ class AtlassianMCPServer {
       }
     );
 
-    // Create HTTP client and handlers
     const client = createAtlassianClient();
     this.confluenceHandlers = new ConfluenceHandlers(client);
     this.jiraHandlers = new JiraHandlers(client);
@@ -84,11 +83,9 @@ class AtlassianMCPServer {
       tools: [...confluenceTools, ...jiraTools],
     }));
 
-    // Handle tool execution
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       try {
         switch (request.params.name) {
-          // Confluence tools
           case 'get_confluence_current_user':
             return await this.confluenceHandlers.getConfluenceCurrentUser();
           case 'get_confluence_user':
@@ -184,7 +181,6 @@ class AtlassianMCPServer {
               request.params.arguments as unknown as GetConfluencePagesMentioningMeArgs
             );
 
-          // Jira tools
           case 'get_jira_current_user':
             return await this.jiraHandlers.getJiraCurrentUser();
           case 'read_jira_issue':
@@ -288,7 +284,6 @@ class AtlassianMCPServer {
   }
 }
 
-// Check for required environment variables
 const requiredEnvVars = ['ATLASSIAN_BASE_URL', 'ATLASSIAN_EMAIL', 'ATLASSIAN_API_TOKEN'];
 for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {
@@ -297,7 +292,6 @@ for (const envVar of requiredEnvVars) {
   }
 }
 
-// Start the server
 const server = new AtlassianMCPServer();
 server.run().catch((error) => {
   console.error('Failed to start server:', error);
