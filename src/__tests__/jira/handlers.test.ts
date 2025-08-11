@@ -785,7 +785,7 @@ describe('JiraHandlers', () => {
         await handlers.searchJiraIssuesByUser({
           accountId: 'user7890123456',
           searchType: 'reporter',
-          project: 'TEST',
+          projectKeys: ['TEST'],
         });
 
         expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
