@@ -273,7 +273,6 @@ export class JiraHandlers {
         issueData.fields.components = components.map(name => ({ name }));
       }
 
-      // Add custom fields
       if (customFields) {
         Object.assign(issueData.fields, customFields);
       }
@@ -509,7 +508,6 @@ export class JiraHandlers {
           : undefined,
       };
 
-      // Get issues in the sprint
       try {
         const issuesResponse = await this.client.get(`/rest/agile/1.0/sprint/${sprintId}/issue`, {
           params: { maxResults: 100 }
