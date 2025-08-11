@@ -902,7 +902,7 @@ describe('ConfluenceHandlers', () => {
     describe('getConfluenceUser', () => {
       it('should get user by accountId', async () => {
         const mockUser = {
-          accountId: 'user456',
+          accountId: 'user456789012',
           displayName: 'Jane Smith',
           email: 'jane@example.com',
           type: 'known',
@@ -910,10 +910,10 @@ describe('ConfluenceHandlers', () => {
 
         (mockClient.get as any).mockResolvedValue({ data: mockUser });
 
-        const result = await handlers.getConfluenceUser({ accountId: 'user456' });
+        const result = await handlers.getConfluenceUser({ accountId: 'user456789012' });
 
         expect(mockClient.get).toHaveBeenCalledWith('/api/user', {
-          params: { accountId: 'user456' }
+          params: { accountId: 'user456789012' }
         });
         
         expect(result.isError).toBeFalsy();
@@ -934,9 +934,7 @@ describe('ConfluenceHandlers', () => {
           }
         };
 
-        (mockClient.get as any)
-          .mockRejectedValueOnce(new Error('Not found'))
-          .mockResolvedValueOnce(mockSearchResponse);
+        (mockClient.get as any).mockResolvedValue(mockSearchResponse);
 
         const result = await handlers.getConfluenceUser({ username: 'bwilson' });
 

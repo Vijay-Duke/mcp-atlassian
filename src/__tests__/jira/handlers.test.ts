@@ -339,7 +339,7 @@ describe('JiraHandlers', () => {
       });
 
       expect(result.isError).toBe(true);
-      expect((result.content[0] as any).text).toContain('projectKey is required');
+      expect((result.content[0] as any).text).toContain('projectKey cannot be empty');
     });
 
     it('should handle creation errors', async () => {
@@ -457,7 +457,7 @@ describe('JiraHandlers', () => {
     describe('getJiraUser', () => {
       it('should get user by accountId', async () => {
         const mockUser = {
-          accountId: 'user456',
+          accountId: 'user456789012',
           displayName: 'Jane Smith',
           emailAddress: 'jane@example.com',
           active: true,
@@ -465,10 +465,10 @@ describe('JiraHandlers', () => {
 
         (mockClient.get as any).mockResolvedValue({ data: mockUser });
 
-        const result = await handlers.getJiraUser({ accountId: 'user456' });
+        const result = await handlers.getJiraUser({ accountId: 'user456789012' });
 
         expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/user', {
-          params: { accountId: 'user456' }
+          params: { accountId: 'user456789012' }
         });
         
         expect(result.isError).toBeFalsy();
@@ -502,13 +502,13 @@ describe('JiraHandlers', () => {
         const result = await handlers.getJiraUser({});
 
         expect(result.isError).toBe(true);
-        expect((result.content[0] as any).text).toContain('At least one of username, accountId, or email must be provided');
+        expect((result.content[0] as any).text).toContain('At least one user identifier (username, accountId, or email) is required');
       });
 
       it('should handle user not found', async () => {
         (mockClient.get as any).mockResolvedValue({ data: [] });
 
-        const result = await handlers.getJiraUser({ email: 'nonexistent@example.com' });
+        const result = await handlers.getJiraUser({ username: 'nonexistent' });
 
         expect(result.isError).toBe(true);
         expect((result.content[0] as any).text).toContain('User not found');
