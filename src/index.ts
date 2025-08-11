@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
@@ -7,6 +10,9 @@ import { confluenceTools } from './confluence/tools.js';
 import { jiraTools } from './jira/tools.js';
 import { ConfluenceHandlers } from './confluence/handlers.js';
 import { JiraHandlers } from './jira/handlers.js';
+import { ToolRegistry } from './utils/tool-registry.js';
+import { Logger } from './utils/logger.js';
+import { createValidator, validators } from './utils/argument-validator.js';
 import {
   ReadConfluencePageArgs,
   SearchConfluencePagesArgs,
@@ -48,16 +54,40 @@ import {
   GetUserJiraWorklogArgs,
 } from './types/index.js';
 
+// Get package version from package.json
+function getPackageVersion(): string {
+  try {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    const packagePath = join(__dirname, '..', 'package.json');
+    const packageJson = JSON.parse(readFileSync(packagePath, 'utf-8'));
+    return packageJson.version;
+  } catch (error) {
+    Logger.warn('Could not read package.json version, using fallback', {
+      error: error instanceof Error ? error : new Error(String(error)),
+    });
+    return '2.0.2'; // Fallback version
+  }
+}
+
+// Generate a simple request ID for logging
+function generateRequestId(): string {
+  return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
 class AtlassianMCPServer {
   private server: Server;
   private confluenceHandlers: ConfluenceHandlers;
   private jiraHandlers: JiraHandlers;
+  private toolRegistry: ToolRegistry;
 
   constructor() {
+    const version = getPackageVersion();
+
     this.server = new Server(
       {
         name: 'mcp-atlassian',
-        version: '2.0.0',
+        version,
       },
       {
         capabilities: {
@@ -69,190 +99,155 @@ class AtlassianMCPServer {
     const client = createAtlassianClient();
     this.confluenceHandlers = new ConfluenceHandlers(client);
     this.jiraHandlers = new JiraHandlers(client);
+    this.toolRegistry = new ToolRegistry();
 
+    Logger.info('Initializing Atlassian MCP Server', {
+      version,
+      environment: process.env.NODE_ENV || 'development',
+    });
+
+    this.registerTools();
     this.setupHandlers();
     this.setupErrorHandling();
   }
 
+  private registerTools(): void {
+    // Register all Confluence tools
+    this.toolRegistry.register({
+      name: 'get_confluence_current_user',
+      handler: this.confluenceHandlers.getConfluenceCurrentUser.bind(this.confluenceHandlers),
+      description: 'Get current Confluence user',
+    });
+
+    this.toolRegistry.register({
+      name: 'get_confluence_user',
+      handler: this.confluenceHandlers.getConfluenceUser.bind(this.confluenceHandlers),
+      validator: this.createGetUserValidator(),
+      description: 'Get specific Confluence user',
+    });
+
+    this.toolRegistry.register({
+      name: 'read_confluence_page',
+      handler: this.confluenceHandlers.readConfluencePage.bind(this.confluenceHandlers),
+      validator: this.createReadPageValidator(),
+      description: 'Read Confluence page content',
+    });
+
+    // Register other Confluence tools with basic validation
+    const confluenceToolsMap = [
+      { name: 'search_confluence_pages_by_user', handler: 'searchConfluencePagesByUser' },
+      { name: 'list_user_confluence_pages', handler: 'listUserConfluencePages' },
+      { name: 'list_user_confluence_attachments', handler: 'listUserConfluenceAttachments' },
+      { name: 'search_confluence_pages', handler: 'searchConfluencePages' },
+      { name: 'list_confluence_spaces', handler: 'listConfluenceSpaces' },
+      { name: 'get_confluence_space', handler: 'getConfluenceSpace' },
+      { name: 'list_confluence_attachments', handler: 'listConfluenceAttachments' },
+      { name: 'download_confluence_attachment', handler: 'downloadConfluenceAttachment' },
+      { name: 'upload_confluence_attachment', handler: 'uploadConfluenceAttachment' },
+      { name: 'download_confluence_page_complete', handler: 'downloadConfluencePageComplete' },
+      { name: 'create_confluence_page', handler: 'createConfluencePage' },
+      { name: 'update_confluence_page', handler: 'updateConfluencePage' },
+      { name: 'list_confluence_page_children', handler: 'listConfluencePageChildren' },
+      { name: 'list_confluence_page_ancestors', handler: 'listConfluencePageAncestors' },
+      { name: 'add_confluence_comment', handler: 'addConfluenceComment' },
+      { name: 'find_confluence_users', handler: 'findConfluenceUsers' },
+      { name: 'list_confluence_page_labels', handler: 'getConfluenceLabels' },
+      { name: 'add_confluence_page_label', handler: 'addConfluenceLabels' },
+      { name: 'export_confluence_page', handler: 'exportConfluencePage' },
+      { name: 'get_my_recent_confluence_pages', handler: 'getMyRecentConfluencePages' },
+      { name: 'get_confluence_pages_mentioning_me', handler: 'getConfluencePagesMentioningMe' },
+    ];
+
+    confluenceToolsMap.forEach((tool) => {
+      this.toolRegistry.register({
+        name: tool.name,
+        handler: (this.confluenceHandlers as any)[tool.handler].bind(this.confluenceHandlers),
+        description: `Confluence tool: ${tool.name}`,
+      });
+    });
+
+    // Register Jira tools
+    this.toolRegistry.register({
+      name: 'get_jira_current_user',
+      handler: this.jiraHandlers.getJiraCurrentUser.bind(this.jiraHandlers),
+      description: 'Get current Jira user',
+    });
+
+    const jiraToolsMap = [
+      { name: 'read_jira_issue', handler: 'readJiraIssue' },
+      { name: 'search_jira_issues', handler: 'searchJiraIssues' },
+      { name: 'list_jira_projects', handler: 'listJiraProjects' },
+      { name: 'create_jira_issue', handler: 'createJiraIssue' },
+      { name: 'add_jira_comment', handler: 'addJiraComment' },
+      { name: 'list_jira_boards', handler: 'listJiraBoards' },
+      { name: 'list_jira_sprints', handler: 'listJiraSprints' },
+      { name: 'get_jira_sprint', handler: 'getJiraSprint' },
+      { name: 'get_my_tasks_in_current_sprint', handler: 'getMyTasksInCurrentSprint' },
+      { name: 'get_my_open_issues', handler: 'getMyOpenIssues' },
+      { name: 'get_jira_user', handler: 'getJiraUser' },
+      { name: 'search_jira_issues_by_user', handler: 'searchJiraIssuesByUser' },
+      { name: 'list_user_jira_issues', handler: 'listUserJiraIssues' },
+      { name: 'get_user_jira_activity', handler: 'getUserJiraActivity' },
+      { name: 'get_user_jira_worklog', handler: 'getUserJiraWorklog' },
+    ];
+
+    jiraToolsMap.forEach((tool) => {
+      this.toolRegistry.register({
+        name: tool.name,
+        handler: (this.jiraHandlers as any)[tool.handler].bind(this.jiraHandlers),
+        description: `Jira tool: ${tool.name}`,
+      });
+    });
+
+    Logger.info(`Registered ${this.toolRegistry.getRegisteredTools().length} tools`);
+  }
+
+  private createGetUserValidator() {
+    return createValidator<GetConfluenceUserArgs>({
+      accountId: validators.string('accountId'),
+      username: validators.string('username'),
+      email: validators.string('email'),
+    });
+  }
+
+  private createReadPageValidator() {
+    return createValidator<ReadConfluencePageArgs>({
+      pageId: validators.string('pageId'),
+      title: validators.string('title'),
+      spaceKey: validators.string('spaceKey'),
+      expand: validators.string('expand'),
+      format: validators.enum('format', ['storage', 'markdown']),
+    });
+  }
+
   private setupHandlers(): void {
     // List available tools
-    this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
-      tools: [...confluenceTools, ...jiraTools],
-    }));
+    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
+      Logger.debug('Listing available tools');
+      return {
+        tools: [...confluenceTools, ...jiraTools],
+      };
+    });
 
+    // Handle tool calls using the registry
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+      const requestId = generateRequestId();
+      const { name: toolName, arguments: args } = request.params;
+
+      Logger.info(`Tool call received: ${toolName}`, {
+        tool: toolName,
+        requestId,
+        hasArgs: !!args,
+      });
+
       try {
-        switch (request.params.name) {
-          case 'get_confluence_current_user':
-            return await this.confluenceHandlers.getConfluenceCurrentUser();
-          case 'get_confluence_user':
-            return await this.confluenceHandlers.getConfluenceUser(
-              request.params.arguments as unknown as GetConfluenceUserArgs
-            );
-          case 'search_confluence_pages_by_user':
-            return await this.confluenceHandlers.searchConfluencePagesByUser(
-              request.params.arguments as unknown as SearchConfluencePagesByUserArgs
-            );
-          case 'list_user_confluence_pages':
-            return await this.confluenceHandlers.listUserConfluencePages(
-              request.params.arguments as unknown as ListUserConfluencePagesArgs
-            );
-          case 'list_user_confluence_attachments':
-            return await this.confluenceHandlers.listUserConfluenceAttachments(
-              request.params.arguments as unknown as ListUserConfluenceAttachmentsArgs
-            );
-          case 'read_confluence_page':
-            return await this.confluenceHandlers.readConfluencePage(
-              request.params.arguments as unknown as ReadConfluencePageArgs
-            );
-          case 'search_confluence_pages':
-            return await this.confluenceHandlers.searchConfluencePages(
-              request.params.arguments as unknown as SearchConfluencePagesArgs
-            );
-          case 'list_confluence_spaces':
-            return await this.confluenceHandlers.listConfluenceSpaces(
-              request.params.arguments as unknown as ListConfluenceSpacesArgs
-            );
-          case 'get_confluence_space':
-            return await this.confluenceHandlers.getConfluenceSpace(
-              request.params.arguments as unknown as GetConfluenceSpaceArgs
-            );
-          case 'list_confluence_attachments':
-            return await this.confluenceHandlers.listConfluenceAttachments(
-              request.params.arguments as unknown as ListConfluenceAttachmentsArgs
-            );
-          case 'download_confluence_attachment':
-            return await this.confluenceHandlers.downloadConfluenceAttachment(
-              request.params.arguments as unknown as DownloadConfluenceAttachmentArgs
-            );
-          case 'upload_confluence_attachment':
-            return await this.confluenceHandlers.uploadConfluenceAttachment(
-              request.params.arguments as unknown as UploadConfluenceAttachmentArgs
-            );
-          case 'download_confluence_page_complete':
-            return await this.confluenceHandlers.downloadConfluencePageComplete(
-              request.params.arguments as unknown as DownloadConfluencePageCompleteArgs
-            );
-          case 'create_confluence_page':
-            return await this.confluenceHandlers.createConfluencePage(
-              request.params.arguments as unknown as CreateConfluencePageArgs
-            );
-          case 'update_confluence_page':
-            return await this.confluenceHandlers.updateConfluencePage(
-              request.params.arguments as unknown as UpdateConfluencePageArgs
-            );
-          case 'list_confluence_page_children':
-            return await this.confluenceHandlers.listConfluencePageChildren(
-              request.params.arguments as unknown as ListConfluencePageChildrenArgs
-            );
-          case 'list_confluence_page_ancestors':
-            return await this.confluenceHandlers.listConfluencePageAncestors(
-              request.params.arguments as unknown as ListConfluencePageAncestorsArgs
-            );
-          case 'add_confluence_comment':
-            return await this.confluenceHandlers.addConfluenceComment(
-              request.params.arguments as unknown as AddConfluenceCommentArgs
-            );
-          case 'find_confluence_users':
-            return await this.confluenceHandlers.findConfluenceUsers(
-              request.params.arguments as unknown as FindConfluenceUsersArgs
-            );
-          case 'list_confluence_page_labels':
-            return await this.confluenceHandlers.getConfluenceLabels(
-              request.params.arguments as unknown as GetConfluenceLabelsArgs
-            );
-          case 'add_confluence_page_label':
-            return await this.confluenceHandlers.addConfluenceLabels(
-              request.params.arguments as unknown as AddConfluenceLabelsArgs
-            );
-          case 'export_confluence_page':
-            return await this.confluenceHandlers.exportConfluencePage(
-              request.params.arguments as unknown as ExportConfluencePageArgs
-            );
-          case 'get_my_recent_confluence_pages':
-            return await this.confluenceHandlers.getMyRecentConfluencePages(
-              request.params.arguments as unknown as GetMyRecentConfluencePagesArgs
-            );
-          case 'get_confluence_pages_mentioning_me':
-            return await this.confluenceHandlers.getConfluencePagesMentioningMe(
-              request.params.arguments as unknown as GetConfluencePagesMentioningMeArgs
-            );
-
-          case 'get_jira_current_user':
-            return await this.jiraHandlers.getJiraCurrentUser();
-          case 'read_jira_issue':
-            return await this.jiraHandlers.readJiraIssue(
-              request.params.arguments as unknown as ReadJiraIssueArgs
-            );
-          case 'search_jira_issues':
-            return await this.jiraHandlers.searchJiraIssues(
-              request.params.arguments as unknown as SearchJiraIssuesArgs
-            );
-          case 'list_jira_projects':
-            return await this.jiraHandlers.listJiraProjects(
-              request.params.arguments as unknown as ListJiraProjectsArgs
-            );
-          case 'create_jira_issue':
-            return await this.jiraHandlers.createJiraIssue(
-              request.params.arguments as unknown as CreateJiraIssueArgs
-            );
-          case 'add_jira_comment':
-            return await this.jiraHandlers.addJiraComment(
-              request.params.arguments as unknown as AddJiraCommentArgs
-            );
-          case 'list_jira_boards':
-            return await this.jiraHandlers.listJiraBoards(
-              request.params.arguments as unknown as ListJiraBoardsArgs
-            );
-          case 'list_jira_sprints':
-            return await this.jiraHandlers.listJiraSprints(
-              request.params.arguments as unknown as ListJiraSprintsArgs
-            );
-          case 'get_jira_sprint':
-            return await this.jiraHandlers.getJiraSprint(
-              request.params.arguments as unknown as GetJiraSprintArgs
-            );
-          case 'get_my_tasks_in_current_sprint':
-            return await this.jiraHandlers.getMyTasksInCurrentSprint(
-              request.params.arguments as unknown as GetMyTasksInCurrentSprintArgs
-            );
-          case 'get_my_open_issues':
-            return await this.jiraHandlers.getMyOpenIssues(
-              request.params.arguments as unknown as GetMyOpenIssuesArgs
-            );
-          case 'get_jira_user':
-            return await this.jiraHandlers.getJiraUser(
-              request.params.arguments as unknown as GetJiraUserArgs
-            );
-          case 'search_jira_issues_by_user':
-            return await this.jiraHandlers.searchJiraIssuesByUser(
-              request.params.arguments as unknown as SearchJiraIssuesByUserArgs
-            );
-          case 'list_user_jira_issues':
-            return await this.jiraHandlers.listUserJiraIssues(
-              request.params.arguments as unknown as ListUserJiraIssuesArgs
-            );
-          case 'get_user_jira_activity':
-            return await this.jiraHandlers.getUserJiraActivity(
-              request.params.arguments as unknown as GetUserJiraActivityArgs
-            );
-          case 'get_user_jira_worklog':
-            return await this.jiraHandlers.getUserJiraWorklog(
-              request.params.arguments as unknown as GetUserJiraWorklogArgs
-            );
-
-          default:
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: `Unknown tool: ${request.params.name}`,
-                },
-              ],
-              isError: true,
-            };
-        }
+        return await this.toolRegistry.execute(toolName, args, requestId);
       } catch (error) {
+        Logger.logError('tool-execution-handler', error as Error, {
+          tool: toolName,
+          requestId,
+        });
+
         return {
           content: [
             {
@@ -268,20 +263,54 @@ class AtlassianMCPServer {
 
   private setupErrorHandling(): void {
     process.on('uncaughtException', (error) => {
-      console.error('Uncaught exception:', error);
+      Logger.error('Uncaught exception - shutting down', {
+        error: error,
+        errorMessage: error.message,
+        errorStack: error.stack,
+      });
       process.exit(1);
     });
 
     process.on('unhandledRejection', (reason, promise) => {
-      console.error('Unhandled rejection at:', promise, 'reason:', reason);
+      Logger.error('Unhandled promise rejection - shutting down', {
+        reason: reason instanceof Error ? reason.message : String(reason),
+        promise: String(promise),
+      });
       process.exit(1);
+    });
+
+    process.on('SIGINT', () => {
+      Logger.info('Received SIGINT - gracefully shutting down');
+      process.exit(0);
+    });
+
+    process.on('SIGTERM', () => {
+      Logger.info('Received SIGTERM - gracefully shutting down');
+      process.exit(0);
     });
   }
 
   async run(): Promise<void> {
-    const transport = new StdioServerTransport();
-    await this.server.connect(transport);
-    console.error('Atlassian MCP server running on stdio');
+    try {
+      const transport = new StdioServerTransport();
+      await this.server.connect(transport);
+
+      const version = getPackageVersion();
+      Logger.info('Atlassian MCP server started successfully', {
+        version,
+        transport: 'stdio',
+        toolsRegistered: this.toolRegistry.getRegisteredTools().length,
+      });
+
+      // Log to stderr so it doesn't interfere with MCP protocol
+      console.error(`Atlassian MCP server v${version} running on stdio`);
+    } catch (error) {
+      Logger.error('Failed to start MCP server', {
+        error: error instanceof Error ? error : new Error(String(error)),
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
   }
 }
 

@@ -17,22 +17,72 @@ vi.mock('../utils/http-client.js', () => ({
 }));
 
 vi.mock('../confluence/handlers.js', () => ({
-  ConfluenceHandlers: vi.fn(),
+  ConfluenceHandlers: vi.fn().mockImplementation(() => ({
+    getConfluenceCurrentUser: vi.fn(),
+    getConfluenceUser: vi.fn(),
+    readConfluencePage: vi.fn(),
+    searchConfluencePagesByUser: vi.fn(),
+    listUserConfluencePages: vi.fn(),
+    listUserConfluenceAttachments: vi.fn(),
+    searchConfluencePages: vi.fn(),
+    listConfluenceSpaces: vi.fn(),
+    getConfluenceSpace: vi.fn(),
+    listConfluenceAttachments: vi.fn(),
+    downloadConfluenceAttachment: vi.fn(),
+    uploadConfluenceAttachment: vi.fn(),
+    downloadConfluencePageComplete: vi.fn(),
+    createConfluencePage: vi.fn(),
+    updateConfluencePage: vi.fn(),
+    listConfluencePageChildren: vi.fn(),
+    listConfluencePageAncestors: vi.fn(),
+    addConfluenceComment: vi.fn(),
+    findConfluenceUsers: vi.fn(),
+    getConfluenceLabels: vi.fn(),
+    addConfluenceLabels: vi.fn(),
+    exportConfluencePage: vi.fn(),
+    getMyRecentConfluencePages: vi.fn(),
+    getConfluencePagesMentioningMe: vi.fn(),
+  })),
 }));
 
 vi.mock('../jira/handlers.js', () => ({
-  JiraHandlers: vi.fn(),
+  JiraHandlers: vi.fn().mockImplementation(() => ({
+    getJiraCurrentUser: vi.fn(),
+    readJiraIssue: vi.fn(),
+    searchJiraIssues: vi.fn(),
+    listJiraProjects: vi.fn(),
+    createJiraIssue: vi.fn(),
+    addJiraComment: vi.fn(),
+    listJiraBoards: vi.fn(),
+    listJiraSprints: vi.fn(),
+    getJiraSprint: vi.fn(),
+    getMyTasksInCurrentSprint: vi.fn(),
+    getMyOpenIssues: vi.fn(),
+    getJiraUser: vi.fn(),
+    searchJiraIssuesByUser: vi.fn(),
+    listUserJiraIssues: vi.fn(),
+    getUserJiraActivity: vi.fn(),
+    getUserJiraWorklog: vi.fn(),
+  })),
 }));
 
 vi.mock('../confluence/tools.js', () => ({
   confluenceTools: [
-    { name: 'test_confluence_tool', description: 'Test tool', inputSchema: { type: 'object', properties: {} } }
+    {
+      name: 'test_confluence_tool',
+      description: 'Test tool',
+      inputSchema: { type: 'object', properties: {} },
+    },
   ],
 }));
 
 vi.mock('../jira/tools.js', () => ({
   jiraTools: [
-    { name: 'test_jira_tool', description: 'Test tool', inputSchema: { type: 'object', properties: {} } }
+    {
+      name: 'test_jira_tool',
+      description: 'Test tool',
+      inputSchema: { type: 'object', properties: {} },
+    },
   ],
 }));
 
@@ -57,7 +107,7 @@ describe('AtlassianMCPServer Module', () => {
 
   it('should import without throwing errors when environment is valid', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    
+
     expect(async () => {
       await import('../index.js');
     }).not.toThrow();
@@ -67,7 +117,7 @@ describe('AtlassianMCPServer Module', () => {
 
   it('should create required instances when imported', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    
+
     await import('../index.js');
 
     const { Server } = await import('@modelcontextprotocol/sdk/server/index.js');
@@ -85,7 +135,7 @@ describe('AtlassianMCPServer Module', () => {
 
   it('should set up tools from both Confluence and Jira', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    
+
     await import('../index.js');
 
     const { confluenceTools } = await import('../confluence/tools.js');

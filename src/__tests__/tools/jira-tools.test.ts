@@ -290,7 +290,8 @@ describe('Jira Tools', () => {
 
     it('should support user-centric operations', () => {
       const userOperations = jiraTools.filter(
-        (tool) => tool.name.includes('user') || (tool.description || '').toLowerCase().includes('user')
+        (tool) =>
+          tool.name.includes('user') || (tool.description || '').toLowerCase().includes('user')
       );
 
       expect(userOperations.length).toBeGreaterThan(3);

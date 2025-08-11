@@ -39,7 +39,6 @@ import { sanitizeHtml } from '../utils/html-sanitizer.js';
 import {
   validateString,
   validatePagination,
-  validateEnum,
   validateUserIdentification,
   validateNumber,
   validateStringArray,

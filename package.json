@@ -47,7 +47,8 @@
     "dompurify": "^3.2.6",
     "dotenv": "^17.2.0",
     "form-data": "^4.0.4",
-    "https-proxy-agent": "^7.0.6"
+    "https-proxy-agent": "^7.0.6",
+    "winston": "^3.17.0"
   },
   "devDependencies": {
     "@types/dompurify": "^3.0.5",

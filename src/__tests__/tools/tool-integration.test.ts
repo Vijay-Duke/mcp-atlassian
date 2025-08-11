@@ -226,7 +226,8 @@ describe('Tool Integration', () => {
 
       confluenceSpecific.forEach((feature) => {
         const hasFeature = confluenceTools.some(
-          (tool) => tool.name.includes(feature) || (tool.description || '').toLowerCase().includes(feature)
+          (tool) =>
+            tool.name.includes(feature) || (tool.description || '').toLowerCase().includes(feature)
         );
         expect(hasFeature).toBe(true);
       });
@@ -237,7 +238,8 @@ describe('Tool Integration', () => {
 
       jiraSpecific.forEach((feature) => {
         const hasFeature = jiraTools.some(
-          (tool) => tool.name.includes(feature) || (tool.description || '').toLowerCase().includes(feature)
+          (tool) =>
+            tool.name.includes(feature) || (tool.description || '').toLowerCase().includes(feature)
         );
         expect(hasFeature).toBe(true);
       });

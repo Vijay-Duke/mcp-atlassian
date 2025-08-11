@@ -283,7 +283,8 @@ describe('Confluence Tools', () => {
 
     it('should support user-centric operations', () => {
       const userOperations = confluenceTools.filter(
-        (tool) => tool.name.includes('user') || (tool.description || '').toLowerCase().includes('user')
+        (tool) =>
+          tool.name.includes('user') || (tool.description || '').toLowerCase().includes('user')
       );
 
       expect(userOperations.length).toBeGreaterThan(2);
