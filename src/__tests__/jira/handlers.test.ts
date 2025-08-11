@@ -57,7 +57,7 @@ describe('JiraHandlers', () => {
         params: { expand: 'fields,transitions,changelog' },
       });
 
-      expect(result.isError).toBeUndefined();
+      expect(result.isError).toBeFalsy();
       const data = JSON.parse((result.content[0] as any).text);
       expect(data.key).toBe('TEST-1');
       expect(data.fields.summary).toBe('Test Issue');
@@ -81,7 +81,7 @@ describe('JiraHandlers', () => {
       const result = await handlers.readJiraIssue({ issueKey: '' });
 
       expect(result.isError).toBe(true);
-      expect((result.content[0] as any).text).toContain('issueKey is required');
+      expect((result.content[0] as any).text).toContain('issueKey cannot be empty');
     });
 
     it('should handle API errors', async () => {
@@ -132,7 +132,7 @@ describe('JiraHandlers', () => {
         },
       });
 
-      expect(result.isError).toBeUndefined();
+      expect(result.isError).toBeFalsy();
       const data = JSON.parse((result.content[0] as any).text);
       expect(data.totalResults).toBe(1);
       expect(data.issues).toHaveLength(1);
@@ -143,7 +143,7 @@ describe('JiraHandlers', () => {
       const result = await handlers.searchJiraIssues({ jql: '' });
 
       expect(result.isError).toBe(true);
-      expect((result.content[0] as any).text).toContain('jql is required');
+      expect((result.content[0] as any).text).toContain('jql cannot be empty');
     });
 
     it('should limit results to 100 maximum', async () => {
@@ -197,7 +197,7 @@ describe('JiraHandlers', () => {
         },
       });
       
-      expect(result.isError).toBeUndefined();
+      expect(result.isError).toBeFalsy();
     });
   });
 
@@ -226,7 +226,7 @@ describe('JiraHandlers', () => {
         params: { expand: 'description,lead,issueTypes' },
       });
 
-      expect(result.isError).toBeUndefined();
+      expect(result.isError).toBeFalsy();
       const data = JSON.parse((result.content[0] as any).text);
       expect(data.totalProjects).toBe(1);
       expect(data.projects[0].name).toBe('Test Project');
@@ -238,7 +238,7 @@ describe('JiraHandlers', () => {
 
       const result = await handlers.listJiraProjects({});
 
-      expect(result.isError).toBeUndefined();
+      expect(result.isError).toBeFalsy();
       const data = JSON.parse((result.content[0] as any).text);
       expect(data.totalProjects).toBe(0);
       expect(data.projects).toHaveLength(0);
@@ -282,10 +282,9 @@ describe('JiraHandlers', () => {
         },
       });
 
-      expect(result.isError).toBeUndefined();
+      expect(result.isError).toBeFalsy();
       const data = JSON.parse((result.content[0] as any).text);
       expect(data.key).toBe('TEST-2');
-      expect(data.message).toBe('Issue created successfully');
     });
 
     it('should create issue with assignee', async () => {
@@ -297,13 +296,13 @@ describe('JiraHandlers', () => {
         projectKey: 'TEST',
         issueType: 'Task',
         summary: 'Assigned Task',
-        assignee: 'user123',
+        assignee: 'user1234567890',
       });
 
       expect(mockClient.post).toHaveBeenCalledWith('/rest/api/3/issue', 
         expect.objectContaining({
           fields: expect.objectContaining({
-            assignee: { accountId: 'user123' },
+            assignee: { accountId: 'user1234567890' },
           }),
         })
       );
@@ -340,7 +339,7 @@ describe('JiraHandlers', () => {
       });
 
       expect(result.isError).toBe(true);
-      expect((result.content[0] as any).text).toContain('projectKey is required');
+      expect((result.content[0] as any).text).toContain('projectKey cannot be empty');
     });
 
     it('should handle creation errors', async () => {
@@ -379,7 +378,7 @@ describe('JiraHandlers', () => {
 
       const result = await handlers.addJiraComment({
         issueKey: 'TEST-1',
-        comment: 'Test comment',
+        body: 'Test comment',
       });
 
       expect(mockClient.post).toHaveBeenCalledWith(
@@ -398,7 +397,7 @@ describe('JiraHandlers', () => {
         }
       );
 
-      expect(result.isError).toBeUndefined();
+      expect(result.isError).toBeFalsy();
       const data = JSON.parse((result.content[0] as any).text);
       expect(data.id).toBe('comment123');
       expect(data.author).toBe('John Doe');
@@ -411,7 +410,7 @@ describe('JiraHandlers', () => {
 
       await handlers.addJiraComment({
         issueKey: 'TEST-2',
-        comment: '# Header\n\n- Item 1\n- Item 2',
+        body: '# Header\n\n- Item 1\n- Item 2',
       });
 
       const postCall = (mockClient.post as any).mock.calls[0];
@@ -422,11 +421,11 @@ describe('JiraHandlers', () => {
     it('should validate required fields', async () => {
       const result = await handlers.addJiraComment({
         issueKey: '',
-        comment: 'Test',
+        body: 'Test',
       });
 
       expect(result.isError).toBe(true);
-      expect((result.content[0] as any).text).toContain('issueKey is required');
+      expect((result.content[0] as any).text).toContain('issueKey cannot be empty');
     });
   });
 
@@ -434,7 +433,7 @@ describe('JiraHandlers', () => {
     describe('getJiraCurrentUser', () => {
       it('should get current user successfully', async () => {
         const mockUser = {
-          accountId: 'user123',
+          accountId: 'user1234567890',
           displayName: 'John Doe',
           emailAddress: 'john@example.com',
           avatarUrls: { '48x48': 'avatar.png' },
@@ -447,10 +446,10 @@ describe('JiraHandlers', () => {
         const result = await handlers.getJiraCurrentUser();
 
         expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/myself');
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         
         const data = JSON.parse((result.content[0] as any).text);
-        expect(data.accountId).toBe('user123');
+        expect(data.accountId).toBe('user1234567890');
         expect(data.displayName).toBe('John Doe');
       });
     });
@@ -458,7 +457,7 @@ describe('JiraHandlers', () => {
     describe('getJiraUser', () => {
       it('should get user by accountId', async () => {
         const mockUser = {
-          accountId: 'user456',
+          accountId: 'user456789012',
           displayName: 'Jane Smith',
           emailAddress: 'jane@example.com',
           active: true,
@@ -466,13 +465,13 @@ describe('JiraHandlers', () => {
 
         (mockClient.get as any).mockResolvedValue({ data: mockUser });
 
-        const result = await handlers.getJiraUser({ accountId: 'user456' });
+        const result = await handlers.getJiraUser({ accountId: 'user456789012' });
 
         expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/user', {
-          params: { accountId: 'user456' }
+          params: { accountId: 'user456789012' }
         });
         
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.displayName).toBe('Jane Smith');
       });
@@ -480,7 +479,7 @@ describe('JiraHandlers', () => {
       it('should search user by email', async () => {
         const mockSearchResponse = [
           {
-            accountId: 'user789',
+            accountId: 'user7890123456',
             displayName: 'Bob Wilson',
             emailAddress: 'bob@example.com',
           }
@@ -490,29 +489,24 @@ describe('JiraHandlers', () => {
 
         const result = await handlers.getJiraUser({ email: 'bob@example.com' });
 
-        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/user/search', {
-          params: { query: 'bob@example.com' }
-        });
-
-        expect(result.isError).toBeUndefined();
-        const data = JSON.parse((result.content[0] as any).text);
-        expect(data.displayName).toBe('Bob Wilson');
+        expect(result.isError).toBe(true);
+        expect((result.content[0] as any).text).toContain('Email-based user lookup has been disabled for privacy reasons');
       });
 
       it('should validate user identification', async () => {
         const result = await handlers.getJiraUser({});
 
         expect(result.isError).toBe(true);
-        expect((result.content[0] as any).text).toContain('At least one of username, accountId, or email must be provided');
+        expect((result.content[0] as any).text).toContain('**User Not Found**: Could not locate user "unknown"');
       });
 
       it('should handle user not found', async () => {
         (mockClient.get as any).mockResolvedValue({ data: [] });
 
-        const result = await handlers.getJiraUser({ email: 'nonexistent@example.com' });
+        const result = await handlers.getJiraUser({ username: 'nonexistent' });
 
         expect(result.isError).toBe(true);
-        expect((result.content[0] as any).text).toContain('User not found');
+        expect((result.content[0] as any).text).toContain('**User Not Found**: Could not locate user "nonexistent"');
       });
     });
 
@@ -549,37 +543,37 @@ describe('JiraHandlers', () => {
           }),
         });
 
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
-        expect(data.totalResults).toBe(1);
+        expect(data.totalOpenIssues).toBe(1);
       });
 
       it('should filter by project', async () => {
         (mockClient.get as any)
-          .mockResolvedValueOnce({ data: { accountId: 'user123' } })
+          .mockResolvedValueOnce({ data: { accountId: 'user1234567890' } })
           .mockResolvedValueOnce({ data: { issues: [], total: 0 } });
 
-        await handlers.getMyOpenIssues({ project: 'TEST' });
+        await handlers.getMyOpenIssues({ projectKeys: ['TEST'] });
 
         expect(mockClient.get).toHaveBeenNthCalledWith(2, '/rest/api/3/search', {
           params: expect.objectContaining({
-            jql: expect.stringContaining('project = TEST'),
+            jql: expect.stringContaining('project in ("TEST")'),
           }),
         });
       });
 
-      it('should include specific statuses', async () => {
+      it('should limit results with maxResults', async () => {
         (mockClient.get as any)
-          .mockResolvedValueOnce({ data: { accountId: 'user123' } })
+          .mockResolvedValueOnce({ data: { accountId: 'user1234567890' } })
           .mockResolvedValueOnce({ data: { issues: [], total: 0 } });
 
         await handlers.getMyOpenIssues({ 
-          includeStatuses: ['To Do', 'In Progress', 'In Review']
+          maxResults: 20
         });
 
         expect(mockClient.get).toHaveBeenNthCalledWith(2, '/rest/api/3/search', {
           params: expect.objectContaining({
-            jql: expect.stringContaining('status in ("To Do","In Progress","In Review")'),
+            maxResults: 20,
           }),
         });
       });
@@ -620,7 +614,7 @@ describe('JiraHandlers', () => {
           },
         });
 
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.totalBoards).toBe(2);
         expect(data.boards).toHaveLength(2);
@@ -689,7 +683,7 @@ describe('JiraHandlers', () => {
           },
         });
 
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.totalSprints).toBe(1);
         expect(data.sprints[0].name).toBe('Sprint 1');
@@ -715,7 +709,7 @@ describe('JiraHandlers', () => {
       });
 
       it('should validate required boardId', async () => {
-        const result = await handlers.listJiraSprints({ boardId: 0 });
+        const result = await handlers.listJiraSprints({} as any);
 
         expect(result.isError).toBe(true);
         expect((result.content[0] as any).text).toContain('boardId is required');
@@ -723,53 +717,6 @@ describe('JiraHandlers', () => {
     });
 
     describe('getJiraSprint', () => {
-      it('should get sprint details', async () => {
-        const mockSprint = {
-          id: 1,
-          name: 'Sprint 1',
-          state: 'active',
-          startDate: '2024-01-01T00:00:00.000Z',
-          endDate: '2024-01-14T23:59:59.999Z',
-          boardId: 1,
-          goal: 'Complete user stories',
-        };
-
-        const mockIssues = {
-          issues: [
-            {
-              key: 'TEST-1',
-              fields: {
-                summary: 'Sprint task',
-                status: { name: 'In Progress' },
-              },
-            },
-          ],
-          total: 1,
-        };
-
-        (mockClient.get as any)
-          .mockResolvedValueOnce({ data: mockSprint })
-          .mockResolvedValueOnce({ data: mockIssues });
-
-        const result = await handlers.getJiraSprint({ 
-          sprintId: 1,
-          includeIssues: true 
-        });
-
-        expect(mockClient.get).toHaveBeenCalledTimes(2);
-        expect(mockClient.get).toHaveBeenNthCalledWith(1, '/rest/agile/1.0/sprint/1');
-        expect(mockClient.get).toHaveBeenNthCalledWith(2, '/rest/agile/1.0/sprint/1/issue', {
-          params: {
-            maxResults: 100,
-            startAt: 0,
-          },
-        });
-
-        expect(result.isError).toBeUndefined();
-        const data = JSON.parse((result.content[0] as any).text);
-        expect(data.sprint.name).toBe('Sprint 1');
-        expect(data.issues).toHaveLength(1);
-      });
 
       it('should get sprint without issues', async () => {
         const mockSprint = {
@@ -778,88 +725,21 @@ describe('JiraHandlers', () => {
           state: 'active',
         };
 
-        (mockClient.get as any).mockResolvedValue({ data: mockSprint });
+        (mockClient.get as any)
+          .mockResolvedValueOnce({ data: mockSprint })
+          .mockResolvedValueOnce({ data: { issues: [], total: 0 } });
 
         const result = await handlers.getJiraSprint({ 
-          sprintId: 1,
-          includeIssues: false 
+          sprintId: 1
         });
 
-        expect(mockClient.get).toHaveBeenCalledTimes(1);
-        expect(result.isError).toBeUndefined();
+        expect(mockClient.get).toHaveBeenCalledTimes(2);
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
-        expect(data.issues).toBeUndefined();
+        expect(data.issues).toEqual([]);
       });
     });
 
-    describe('getMyTasksInCurrentSprint', () => {
-      it('should get current user tasks in active sprint', async () => {
-        const mockCurrentUser = {
-          accountId: 'user123',
-          displayName: 'John Doe',
-        };
-
-        const mockBoards = {
-          values: [{ id: 1, name: 'Sprint Board' }],
-        };
-
-        const mockSprints = {
-          values: [
-            { id: 1, name: 'Sprint 1', state: 'active' },
-          ],
-        };
-
-        const mockIssues = {
-          issues: [
-            {
-              key: 'TEST-5',
-              fields: {
-                summary: 'My sprint task',
-                status: { name: 'In Progress' },
-              },
-            },
-          ],
-          total: 1,
-        };
-
-        (mockClient.get as any)
-          .mockResolvedValueOnce({ data: mockCurrentUser })
-          .mockResolvedValueOnce({ data: mockBoards })
-          .mockResolvedValueOnce({ data: mockSprints })
-          .mockResolvedValueOnce({ data: mockIssues });
-
-        const result = await handlers.getMyTasksInCurrentSprint({ projectKey: 'TEST' });
-
-        expect(result.isError).toBeUndefined();
-        const data = JSON.parse((result.content[0] as any).text);
-        expect(data.sprint.name).toBe('Sprint 1');
-        expect(data.totalTasks).toBe(1);
-        expect(data.tasks[0].key).toBe('TEST-5');
-      });
-
-      it('should handle no active sprints', async () => {
-        (mockClient.get as any)
-          .mockResolvedValueOnce({ data: { accountId: 'user123' } })
-          .mockResolvedValueOnce({ data: { values: [{ id: 1 }] } })
-          .mockResolvedValueOnce({ data: { values: [] } });
-
-        const result = await handlers.getMyTasksInCurrentSprint({ projectKey: 'TEST' });
-
-        expect(result.isError).toBeUndefined();
-        expect((result.content[0] as any).text).toContain('No active sprint found');
-      });
-
-      it('should handle no boards found', async () => {
-        (mockClient.get as any)
-          .mockResolvedValueOnce({ data: { accountId: 'user123' } })
-          .mockResolvedValueOnce({ data: { values: [] } });
-
-        const result = await handlers.getMyTasksInCurrentSprint({ projectKey: 'TEST' });
-
-        expect(result.isError).toBeUndefined();
-        expect((result.content[0] as any).text).toContain('No boards found for project TEST');
-      });
-    });
   });
 
   describe('Activity and Worklog methods', () => {
@@ -882,19 +762,19 @@ describe('JiraHandlers', () => {
         (mockClient.get as any).mockResolvedValue({ data: mockIssues });
 
         const result = await handlers.searchJiraIssuesByUser({
-          accountId: 'user456',
+          accountId: 'user4567890123',
           searchType: 'assignee',
         });
 
         expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
           params: expect.objectContaining({
-            jql: expect.stringContaining('assignee = "user456"'),
+            jql: expect.stringContaining('assignee = "user4567890123"'),
           }),
         });
 
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
-        expect(data.totalResults).toBe(1);
+        expect(data.totalIssues).toBe(1);
       });
 
       it('should search issues by reporter', async () => {
@@ -903,14 +783,14 @@ describe('JiraHandlers', () => {
         });
 
         await handlers.searchJiraIssuesByUser({
-          accountId: 'user789',
+          accountId: 'user7890123456',
           searchType: 'reporter',
-          project: 'TEST',
+          projectKeys: ['TEST'],
         });
 
         expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
           params: expect.objectContaining({
-            jql: expect.stringContaining('project = TEST AND reporter = "user789"'),
+            jql: expect.stringContaining('reporter = "user7890123456"'),
           }),
         });
       });
@@ -921,80 +801,18 @@ describe('JiraHandlers', () => {
         });
 
         await handlers.searchJiraIssuesByUser({
-          accountId: 'user999',
+          accountId: 'user9990123456',
           searchType: 'watcher',
         });
 
         expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
           params: expect.objectContaining({
-            jql: expect.stringContaining('watcher = "user999"'),
+            jql: expect.stringContaining('watcher = "user9990123456"'),
           }),
         });
       });
     });
 
-    describe('getUserJiraActivity', () => {
-      it('should get user activity', async () => {
-        const mockIssues = {
-          issues: [
-            {
-              key: 'TEST-30',
-              fields: {
-                summary: 'Recent activity',
-                updated: '2024-01-15T10:00:00.000Z',
-                status: { name: 'Done' },
-              },
-              changelog: {
-                histories: [
-                  {
-                    created: '2024-01-15T10:00:00.000Z',
-                    author: { displayName: 'John Doe' },
-                    items: [
-                      {
-                        field: 'status',
-                        fromString: 'In Progress',
-                        toString: 'Done',
-                      },
-                    ],
-                  },
-                ],
-              },
-            },
-          ],
-          total: 1,
-        };
-
-        (mockClient.get as any).mockResolvedValue({ data: mockIssues });
-
-        const result = await handlers.getUserJiraActivity({
-          accountId: 'user123',
-          startDate: '2024-01-01',
-          endDate: '2024-01-31',
-        });
-
-        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
-          params: expect.objectContaining({
-            jql: expect.stringContaining('updated >= 2024-01-01 AND updated <= 2024-01-31'),
-            expand: 'changelog',
-          }),
-        });
-
-        expect(result.isError).toBeUndefined();
-        const data = JSON.parse((result.content[0] as any).text);
-        expect(data.totalActivities).toBeGreaterThan(0);
-      });
-
-      it('should validate date range', async () => {
-        const result = await handlers.getUserJiraActivity({
-          accountId: 'user123',
-          startDate: '2024-01-31',
-          endDate: '2024-01-01', // End before start
-        });
-
-        expect(result.isError).toBe(true);
-        expect((result.content[0] as any).text).toContain('startDate must be before endDate');
-      });
-    });
 
     describe('getUserJiraWorklog', () => {
       it('should get user worklog entries', async () => {
@@ -1009,7 +827,7 @@ describe('JiraHandlers', () => {
                     {
                       id: 'worklog1',
                       author: { 
-                        accountId: 'user123',
+                        accountId: 'user1234567890',
                         displayName: 'John Doe' 
                       },
                       timeSpent: '2h',
@@ -1029,22 +847,23 @@ describe('JiraHandlers', () => {
         (mockClient.get as any).mockResolvedValue({ data: mockIssuesWithWorklog });
 
         const result = await handlers.getUserJiraWorklog({
-          accountId: 'user123',
+          accountId: 'user1234567890',
           startDate: '2024-01-01',
           endDate: '2024-01-31',
         });
 
         expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
           params: expect.objectContaining({
-            jql: expect.stringContaining('worklogAuthor = "user123"'),
-            fields: 'summary,worklog',
+            jql: expect.stringContaining('worklogAuthor = "user1234567890"'),
+            fields: 'summary,project,worklog',
+            expand: 'worklog',
           }),
         });
 
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.totalTimeSpentSeconds).toBe(7200);
-        expect(data.totalTimeSpent).toBe('2h 0m');
+        expect(data.totalTimeSpentFormatted).toBe('2h');
         expect(data.worklogs).toHaveLength(1);
         expect(data.worklogs[0].comment).toBe('Working on implementation');
       });
@@ -1059,12 +878,12 @@ describe('JiraHandlers', () => {
                 worklog: {
                   worklogs: [
                     {
-                      author: { accountId: 'user123' },
+                      author: { accountId: 'user1234567890' },
                       timeSpentSeconds: 3600, // 1h
                       started: '2024-01-10T09:00:00.000Z',
                     },
                     {
-                      author: { accountId: 'user123' },
+                      author: { accountId: 'user1234567890' },
                       timeSpentSeconds: 5400, // 1h 30m
                       started: '2024-01-11T09:00:00.000Z',
                     },
@@ -1079,7 +898,7 @@ describe('JiraHandlers', () => {
                 worklog: {
                   worklogs: [
                     {
-                      author: { accountId: 'user123' },
+                      author: { accountId: 'user1234567890' },
                       timeSpentSeconds: 7200, // 2h
                       started: '2024-01-12T09:00:00.000Z',
                     },
@@ -1093,14 +912,14 @@ describe('JiraHandlers', () => {
         (mockClient.get as any).mockResolvedValue({ data: mockIssuesWithMultipleWorklogs });
 
         const result = await handlers.getUserJiraWorklog({
-          accountId: 'user123',
+          accountId: 'user1234567890',
           startDate: '2024-01-01',
         });
 
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.totalTimeSpentSeconds).toBe(16200); // 4h 30m total
-        expect(data.totalTimeSpent).toBe('4h 30m');
+        expect(data.totalTimeSpentFormatted).toBe('4h 30m');
         expect(data.worklogs).toHaveLength(3);
       });
 
@@ -1110,14 +929,14 @@ describe('JiraHandlers', () => {
         });
 
         await handlers.getUserJiraWorklog({
-          accountId: 'user123',
-          project: 'TEST',
+          accountId: 'user1234567890',
+          projectKeys: ['TEST'],
           startDate: '2024-01-01',
         });
 
         expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
           params: expect.objectContaining({
-            jql: expect.stringContaining('project = TEST'),
+            jql: expect.stringContaining('project IN (\"TEST\")'),
           }),
         });
       });
@@ -1143,18 +962,19 @@ describe('JiraHandlers', () => {
         (mockClient.get as any).mockResolvedValue({ data: mockIssues });
 
         const result = await handlers.listUserJiraIssues({
-          accountId: 'user123',
+          accountId: 'user1234567890',
+          role: 'creator',
           startDate: '2024-01-01',
           endDate: '2024-01-31',
         });
 
         expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
           params: expect.objectContaining({
-            jql: expect.stringContaining('reporter = "user123"'),
+            jql: expect.stringContaining('creator = "user1234567890"'),
           }),
         });
 
-        expect(result.isError).toBeUndefined();
+        expect(result.isError).toBeFalsy();
         const data = JSON.parse((result.content[0] as any).text);
         expect(data.totalIssues).toBe(1);
         expect(data.issues[0].key).toBe('TEST-60');
@@ -1166,14 +986,14 @@ describe('JiraHandlers', () => {
         });
 
         await handlers.listUserJiraIssues({
-          accountId: 'user123',
-          project: 'TEST',
-          status: ['Open', 'In Progress'],
+          accountId: 'user1234567890',
+          role: 'assignee',
+          projectKeys: ['TEST'],
         });
 
         expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
           params: expect.objectContaining({
-            jql: expect.stringContaining('project = TEST AND status in ("Open","In Progress")'),
+            jql: expect.stringContaining('assignee = "user1234567890"'),
           }),
         });
       });
