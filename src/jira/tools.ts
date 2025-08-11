@@ -33,9 +33,9 @@ export const jiraTools: Tool[] = [
     },
   },
   {
-    name: 'search_jira_issues_by_user',
+    name: 'search_issues_by_user_involvement',
     description:
-      'Search issues by user involvement. Can filter by assignee, reporter, creator, watcher, or all.',
+      'Search for issues based on how a specific user is involved (assignee, reporter, creator, watcher, or any). Provides comprehensive filtering to find all issues a user is connected to.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -82,9 +82,9 @@ export const jiraTools: Tool[] = [
     },
   },
   {
-    name: 'list_user_jira_issues',
+    name: 'list_issues_for_user_role',
     description:
-      'List issues for a specific user role (assignee, reporter, or creator) with optional date filtering.',
+      'List issues where a user has a specific role (assignee, reporter, or creator). Includes date filtering for finding issues within specific time periods.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -131,9 +131,9 @@ export const jiraTools: Tool[] = [
     },
   },
   {
-    name: 'get_user_jira_activity',
+    name: 'get_user_activity_history',
     description:
-      'Get recent activity for a user including comments, status changes, and issue updates.',
+      'Retrieve a user\'s recent activity history including comments they\'ve made, status changes they\'ve performed, and issues they\'ve updated. Shows what actions a user has taken recently.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -179,8 +179,8 @@ export const jiraTools: Tool[] = [
     },
   },
   {
-    name: 'get_user_jira_worklog',
-    description: 'Get work logs for a specific user, showing time tracking entries.',
+    name: 'get_user_time_tracking',
+    description: 'Retrieve time tracking work logs (worklogs) for a specific user. Shows all time entries logged by the user within a date range, useful for timesheet and worklog reporting.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -380,9 +380,9 @@ export const jiraTools: Tool[] = [
     },
   },
   {
-    name: 'list_jira_boards',
+    name: 'list_agile_boards',
     description:
-      'List accessible Jira boards (Scrum and Kanban). Can be filtered by project and board type.',
+      'List all accessible Agile boards (both Scrum and Kanban types). Can be filtered by project or board type to find specific boards.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -411,9 +411,9 @@ export const jiraTools: Tool[] = [
     },
   },
   {
-    name: 'list_jira_sprints',
+    name: 'list_sprints_for_board',
     description:
-      'List sprints for a given board. Can filter by sprint state (active, closed, future).',
+      'List all sprints for a specific Agile board. Can filter by sprint state (active, closed, or future) to find current or historical sprints.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -443,9 +443,9 @@ export const jiraTools: Tool[] = [
     },
   },
   {
-    name: 'get_jira_sprint',
+    name: 'get_sprint_details',
     description:
-      'Get detailed information about a specific sprint, including its issues, dates, and goals.',
+      'Get comprehensive details about a specific sprint including its name, start/end dates, goals, and all issues included in the sprint.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -458,9 +458,9 @@ export const jiraTools: Tool[] = [
     },
   },
   {
-    name: 'get_my_tasks_in_current_sprint',
+    name: 'get_my_current_sprint_issues',
     description:
-      'Fetch all issues assigned to the current user in the active sprint(s). Optionally filter by board or project.',
+      'Get all issues assigned to you in the currently active sprint(s). Useful for daily standups or checking your current sprint workload. Can filter by specific board or project.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -476,9 +476,9 @@ export const jiraTools: Tool[] = [
     },
   },
   {
-    name: 'get_my_open_issues',
+    name: 'get_my_unresolved_issues',
     description:
-      'Fetch all open (unresolved) issues assigned to the current user. Returns issues grouped by status and sorted by priority.',
+      'Get all unresolved issues currently assigned to you, organized by status and priority. Perfect for checking your backlog or identifying what needs attention.',
     inputSchema: {
       type: 'object',
       properties: {

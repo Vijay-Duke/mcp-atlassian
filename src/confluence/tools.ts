@@ -13,7 +13,7 @@ export const confluenceTools: Tool[] = [
   {
     name: 'get_confluence_user',
     description:
-      'Get details for a specific Confluence user by username, account ID, or email. Returns user profile information.',
+      'Get details for a specific Confluence user by a unique identifier like username, account ID, or email. Returns user profile information. **Use this tool when you are confident you can uniquely identify a user.**',
     inputSchema: {
       type: 'object',
       properties: {
@@ -33,9 +33,9 @@ export const confluenceTools: Tool[] = [
     },
   },
   {
-    name: 'search_confluence_pages_by_user',
+    name: 'search_pages_by_user_involvement',
     description:
-      'Search pages created or updated by a specific user. Can filter by creator, last modifier, or both.',
+      'Search pages based on a user\'s involvement, such as being the creator or last modifier. Can filter by creator, last modifier, or both.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -73,9 +73,9 @@ export const confluenceTools: Tool[] = [
     },
   },
   {
-    name: 'list_user_confluence_pages',
+    name: 'list_pages_created_by_user',
     description:
-      'List all pages authored by a specific user within an optional space or time range.',
+      'List all pages created by a specific user, with optional filtering by space or time range.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -115,8 +115,8 @@ export const confluenceTools: Tool[] = [
     },
   },
   {
-    name: 'list_user_confluence_attachments',
-    description: 'List all attachments uploaded by a specific user.',
+    name: 'list_attachments_uploaded_by_user',
+    description: 'List all attachments uploaded by a specific user, with optional filtering by space.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -151,7 +151,7 @@ export const confluenceTools: Tool[] = [
   {
     name: 'read_confluence_page',
     description:
-      'Retrieves the content of a Confluence page. You can specify the page by its ID or by its title and space key. The content can be returned in raw storage format (XHTML) or converted to Markdown.',
+      'Retrieves the content of a Confluence page. You can specify the page by its ID or by its title and space key. The content can be returned in raw storage format (XHTML) or converted to Markdown. **Use this for quickly reading the text content of a page.**',
     inputSchema: {
       type: 'object',
       properties: {
@@ -269,7 +269,7 @@ export const confluenceTools: Tool[] = [
     },
   },
   {
-    name: 'list_confluence_attachments',
+    name: 'list_attachments_on_page',
     description:
       'Lists all attachments for a specific Confluence page. Can be filtered by filename or media type.',
     inputSchema: {
@@ -359,9 +359,9 @@ export const confluenceTools: Tool[] = [
     },
   },
   {
-    name: 'download_confluence_page_complete',
+    name: 'get_page_with_attachments',
     description:
-      'Performs a comprehensive download of a Confluence page, including its full content, metadata, and optionally, all of its attachments. Attachments are base64-encoded.',
+      'Performs a comprehensive download of a Confluence page, including its full content, metadata, and optionally, all of its attachments. Attachments are base64-encoded. **Use this when you need the page content, metadata, and all associated attachments.**',
     inputSchema: {
       type: 'object',
       properties: {
@@ -544,7 +544,7 @@ export const confluenceTools: Tool[] = [
   {
     name: 'find_confluence_users',
     description:
-      'Searches for Confluence users based on various criteria. This is useful for finding user details like account IDs.',
+      'Searches for Confluence users based on various criteria. This is useful for finding user details like account IDs when you have partial information or need to perform a broader search. **Use this tool when you need to find users based on a query.**',
     inputSchema: {
       type: 'object',
       properties: {
@@ -650,7 +650,7 @@ export const confluenceTools: Tool[] = [
   {
     name: 'export_confluence_page',
     description:
-      'Exports a Confluence page to either HTML or Markdown format. All images in the page content are embedded directly into the exported file as base64 data, making it self-contained.',
+      'Exports a Confluence page to either HTML or Markdown format. All images in the page content are embedded directly into the exported file as base64 data, making it self-contained. **Use this when you want to create a portable, self-contained file of a page.**',
     inputSchema: {
       type: 'object',
       properties: {

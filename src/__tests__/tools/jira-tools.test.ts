@@ -119,11 +119,11 @@ describe('Jira Tools', () => {
     });
 
     it('should include agile board tools', () => {
-      const boardTool = jiraTools.find((tool) => tool.name === 'list_jira_boards');
+      const boardTool = jiraTools.find((tool) => tool.name === 'list_agile_boards');
 
       expect(boardTool).toBeDefined();
 
-      const sprintTool = jiraTools.find((tool) => tool.name === 'list_jira_sprints');
+      const sprintTool = jiraTools.find((tool) => tool.name === 'list_sprints_for_board');
 
       expect(sprintTool).toBeDefined();
 
@@ -132,7 +132,7 @@ describe('Jira Tools', () => {
     });
 
     it('should include user-specific search tools', () => {
-      const userSearchTool = jiraTools.find((tool) => tool.name === 'search_jira_issues_by_user');
+      const userSearchTool = jiraTools.find((tool) => tool.name === 'search_issues_by_user_involvement');
 
       expect(userSearchTool).toBeDefined();
 
@@ -145,7 +145,7 @@ describe('Jira Tools', () => {
     });
 
     it('should include worklog functionality', () => {
-      const worklogTool = jiraTools.find((tool) => tool.name === 'get_user_jira_worklog');
+      const worklogTool = jiraTools.find((tool) => tool.name === 'get_user_time_tracking');
 
       expect(worklogTool).toBeDefined();
 
@@ -155,11 +155,11 @@ describe('Jira Tools', () => {
     });
 
     it('should include sprint management tools', () => {
-      const sprintDetailTool = jiraTools.find((tool) => tool.name === 'get_jira_sprint');
+      const sprintDetailTool = jiraTools.find((tool) => tool.name === 'get_sprint_details');
 
       expect(sprintDetailTool).toBeDefined();
 
-      const myTasksTool = jiraTools.find((tool) => tool.name === 'get_my_tasks_in_current_sprint');
+      const myTasksTool = jiraTools.find((tool) => tool.name === 'get_my_current_sprint_issues');
 
       expect(myTasksTool).toBeDefined();
     });
@@ -227,11 +227,18 @@ describe('Jira Tools', () => {
         const namePattern = /^(get_|read_|search_|list_|create_|update_|add_)/;
         expect(tool.name).toMatch(namePattern);
 
-        // Should contain 'jira' to identify the service (some exceptions allowed)
+        // Should contain 'jira' to identify the service (some exceptions allowed for more descriptive names)
         const hasJiraOrIsException =
           tool.name.includes('jira') ||
-          tool.name === 'get_my_tasks_in_current_sprint' ||
-          tool.name === 'get_my_open_issues';
+          tool.name === 'get_my_current_sprint_issues' ||
+          tool.name === 'get_my_unresolved_issues' ||
+          tool.name === 'search_issues_by_user_involvement' ||
+          tool.name === 'list_issues_for_user_role' ||
+          tool.name === 'get_user_activity_history' ||
+          tool.name === 'get_user_time_tracking' ||
+          tool.name === 'list_agile_boards' ||
+          tool.name === 'list_sprints_for_board' ||
+          tool.name === 'get_sprint_details';
         expect(hasJiraOrIsException).toBe(true);
       });
     });
@@ -265,8 +272,8 @@ describe('Jira Tools', () => {
         'list_jira_projects',
         'create_jira_issue',
         'add_jira_comment',
-        'list_jira_boards',
-        'list_jira_sprints',
+        'list_agile_boards',
+        'list_sprints_for_board',
       ];
 
       expectedOperations.forEach((operation) => {
@@ -340,7 +347,7 @@ describe('Jira Tools', () => {
     });
 
     it('should have boardId parameter in sprint tools', () => {
-      const sprintTool = jiraTools.find((tool) => tool.name === 'list_jira_sprints');
+      const sprintTool = jiraTools.find((tool) => tool.name === 'list_sprints_for_board');
 
       expect(sprintTool).toBeDefined();
       const properties = sprintTool?.inputSchema.properties || {};
@@ -363,7 +370,7 @@ describe('Jira Tools', () => {
     });
 
     it('should have proper date parameters in worklog tools', () => {
-      const worklogTool = jiraTools.find((tool) => tool.name === 'get_user_jira_worklog');
+      const worklogTool = jiraTools.find((tool) => tool.name === 'get_user_time_tracking');
 
       if (worklogTool) {
         const properties = worklogTool.inputSchema.properties || {};

@@ -135,7 +135,7 @@ describe('Confluence Tools', () => {
       );
       expect(uploadTool).toBeDefined();
 
-      const listTool = confluenceTools.find((tool) => tool.name === 'list_confluence_attachments');
+      const listTool = confluenceTools.find((tool) => tool.name === 'list_attachments_on_page');
       expect(listTool).toBeDefined();
 
       const downloadTool = confluenceTools.find(
@@ -146,7 +146,7 @@ describe('Confluence Tools', () => {
 
     it('should include user-specific search tools', () => {
       const userSearchTool = confluenceTools.find(
-        (tool) => tool.name === 'search_confluence_pages_by_user'
+        (tool) => tool.name === 'search_pages_by_user_involvement'
       );
 
       expect(userSearchTool).toBeDefined();
@@ -221,8 +221,15 @@ describe('Confluence Tools', () => {
           /^(get_|read_|search_|list_|create_|update_|add_|upload_|download_|export_|find_)/;
         expect(tool.name).toMatch(namePattern);
 
-        // Should contain 'confluence' to identify the service
-        expect(tool.name).toContain('confluence');
+        // Should contain 'confluence' to identify the service (some exceptions allowed for more descriptive names)
+        const hasConfluenceOrIsException =
+          tool.name.includes('confluence') ||
+          tool.name === 'search_pages_by_user_involvement' ||
+          tool.name === 'list_pages_created_by_user' ||
+          tool.name === 'list_attachments_uploaded_by_user' ||
+          tool.name === 'list_attachments_on_page' ||
+          tool.name === 'get_page_with_attachments';
+        expect(hasConfluenceOrIsException).toBe(true);
       });
     });
 
@@ -256,7 +263,7 @@ describe('Confluence Tools', () => {
         'create_confluence_page',
         'update_confluence_page',
         'add_confluence_comment',
-        'list_confluence_attachments',
+        'list_attachments_on_page',
         'download_confluence_attachment',
         'upload_confluence_attachment',
       ];
