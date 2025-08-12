@@ -302,8 +302,10 @@ class AtlassianMCPServer {
         toolsRegistered: this.toolRegistry.getRegisteredTools().length,
       });
 
-      // Log to stderr so it doesn't interfere with MCP protocol
-      console.error(`Atlassian MCP server v${version} running on stdio`);
+      // Use Logger instead of console.error to avoid interfering with MCP protocol
+      Logger.info(`Atlassian MCP server v${version} running on stdio`, {
+        startupMessage: true
+      });
     } catch (error) {
       Logger.error('Failed to start MCP server', {
         error: error instanceof Error ? error : new Error(String(error)),
@@ -317,13 +319,13 @@ class AtlassianMCPServer {
 const requiredEnvVars = ['ATLASSIAN_BASE_URL', 'ATLASSIAN_EMAIL', 'ATLASSIAN_API_TOKEN'];
 for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {
-    console.error(`Error: Missing required environment variable: ${envVar}`);
+    Logger.error(`Missing required environment variable: ${envVar}`);
     process.exit(1);
   }
 }
 
 const server = new AtlassianMCPServer();
 server.run().catch((error) => {
-  console.error('Failed to start server:', error);
+  Logger.error('Failed to start server', { error });
   process.exit(1);
 });
