@@ -35,7 +35,7 @@ export const confluenceTools: Tool[] = [
   {
     name: 'search_pages_by_user_involvement',
     description:
-      'Search pages based on a user\'s involvement, such as being the creator or last modifier. Can filter by creator, last modifier, or both.',
+      "Search pages based on a user's involvement, such as being the creator or last modifier. Can filter by creator, last modifier, or both.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -116,7 +116,8 @@ export const confluenceTools: Tool[] = [
   },
   {
     name: 'list_attachments_uploaded_by_user',
-    description: 'List all attachments uploaded by a specific user, with optional filtering by space.',
+    description:
+      'List all attachments uploaded by a specific user, with optional filtering by space.',
     inputSchema: {
       type: 'object',
       properties: {

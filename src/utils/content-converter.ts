@@ -143,7 +143,7 @@ export class ContentConverter {
     markdown = markdown.replace(/<script\b[^>]*>[\s\S]*?<\/\s*script\s*>/gi, '');
     // Remove trailing incomplete open script tag
     markdown = markdown.replace(/<script\b[^>]*$/i, '');
-    
+
     // Remove remaining HTML tags
     markdown = markdown.replace(/<[^>]*>/g, '');
 

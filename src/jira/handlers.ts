@@ -786,7 +786,7 @@ export class JiraHandlers {
             params: { accountId: validatedAccountId },
           });
           user = response.data;
-        } catch (e) {
+        } catch {
           // User not found by accountId
         }
       }
@@ -812,7 +812,7 @@ export class JiraHandlers {
               );
             }
           }
-        } catch (e) {
+        } catch {
           // User not found by username
         }
       }
