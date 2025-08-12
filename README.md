@@ -367,15 +367,25 @@ The server automatically converts between Markdown and Confluence's storage form
 ## Development
 
 ```bash
-# Run TypeScript compiler in watch mode
+# Run in development mode with console logging
 npm run dev
 
 # Build for production
 npm run build
 
-# Run tests (if available)
+# Run built server in MCP mode (no console output)
+npm start
+
+# Run built server in development mode (with console output)
+npm run start:dev
+
+# Run tests
 npm test
 ```
+
+### Logging Behavior
+
+The server defaults to MCP mode where console output is disabled to prevent interference with the JSON-RPC protocol. Console logging is only enabled when `MCP_SERVER_MODE=false` is set, which is done automatically by the `dev` and `start:dev` scripts.
 
 ## Project Structure
 

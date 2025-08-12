@@ -10,8 +10,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "start:mcp": "MCP_SERVER_MODE=true node dist/index.js",
-    "dev": "tsx src/index.ts",
+    "start:dev": "MCP_SERVER_MODE=false node dist/index.js",
+    "dev": "MCP_SERVER_MODE=false tsx src/index.ts",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
