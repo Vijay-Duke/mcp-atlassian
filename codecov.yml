@@ -1,0 +1,73 @@
+# Codecov configuration for mcp-atlassian
+# https://docs.codecov.io/docs/codecov-yaml
+
+coverage:
+  # Coverage thresholds and status checks
+  status:
+    project:
+      default:
+        # Overall project coverage
+        target: 80%           # Target coverage percentage
+        threshold: 2%         # Allow coverage to drop by 2% 
+        base: auto           # Compare against base branch
+        if_ci_failed: error  # Fail if CI fails
+      
+    patch:
+      default:
+        # Coverage for new/modified code in PR
+        target: 85%          # Higher standard for new code
+        threshold: 0%        # No drop allowed for patch
+        base: auto
+        if_ci_failed: error
+
+  # Round coverage to 2 decimal places
+  precision: 2
+  round: down
+  
+  # Coverage value ranges for UI colors
+  range: "70...100"
+
+# Parser configuration
+parsers:
+  javascript:
+    enable_partials: yes
+
+# Comment configuration for PRs
+comment:
+  layout: "reach,diff,flags,files"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+  show_carryforward_flags: true
+
+# Ignore certain files/paths
+ignore:
+  - "**/*.test.ts"
+  - "**/*.spec.ts"
+  - "**/test/**"
+  - "**/tests/**"
+  - "**/__tests__/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/coverage/**"
+  - "**/*.config.js"
+  - "**/*.config.ts"
+  - "**/scripts/**"
+
+# Flag configuration for different test suites
+flags:
+  unit:
+    paths:
+      - src/
+    carryforward: true
+  
+# Notification settings
+github_checks:
+  annotations: true
+
+# Upload settings
+codecov:
+  require_ci_to_pass: true
+  max_report_age: 24
+  disable_default_path_fixes: false
