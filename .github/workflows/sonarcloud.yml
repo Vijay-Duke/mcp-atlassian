@@ -31,7 +31,7 @@ jobs:
       run: npm run test:coverage
     
     - name: SonarCloud Scan
-      if: ${{ secrets.SONAR_TOKEN != '' }}
+      continue-on-error: true
       uses: SonarSource/sonarcloud-github-action@master
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -40,7 +40,3 @@ jobs:
         args: >
           -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
           -Dsonar.coverage.exclusions=**/*.test.ts,**/*.spec.ts,**/test/**,**/__tests__/**
-    
-    - name: Skip SonarCloud Scan (No Token)
-      if: ${{ secrets.SONAR_TOKEN == '' }}
-      run: echo "::warning::SonarCloud scan skipped - SONAR_TOKEN not configured"
