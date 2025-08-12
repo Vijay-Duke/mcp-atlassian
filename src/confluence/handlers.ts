@@ -942,7 +942,7 @@ export class ConfluenceHandlers {
         // If that fails, try the alternative search/user endpoint
         try {
           response = await this.client.get('/wiki/rest/api/search/user', { params });
-        } catch (searchError) {
+        } catch {
           // If both fail, return a helpful message
           return {
             content: [
@@ -1647,7 +1647,7 @@ export class ConfluenceHandlers {
           userResponse = await this.client.get(`/api/user`, {
             params: { accountId },
           });
-        } catch (e) {
+        } catch {
           // Fall back to search
         }
       }

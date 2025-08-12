@@ -1,0 +1,214 @@
+# Release Drafter Configuration
+# https://github.com/release-drafter/release-drafter
+
+name-template: 'v$RESOLVED_VERSION 🌈'
+tag-template: 'v$RESOLVED_VERSION'
+
+categories:
+  - title: '🚀 Features'
+    labels:
+      - 'feature'
+      - 'enhancement'
+      - 'feat'
+  - title: '🐛 Bug Fixes'
+    labels:
+      - 'fix'
+      - 'bugfix'
+      - 'bug'
+  - title: '🔒 Security'
+    labels:
+      - 'security'
+      - 'vulnerability'
+  - title: '⚡ Performance'
+    labels:
+      - 'performance'
+      - 'perf'
+      - 'optimization'
+  - title: '📚 Documentation'
+    labels:
+      - 'documentation'
+      - 'docs'
+  - title: '🧰 Maintenance'
+    labels:
+      - 'chore'
+      - 'maintenance'
+      - 'refactor'
+      - 'refactoring'
+  - title: '✅ Tests'
+    labels:
+      - 'test'
+      - 'tests'
+      - 'testing'
+  - title: '📦 Dependencies'
+    labels:
+      - 'dependencies'
+      - 'deps'
+      - 'renovate'
+  - title: '👷 CI/CD'
+    labels:
+      - 'ci'
+      - 'cd'
+      - 'build'
+      - 'github-actions'
+  - title: '⏪ Reverts'
+    labels:
+      - 'revert'
+
+# Exclude certain labels from release notes
+exclude-labels:
+  - 'skip-changelog'
+  - 'release'
+  - 'no-changelog'
+  - 'duplicate'
+  - 'question'
+  - 'invalid'
+  - 'wontfix'
+  - 'stale'
+  - 'auto-closed'
+
+# Version resolver
+version-resolver:
+  major:
+    labels:
+      - 'major'
+      - 'breaking-change'
+      - 'breaking'
+  minor:
+    labels:
+      - 'minor'
+      - 'feature'
+      - 'enhancement'
+      - 'feat'
+  patch:
+    labels:
+      - 'patch'
+      - 'fix'
+      - 'bugfix'
+      - 'bug'
+      - 'maintenance'
+      - 'docs'
+      - 'dependencies'
+      - 'security'
+  default: patch
+
+# Autolabeler rules
+autolabeler:
+  - label: 'feature'
+    branch:
+      - '/^feat(ure)?[/-].+/'
+    title:
+      - '/^feat(\(.+\))?:/'
+  - label: 'bug'
+    branch:
+      - '/^fix[/-].+/'
+      - '/^bug[/-].+/'
+    title:
+      - '/^fix(\(.+\))?:/'
+      - '/^bug(\(.+\))?:/'
+  - label: 'chore'
+    title:
+      - '/^chore(\(.+\))?:/'
+  - label: 'refactor'
+    title:
+      - '/^refactor(\(.+\))?:/'
+  - label: 'documentation'
+    branch:
+      - '/^docs?[/-].+/'
+    title:
+      - '/^docs?(\(.+\))?:/'
+    files:
+      - '*.md'
+      - 'docs/**'
+      - 'LICENSE*'
+  - label: 'test'
+    title:
+      - '/^test(\(.+\))?:/'
+    files:
+      - '**/*.test.ts'
+      - '**/*.spec.ts'
+      - 'test/**'
+      - 'tests/**'
+      - '__tests__/**'
+  - label: 'dependencies'
+    title:
+      - '/^(deps|dependencies)(\(.+\))?:/'
+      - '/^(⬆️|⬇️|📌|➕|➖)/'
+    files:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'yarn.lock'
+  - label: 'ci'
+    title:
+      - '/^ci(\(.+\))?:/'
+    files:
+      - '.github/workflows/**'
+      - '.github/actions/**'
+      - '.circleci/**'
+      - '.travis.yml'
+  - label: 'performance'
+    title:
+      - '/^perf(\(.+\))?:/'
+  - label: 'security'
+    title:
+      - '/^security(\(.+\))?:/'
+
+# Template for the release body
+template: |
+  ## 📋 Summary
+  
+  $CHANGES
+  
+  ## 🎯 What's Changed
+  
+  $CHANGES
+  
+  ## 📊 Statistics
+  
+  - **Contributors:** $CONTRIBUTORS
+  - **Commits:** _Commits since last release_
+  - **Files Changed:** _Number of files modified_
+  
+  ## 👥 Contributors
+  
+  We'd like to thank the following people for their contributions to this release:
+  
+  $CONTRIBUTORS
+  
+  ## 📦 Installation
+  
+  ```bash
+  npm install mcp-atlassian@$RESOLVED_VERSION
+  ```
+  
+  ## 🔗 Links
+  
+  - [📚 Documentation](https://github.com/Vijay-Duke/mcp-atlassian#readme)
+  - [🐛 Report Issues](https://github.com/Vijay-Duke/mcp-atlassian/issues)
+  - [💬 Discussions](https://github.com/Vijay-Duke/mcp-atlassian/discussions)
+  - [📈 Changelog](https://github.com/Vijay-Duke/mcp-atlassian/blob/main/CHANGELOG.md)
+  
+  ---
+  
+  **Full Changelog**: https://github.com/Vijay-Duke/mcp-atlassian/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
+
+# Configuration for pull request sorting
+sort-by: created
+sort-direction: descending
+
+# Configuration for contributor recognition
+no-contributors-template: 'No contributors for this release'
+contributors:
+  thanks: 'Thanks to '
+
+# Replacers for PR titles (remove conventional commit prefixes for cleaner notes)
+replacers:
+  - search: '/^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?:\s*/i'
+    replace: ''
+  - search: '/^\[.+\]\s*/i'
+    replace: ''
+
+# Footer
+footer: |
+  
+  ---
+  *Released with ❤️ using [Release Drafter](https://github.com/release-drafter/release-drafter)*

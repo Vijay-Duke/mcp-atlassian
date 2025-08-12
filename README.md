@@ -1,5 +1,12 @@
 # MCP Atlassian Server
 
+[![npm version](https://img.shields.io/npm/v/mcp-atlassian.svg)](https://www.npmjs.com/package/mcp-atlassian)
+[![codecov](https://codecov.io/gh/Vijay-Duke/mcp-atlassian/branch/main/graph/badge.svg)](https://codecov.io/gh/Vijay-Duke/mcp-atlassian)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=vijay-duke_mcp-atlassian&metric=alert_status)](https://sonarcloud.io/dashboard?id=vijay-duke_mcp-atlassian)
+[![Renovate](https://img.shields.io/badge/renovate-enabled-brightgreen.svg)](https://renovatebot.com)
+[![All Contributors](https://img.shields.io/github/all-contributors/Vijay-Duke/mcp-atlassian?color=ee8449&style=flat-square)](#contributors)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A Model Context Protocol (MCP) server for integrating with Atlassian products (Confluence and Jira). This server provides tools for AI assistants to interact with Atlassian Cloud APIs, enabling document management, search, and export capabilities.
 
 ## Features
@@ -535,3 +542,25 @@ Built with:
 - [Model Context Protocol (MCP)](https://modelcontextprotocol.io)
 - [Atlassian REST APIs](https://developer.atlassian.com/cloud/)
 - TypeScript, Node.js, Axios
+
+## Contributors
+
+Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<table>
+  <tbody>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/Vijay-Duke"><img src="https://avatars.githubusercontent.com/u/2405107?v=4?s=100" width="100px;" alt="Vijay Iyengar"/><br /><sub><b>Vijay Iyengar</b></sub></a><br /><a href="https://github.com/Vijay-Duke/mcp-atlassian/commits?author=Vijay-Duke" title="Code">💻</a> <a href="https://github.com/Vijay-Duke/mcp-atlassian/commits?author=Vijay-Duke" title="Documentation">📖</a> <a href="#maintenance-Vijay-Duke" title="Maintenance">🚧</a> <a href="https://github.com/Vijay-Duke/mcp-atlassian/pulls?q=is%3Apr+reviewed-by%3AVijay-Duke" title="Reviewed Pull Requests">👀</a> <a href="https://github.com/Vijay-Duke/mcp-atlassian/commits?author=Vijay-Duke" title="Tests">⚠️</a> <a href="#infra-Vijay-Duke" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a></td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
+This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!

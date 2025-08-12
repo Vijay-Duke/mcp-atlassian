@@ -1,0 +1,40 @@
+name: Release Drafter
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    types: [opened, reopened, synchronize]
+  pull_request_target:
+    types: [opened, reopened, synchronize]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  update_release_draft:
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Run Release Drafter
+        uses: release-drafter/release-drafter@v6
+        id: release_drafter
+        with:
+          config-name: release-drafter.yml
+          disable-autolabeler: false
+          disable-releaser: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Output Draft URL
+        if: github.event_name == 'push'
+        run: |
+          echo "📝 Draft Release URL: ${{ steps.release_drafter.outputs.html_url }}"
+          echo "🏷️ Draft Release Tag: ${{ steps.release_drafter.outputs.tag_name }}"
+          echo "📦 Draft Release Name: ${{ steps.release_drafter.outputs.name }}"

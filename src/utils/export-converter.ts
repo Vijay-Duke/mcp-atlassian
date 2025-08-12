@@ -68,7 +68,7 @@ export class ExportConverter {
     md = md.replace(/<script\b[^>]*>[\s\S]*?<\/\s*script\s*>/gi, '');
     // Remove trailing incomplete open script tag
     md = md.replace(/<script\b[^>]*$/i, '');
-    
+
     md = md.replace(/<div[^>]*>/gi, '\n');
     md = md.replace(/<\/div>/gi, '');
     md = md.replace(/<span[^>]*>/gi, '');
@@ -87,13 +87,13 @@ export class ExportConverter {
         '&#39;': "'",
         '&apos;': "'",
       };
-      
+
       // Replace each entity only once to prevent double-decoding
       return str.replace(/&(?:nbsp|lt|gt|amp|quot|#39|apos);/gi, (match) => {
         return entities[match.toLowerCase()] || match;
       });
     };
-    
+
     md = decodeEntities(md);
 
     // Clean up excessive whitespace

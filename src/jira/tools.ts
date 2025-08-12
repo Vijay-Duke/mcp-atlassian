@@ -180,7 +180,8 @@ export const jiraTools: Tool[] = [
   },
   {
     name: 'get_user_time_tracking',
-    description: 'Retrieve time tracking work logs (worklogs) for a specific user. Shows all time entries logged by the user within a date range, useful for timesheet and worklog reporting.',
+    description:
+      'Retrieve time tracking work logs (worklogs) for a specific user. Shows all time entries logged by the user within a date range, useful for timesheet and worklog reporting.',
     inputSchema: {
       type: 'object',
       properties: {

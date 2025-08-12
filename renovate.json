@@ -1,6 +1,96 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
-  ]
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":automergeMinor",
+    "group:allNonMajor",
+    "schedule:earlyMondays"
+  ],
+  "timezone": "UTC",
+  "schedule": ["before 5am on Monday"],
+  "labels": ["dependencies", "renovate"],
+  "assignees": ["Vijay-Duke"],
+  "reviewers": ["Vijay-Duke"],
+  "packageRules": [
+    {
+      "description": "Automatically merge minor and patch updates",
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
+    },
+    {
+      "description": "Require approval for major updates",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "labels": ["major-update", "breaking-change"]
+    },
+    {
+      "description": "Group ESLint packages",
+      "matchPackagePatterns": ["eslint"],
+      "groupName": "ESLint packages"
+    },
+    {
+      "description": "Group TypeScript packages",
+      "matchPackagePatterns": ["typescript", "@types/"],
+      "groupName": "TypeScript packages"
+    },
+    {
+      "description": "Group test packages",
+      "matchPackagePatterns": ["vitest", "@vitest", "jest", "@jest"],
+      "groupName": "Test packages"
+    },
+    {
+      "description": "Group MCP SDK packages",
+      "matchPackagePatterns": ["@modelcontextprotocol"],
+      "groupName": "MCP SDK packages",
+      "labels": ["mcp-sdk"]
+    },
+    {
+      "description": "Disable updates for specific packages if needed",
+      "matchPackageNames": [],
+      "enabled": false
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"],
+    "assignees": ["Vijay-Duke"],
+    "reviewers": ["Vijay-Duke"]
+  },
+  "prCreation": "immediate",
+  "prConcurrentLimit": 10,
+  "prHourlyLimit": 5,
+  "rebaseWhen": "behind-base-branch",
+  "semanticCommits": "enabled",
+  "semanticCommitType": "chore",
+  "semanticCommitScope": "deps",
+  "commitMessagePrefix": "⬆️",
+  "commitMessageAction": "update",
+  "commitMessageTopic": "dependency {{depName}}",
+  "commitMessageExtra": "to {{newVersion}}",
+  "rangeStrategy": "auto",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 5am on the first day of the month"],
+    "commitMessageAction": "update",
+    "commitMessageTopic": "lock file",
+    "labels": ["lock-file-maintenance"],
+    "automerge": true
+  },
+  "postUpdateOptions": ["npmDedupe"],
+  "ignoreDeps": [],
+  "ignorePaths": ["**/node_modules/**", "**/dist/**"],
+  "npm": {
+    "minimumReleaseAge": "3 days",
+    "stabilityDays": 3,
+    "rangeStrategy": "bump"
+  },
+  "github-actions": {
+    "enabled": true,
+    "automerge": true,
+    "labels": ["github-actions"]
+  }
 }
