@@ -25,6 +25,7 @@ jobs:
       - name: Run Release Drafter
         uses: release-drafter/release-drafter@v6
         id: release_drafter
+        continue-on-error: true
         with:
           config-name: release-drafter.yml
           disable-autolabeler: false
