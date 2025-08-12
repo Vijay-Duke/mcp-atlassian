@@ -24,9 +24,6 @@ import {
   JiraSprint,
   WorklogEntry,
   UserJiraWorklogResponse,
-  UserIssueSearchResponse,
-  IssueSearchResult,
-  UserProfileResponse,
   JiraIssueCreatePayload,
   JiraCommentPayload,
 } from '../types/index.js';
