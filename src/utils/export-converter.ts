@@ -8,8 +8,9 @@ export class ExportConverter {
   static htmlToMarkdown(html: string): string {
     let md = html;
 
-    // Remove style tags and their content
-    md = md.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+    // Remove style tags and their content (including partial tags)
+    md = md.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
+    md = md.replace(/<style\b[^>]*$/gi, ''); // Remove incomplete style tags
 
     // Convert headers
     md = md.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '\n# $1\n');
@@ -62,19 +63,23 @@ export class ExportConverter {
     md = md.replace(/<td[^>]*>(.*?)<\/td>/gi, ' $1 |');
 
     // Remove remaining HTML tags
+    // Remove script tags and their content first (including partial tags)
+    md = md.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+    md = md.replace(/<script\b[^>]*$/gi, ''); // Remove incomplete script tags
+    
     md = md.replace(/<div[^>]*>/gi, '\n');
     md = md.replace(/<\/div>/gi, '');
     md = md.replace(/<span[^>]*>/gi, '');
     md = md.replace(/<\/span>/gi, '');
     md = md.replace(/<[^>]+>/g, '');
 
-    // Clean up entities
+    // Clean up entities (decode in correct order to prevent double decoding)
     md = md.replace(/&nbsp;/g, ' ');
-    md = md.replace(/&lt;/g, '<');
-    md = md.replace(/&gt;/g, '>');
-    md = md.replace(/&amp;/g, '&');
     md = md.replace(/&quot;/g, '"');
     md = md.replace(/&#39;/g, "'");
+    md = md.replace(/&lt;/g, '<');
+    md = md.replace(/&gt;/g, '>');
+    md = md.replace(/&amp;/g, '&'); // Decode &amp; last to prevent double decoding
 
     // Clean up excessive whitespace
     md = md.replace(/\n{4,}/g, '\n\n\n');
