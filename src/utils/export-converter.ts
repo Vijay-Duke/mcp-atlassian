@@ -8,10 +8,10 @@ export class ExportConverter {
   static htmlToMarkdown(html: string): string {
     let md = html;
 
-    // Remove style tags and their content
-    md = md.replace(/<style\b[^>]*>.*?<\/style>/gis, '');
-    // Remove any remaining opening style tags
-    md = md.replace(/<style\b[^>]*>/gi, '');
+    // Remove style tags and their content (handles spaced closing tags)
+    md = md.replace(/<style\b[^>]*>[\s\S]*?<\/\s*style\s*>/gi, '');
+    // Remove trailing incomplete open style tag
+    md = md.replace(/<style\b[^>]*$/i, '');
 
     // Convert headers
     md = md.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '\n# $1\n');
@@ -64,10 +64,10 @@ export class ExportConverter {
     md = md.replace(/<td[^>]*>(.*?)<\/td>/gi, ' $1 |');
 
     // Remove remaining HTML tags
-    // Remove script tags and their content
-    md = md.replace(/<script\b[^>]*>.*?<\/script>/gis, '');
-    // Remove any remaining opening script tags
-    md = md.replace(/<script\b[^>]*>/gi, '');
+    // Remove script tags and their content (handles spaced closing tags)
+    md = md.replace(/<script\b[^>]*>[\s\S]*?<\/\s*script\s*>/gi, '');
+    // Remove trailing incomplete open script tag
+    md = md.replace(/<script\b[^>]*$/i, '');
     
     md = md.replace(/<div[^>]*>/gi, '\n');
     md = md.replace(/<\/div>/gi, '');
