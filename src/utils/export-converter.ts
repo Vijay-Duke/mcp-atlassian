@@ -8,8 +8,10 @@ export class ExportConverter {
   static htmlToMarkdown(html: string): string {
     let md = html;
 
-    // Remove style tags and their content
-    md = md.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+    // Remove style tags and their content (handles spaced closing tags)
+    md = md.replace(/<style\b[^>]*>[\s\S]*?<\/\s*style\s*>/gi, '');
+    // Remove trailing incomplete open style tag
+    md = md.replace(/<style\b[^>]*$/i, '');
 
     // Convert headers
     md = md.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '\n# $1\n');
@@ -62,19 +64,37 @@ export class ExportConverter {
     md = md.replace(/<td[^>]*>(.*?)<\/td>/gi, ' $1 |');
 
     // Remove remaining HTML tags
+    // Remove script tags and their content (handles spaced closing tags)
+    md = md.replace(/<script\b[^>]*>[\s\S]*?<\/\s*script\s*>/gi, '');
+    // Remove trailing incomplete open script tag
+    md = md.replace(/<script\b[^>]*$/i, '');
+    
     md = md.replace(/<div[^>]*>/gi, '\n');
     md = md.replace(/<\/div>/gi, '');
     md = md.replace(/<span[^>]*>/gi, '');
     md = md.replace(/<\/span>/gi, '');
     md = md.replace(/<[^>]+>/g, '');
 
-    // Clean up entities
-    md = md.replace(/&nbsp;/g, ' ');
-    md = md.replace(/&lt;/g, '<');
-    md = md.replace(/&gt;/g, '>');
-    md = md.replace(/&amp;/g, '&');
-    md = md.replace(/&quot;/g, '"');
-    md = md.replace(/&#39;/g, "'");
+    // Decode HTML entities using a temporary div element approach
+    // This prevents double-decoding issues
+    const decodeEntities = (str: string): string => {
+      const entities: Record<string, string> = {
+        '&nbsp;': ' ',
+        '&lt;': '<',
+        '&gt;': '>',
+        '&amp;': '&',
+        '&quot;': '"',
+        '&#39;': "'",
+        '&apos;': "'",
+      };
+      
+      // Replace each entity only once to prevent double-decoding
+      return str.replace(/&(?:nbsp|lt|gt|amp|quot|#39|apos);/gi, (match) => {
+        return entities[match.toLowerCase()] || match;
+      });
+    };
+    
+    md = decodeEntities(md);
 
     // Clean up excessive whitespace
     md = md.replace(/\n{4,}/g, '\n\n\n');

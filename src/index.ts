@@ -13,45 +13,9 @@ import { JiraHandlers } from './jira/handlers.js';
 import { ToolRegistry } from './utils/tool-registry.js';
 import { Logger } from './utils/logger.js';
 import { createValidator, validators } from './utils/argument-validator.js';
-import {
-  ReadConfluencePageArgs,
-  SearchConfluencePagesArgs,
-  ListConfluenceSpacesArgs,
-  ListConfluenceAttachmentsArgs,
-  DownloadConfluenceAttachmentArgs,
-  DownloadConfluencePageCompleteArgs,
-  CreateConfluencePageArgs,
-  UpdateConfluencePageArgs,
-  AddConfluenceCommentArgs,
-  FindConfluenceUsersArgs,
-  GetConfluenceLabelsArgs,
-  AddConfluenceLabelsArgs,
-  ExportConfluencePageArgs,
-  GetConfluenceSpaceArgs,
-  ListConfluencePageChildrenArgs,
-  ListConfluencePageAncestorsArgs,
-  UploadConfluenceAttachmentArgs,
-  GetMyRecentConfluencePagesArgs,
-  GetConfluencePagesMentioningMeArgs,
+import type {
   GetConfluenceUserArgs,
-  SearchConfluencePagesByUserArgs,
-  ListUserConfluencePagesArgs,
-  ListUserConfluenceAttachmentsArgs,
-  ReadJiraIssueArgs,
-  SearchJiraIssuesArgs,
-  ListJiraProjectsArgs,
-  CreateJiraIssueArgs,
-  AddJiraCommentArgs,
-  ListJiraBoardsArgs,
-  ListJiraSprintsArgs,
-  GetJiraSprintArgs,
-  GetMyTasksInCurrentSprintArgs,
-  GetMyOpenIssuesArgs,
-  GetJiraUserArgs,
-  SearchJiraIssuesByUserArgs,
-  ListUserJiraIssuesArgs,
-  GetUserJiraActivityArgs,
-  GetUserJiraWorklogArgs,
+  ReadConfluencePageArgs,
 } from './types/index.js';
 
 // Get package version from package.json
