@@ -1,4 +1,5 @@
 import { AxiosInstance } from 'axios';
+import { Logger } from './logger.js';
 
 export class ExportConverter {
   /**
@@ -123,13 +124,13 @@ export class ExportConverter {
             const url = new URL(imageUrl);
             const clientBaseUrl = new URL(client.defaults.baseURL!);
             if (url.hostname !== clientBaseUrl.hostname) {
-              console.error(`Skipping external image from different domain: ${imageUrl}`);
+              Logger.warn(`Skipping external image from different domain: ${imageUrl}`);
               continue; // Skip images from other domains
             }
             // Use only the path and query for same-domain URLs
             imageUrl = url.pathname + url.search;
           } catch (e) {
-            console.error(`Invalid image URL: ${imageUrl}`, e);
+            Logger.warn(`Invalid image URL: ${imageUrl}`, { error: e as Error });
             continue; // Skip invalid URLs
           }
         } else if (!imageUrl.startsWith('/')) {
@@ -165,7 +166,7 @@ export class ExportConverter {
           img.size = response.data.byteLength;
         }
       } catch (error) {
-        console.error(`Failed to process image ${img.url}:`, error);
+        Logger.error(`Failed to process image ${img.url}`, { error: error as Error });
       }
     }
 

@@ -35,6 +35,7 @@ import {
 import { formatApiError } from '../utils/http-client.js';
 import { ContentConverter } from '../utils/content-converter.js';
 import { ExportConverter } from '../utils/export-converter.js';
+import { Logger } from '../utils/logger.js';
 import { sanitizeHtml } from '../utils/html-sanitizer.js';
 import {
   validateString,
@@ -1115,7 +1116,7 @@ export class ConfluenceHandlers {
     try {
       const { pageId, format } = args;
 
-      console.error(`Exporting page ${pageId} to ${format.toUpperCase()} format...`);
+      Logger.debug(`Exporting page ${pageId} to ${format.toUpperCase()} format...`);
 
       // Step 1: Get the page content with export view
       const pageResponse = await this.client.get(`/wiki/rest/api/content/${pageId}`, {
@@ -1151,7 +1152,7 @@ export class ConfluenceHandlers {
       const title = page.title;
       const baseUrl = this.client.defaults.baseURL || '';
 
-      console.error(`Page retrieved: "${title}", processing content...`);
+      Logger.debug(`Page retrieved: "${title}", processing content...`);
 
       // Step 2: Process and embed all images
       const imageResult = await ExportConverter.processImages(
@@ -1161,7 +1162,7 @@ export class ConfluenceHandlers {
       );
       htmlContent = imageResult.html;
       const processedImages = imageResult.images;
-      console.error(`Processed and embedded ${processedImages.length} images`);
+      Logger.debug(`Processed and embedded ${processedImages.length} images`);
 
       let exportContent: string;
       let mimeType: string;
@@ -1215,7 +1216,7 @@ export class ConfluenceHandlers {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
       };
     } catch (error) {
-      console.error('Export error:', error);
+      Logger.error('Export error', { error: error as Error });
       return {
         content: [
           {

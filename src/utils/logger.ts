@@ -38,13 +38,16 @@ const logger = winston.createLogger({
     environment: process.env.NODE_ENV || 'development',
   },
   transports: [
-    // Console transport for development
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize({ all: true }),
-        winston.format.simple()
-      ),
-    }),
+    // Only use console transport if not running as MCP server
+    // MCP servers must not write to stdout/stderr as it interferes with JSON-RPC protocol
+    ...(process.env.MCP_SERVER_MODE !== 'true' ? [
+      new winston.transports.Console({
+        format: winston.format.combine(
+          winston.format.colorize({ all: true }),
+          winston.format.simple()
+        ),
+      })
+    ] : []),
   ],
 });
 

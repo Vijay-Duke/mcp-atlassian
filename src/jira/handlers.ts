@@ -1,5 +1,6 @@
 import { AxiosInstance } from 'axios';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import { Logger } from '../utils/logger.js';
 import {
   ReadJiraIssueArgs,
   SearchJiraIssuesArgs,
@@ -566,7 +567,7 @@ export class JiraHandlers {
         }));
       } catch (issuesError) {
         // If we can't get issues, continue without them
-        console.error('Failed to get sprint issues:', issuesError);
+        Logger.error('Failed to get sprint issues', { error: issuesError as Error });
       }
 
       return {
@@ -629,7 +630,7 @@ export class JiraHandlers {
           }
         } catch (sprintError) {
           // Continue without sprint info
-          console.error('Failed to get sprint info:', sprintError);
+          Logger.error('Failed to get sprint info', { error: sprintError as Error });
         }
       }
 
@@ -809,7 +810,7 @@ export class JiraHandlers {
 
             // Warn about deprecated username usage
             if (user) {
-              console.warn(
+              Logger.warn(
                 `Warning: Username lookup is deprecated. Use accountId '${user.accountId}' instead.`
               );
             }
