@@ -8,9 +8,10 @@ export class ExportConverter {
   static htmlToMarkdown(html: string): string {
     let md = html;
 
-    // Remove style tags and their content (including partial tags)
-    md = md.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
-    md = md.replace(/<style\b[^>]*$/gi, ''); // Remove incomplete style tags
+    // Remove style tags and their content
+    md = md.replace(/<style\b[^>]*>.*?<\/style>/gis, '');
+    // Remove any remaining opening style tags
+    md = md.replace(/<style\b[^>]*>/gi, '');
 
     // Convert headers
     md = md.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '\n# $1\n');
@@ -63,9 +64,10 @@ export class ExportConverter {
     md = md.replace(/<td[^>]*>(.*?)<\/td>/gi, ' $1 |');
 
     // Remove remaining HTML tags
-    // Remove script tags and their content first (including partial tags)
-    md = md.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-    md = md.replace(/<script\b[^>]*$/gi, ''); // Remove incomplete script tags
+    // Remove script tags and their content
+    md = md.replace(/<script\b[^>]*>.*?<\/script>/gis, '');
+    // Remove any remaining opening script tags
+    md = md.replace(/<script\b[^>]*>/gi, '');
     
     md = md.replace(/<div[^>]*>/gi, '\n');
     md = md.replace(/<\/div>/gi, '');
@@ -73,13 +75,26 @@ export class ExportConverter {
     md = md.replace(/<\/span>/gi, '');
     md = md.replace(/<[^>]+>/g, '');
 
-    // Clean up entities (decode in correct order to prevent double decoding)
-    md = md.replace(/&nbsp;/g, ' ');
-    md = md.replace(/&quot;/g, '"');
-    md = md.replace(/&#39;/g, "'");
-    md = md.replace(/&lt;/g, '<');
-    md = md.replace(/&gt;/g, '>');
-    md = md.replace(/&amp;/g, '&'); // Decode &amp; last to prevent double decoding
+    // Decode HTML entities using a temporary div element approach
+    // This prevents double-decoding issues
+    const decodeEntities = (str: string): string => {
+      const entities: Record<string, string> = {
+        '&nbsp;': ' ',
+        '&lt;': '<',
+        '&gt;': '>',
+        '&amp;': '&',
+        '&quot;': '"',
+        '&#39;': "'",
+        '&apos;': "'",
+      };
+      
+      // Replace each entity only once to prevent double-decoding
+      return str.replace(/&(?:nbsp|lt|gt|amp|quot|#39|apos);/gi, (match) => {
+        return entities[match.toLowerCase()] || match;
+      });
+    };
+    
+    md = decodeEntities(md);
 
     // Clean up excessive whitespace
     md = md.replace(/\n{4,}/g, '\n\n\n');

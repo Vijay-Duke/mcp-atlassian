@@ -139,9 +139,10 @@ export class ContentConverter {
     // Convert line breaks
     markdown = markdown.replace(/<br\s*\/?>/gi, '\n');
 
-    // Remove script tags and their content first (including partial tags)
-    markdown = markdown.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-    markdown = markdown.replace(/<script\b[^>]*$/gi, ''); // Remove incomplete script tags
+    // Remove script tags and their content
+    markdown = markdown.replace(/<script\b[^>]*>.*?<\/script>/gis, '');
+    // Remove any remaining opening script tags
+    markdown = markdown.replace(/<script\b[^>]*>/gi, '');
     
     // Remove remaining HTML tags
     markdown = markdown.replace(/<[^>]*>/g, '');
