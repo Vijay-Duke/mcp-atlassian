@@ -1,0 +1,6 @@
+# GitHub Packages configuration
+# Use this file when publishing to GitHub Packages
+# Copy to .npmrc when needed: cp .npmrc.github .npmrc
+
+@vijay-duke:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}

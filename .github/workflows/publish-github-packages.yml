@@ -1,0 +1,134 @@
+name: Publish to GitHub Packages
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 2.1.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish-gpr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@Vijay-Duke'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Configure package for GitHub Registry
+        run: |
+          # Create a modified package.json for GitHub Packages
+          cat > package.json.tmp << 'EOF'
+          {
+            "name": "@vijay-duke/mcp-atlassian",
+            "version": "${{ github.event.inputs.version || github.event.release.tag_name }}",
+            "description": "MCP server for Atlassian (Confluence and Jira) integration",
+            "main": "dist/index.js",
+            "type": "module",
+            "bin": {
+              "mcp-atlassian": "./dist/index.js"
+            },
+            "repository": {
+              "type": "git",
+              "url": "git+https://github.com/Vijay-Duke/mcp-atlassian.git"
+            },
+            "publishConfig": {
+              "registry": "https://npm.pkg.github.com",
+              "access": "public"
+            },
+            "author": "Vijay Iyengar",
+            "license": "MIT",
+            "bugs": {
+              "url": "https://github.com/Vijay-Duke/mcp-atlassian/issues"
+            },
+            "homepage": "https://github.com/Vijay-Duke/mcp-atlassian#readme",
+            "keywords": [
+              "mcp",
+              "atlassian",
+              "confluence",
+              "jira",
+              "model-context-protocol",
+              "ai",
+              "llm",
+              "assistant"
+            ],
+            "files": [
+              "dist/**/*",
+              "README.md",
+              "LICENSE",
+              "package.json"
+            ]
+          }
+          EOF
+          
+          # Merge with existing package.json dependencies
+          node -e "
+          const fs = require('fs');
+          const original = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const template = JSON.parse(fs.readFileSync('package.json.tmp', 'utf8'));
+          const merged = {
+            ...template,
+            dependencies: original.dependencies,
+            devDependencies: original.devDependencies,
+            peerDependencies: original.peerDependencies,
+            engines: original.engines
+          };
+          // Clean up version if it starts with 'v'
+          merged.version = merged.version.replace(/^v/, '');
+          fs.writeFileSync('package.json', JSON.stringify(merged, null, 2));
+          "
+          
+          rm package.json.tmp
+
+      - name: Publish to GitHub Packages
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create installation instructions
+        run: |
+          echo "## 📦 Package Published to GitHub Packages" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Installation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "To install from GitHub Packages:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "npm install @vijay-duke/mcp-atlassian@${{ github.event.inputs.version || github.event.release.tag_name }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Or add to your package.json:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          echo '"dependencies": {' >> $GITHUB_STEP_SUMMARY
+          echo '  "@vijay-duke/mcp-atlassian": "^${{ github.event.inputs.version || github.event.release.tag_name }}"' >> $GITHUB_STEP_SUMMARY
+          echo '}' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Authentication (if needed)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "For private packages or if you encounter authentication issues:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "echo @vijay-duke:registry=https://npm.pkg.github.com >> ~/.npmrc" >> $GITHUB_STEP_SUMMARY
+          echo "echo //npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN >> ~/.npmrc" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
