@@ -18,6 +18,9 @@ export function createAtlassianClient(): AxiosInstance {
       throw new Error('Base URL must use http or https protocol');
     }
   } catch (error) {
+    if (error instanceof Error && error.message.includes('protocol')) {
+      throw error; // Re-throw protocol errors
+    }
     throw new Error('Invalid ATLASSIAN_BASE_URL format');
   }
 

@@ -55,6 +55,46 @@ describe('http-client', () => {
 
       expect(() => createAtlassianClient()).toThrow('Missing required environment variables');
     });
+
+    it('should throw error for invalid base URL format', () => {
+      process.env.ATLASSIAN_BASE_URL = 'invalid-url';
+      process.env.ATLASSIAN_EMAIL = 'test@example.com';
+      process.env.ATLASSIAN_API_TOKEN = 'test-token';
+
+      expect(() => createAtlassianClient()).toThrow('Invalid ATLASSIAN_BASE_URL format');
+    });
+
+    it('should throw error for non-HTTP protocol', () => {
+      process.env.ATLASSIAN_BASE_URL = 'ftp://example.com';
+      process.env.ATLASSIAN_EMAIL = 'test@example.com';
+      process.env.ATLASSIAN_API_TOKEN = 'test-token';
+
+      expect(() => createAtlassianClient()).toThrow('Base URL must use http or https protocol');
+    });
+
+    it('should throw error for invalid email format', () => {
+      process.env.ATLASSIAN_BASE_URL = 'https://test.atlassian.net';
+      process.env.ATLASSIAN_EMAIL = 'invalid-email';
+      process.env.ATLASSIAN_API_TOKEN = 'test-token';
+
+      expect(() => createAtlassianClient()).toThrow('Invalid ATLASSIAN_EMAIL format');
+    });
+
+    it('should accept valid HTTP URL', () => {
+      process.env.ATLASSIAN_BASE_URL = 'http://test.atlassian.net';
+      process.env.ATLASSIAN_EMAIL = 'test@example.com';
+      process.env.ATLASSIAN_API_TOKEN = 'test-token';
+
+      const mockInterceptors = {
+        request: {
+          use: vi.fn(),
+        },
+      };
+      const mockCreate = vi.fn().mockReturnValue({ interceptors: mockInterceptors });
+      (axios.create as any) = mockCreate;
+
+      expect(() => createAtlassianClient()).not.toThrow();
+    });
   });
 
   describe('formatApiError', () => {
