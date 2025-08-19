@@ -129,7 +129,7 @@ export class ConfluenceHandlers {
         page = searchResponse.data.results[0];
       }
 
-      const storageContent = page.body?.storage?.value || '';
+      const storageContent = page.body?.storage?.value ?? '';
       const content =
         format === 'markdown' ? ContentConverter.storageToMarkdown(storageContent) : storageContent;
 
@@ -411,8 +411,8 @@ export class ConfluenceHandlers {
         id: attachment.id,
         title: attachment.title,
         mediaType:
-          attachment.metadata?.mediaType ||
-          attachment.extensions?.mediaType ||
+          attachment.metadata?.mediaType ??
+          attachment.extensions?.mediaType ??
           'application/octet-stream',
         fileSize: downloadResponse.data.byteLength,
         version: attachment.version.number,
@@ -493,11 +493,11 @@ export class ConfluenceHandlers {
             view: page.body?.view?.value,
           },
           metadata: {
-            labels: page.metadata?.labels?.results || [],
+            labels: page.metadata?.labels?.results ?? [],
             created: page.version?.when,
             createdBy: page.version?.by?.displayName,
           },
-          ancestors: page.ancestors || [],
+          ancestors: page.ancestors ?? [],
         },
         attachments: [],
       };

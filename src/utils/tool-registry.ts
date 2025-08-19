@@ -56,7 +56,7 @@ export class ToolRegistry {
             isError: true,
           };
         }
-        validatedArgs = validation.validatedArgs || args;
+        validatedArgs = validation.validatedArgs ?? args;
       }
 
       const result = await tool.handler(validatedArgs);

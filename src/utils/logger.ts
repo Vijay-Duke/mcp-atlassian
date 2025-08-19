@@ -23,7 +23,7 @@ export interface LogContext {
 
 // Create winston logger instance
 const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
+  level: process.env.LOG_LEVEL ?? 'info',
   format: winston.format.combine(
     winston.format.timestamp({
       format: 'YYYY-MM-DD HH:mm:ss',
@@ -34,8 +34,8 @@ const logger = winston.createLogger({
   ),
   defaultMeta: {
     service: 'mcp-atlassian',
-    version: process.env.npm_package_version || '2.0.0',
-    environment: process.env.NODE_ENV || 'development',
+    version: process.env.npm_package_version ?? '2.0.0',
+    environment: process.env.NODE_ENV ?? 'development',
   },
   transports: [
     // Only use console transport if explicitly running in development mode
@@ -88,19 +88,19 @@ export class Logger {
   }
 
   static info(message: string, context?: LogContext): void {
-    logger.info(message, this.sanitizeContext(context || {}));
+    logger.info(message, this.sanitizeContext(context ?? {}));
   }
 
   static warn(message: string, context?: LogContext): void {
-    logger.warn(message, this.sanitizeContext(context || {}));
+    logger.warn(message, this.sanitizeContext(context ?? {}));
   }
 
   static error(message: string, context?: LogContext): void {
-    logger.error(message, this.sanitizeContext(context || {}));
+    logger.error(message, this.sanitizeContext(context ?? {}));
   }
 
   static debug(message: string, context?: LogContext): void {
-    logger.debug(message, this.sanitizeContext(context || {}));
+    logger.debug(message, this.sanitizeContext(context ?? {}));
   }
 
   static logRequest(operation: string, context: LogContext = {}): void {
