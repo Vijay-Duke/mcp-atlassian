@@ -36,7 +36,7 @@ function loadConfigFromEnv(): Partial<WorkHoursConfig> {
   const config: Partial<WorkHoursConfig> = {};
 
   if (process.env.WORK_HOURS_PER_DAY) {
-    const value = parseInt(process.env.WORK_HOURS_PER_DAY);
+    const value = parseInt(process.env.WORK_HOURS_PER_DAY, 10);
     if (!isNaN(value) && value > 0 && value <= 24) {
       config.hoursPerDay = value;
     }
@@ -231,7 +231,7 @@ export function parseTimeString(timeString: string): number | null {
   for (const { pattern, multiplier } of patterns) {
     const match = timeString.match(pattern);
     if (match) {
-      totalSeconds += parseInt(match[1]) * multiplier;
+      totalSeconds += parseInt(match[1], 10) * multiplier;
       hasMatch = true;
     }
   }

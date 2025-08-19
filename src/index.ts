@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { readFileSync } from 'fs';
+import { randomBytes } from 'crypto';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -36,7 +37,9 @@ function getPackageVersion(): string {
 
 // Generate a simple request ID for logging
 function generateRequestId(): string {
-  return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const timestamp = Date.now();
+  const randomPart = randomBytes(6).toString('hex');
+  return `req_${timestamp}_${randomPart}`;
 }
 
 class AtlassianMCPServer {

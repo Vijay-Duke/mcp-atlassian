@@ -11,6 +11,22 @@ export function createAtlassianClient(): AxiosInstance {
     throw new Error('Missing required environment variables');
   }
 
+  // Validate baseURL format
+  try {
+    const url = new URL(baseURL);
+    if (!['http:', 'https:'].includes(url.protocol)) {
+      throw new Error('Base URL must use http or https protocol');
+    }
+  } catch (error) {
+    throw new Error('Invalid ATLASSIAN_BASE_URL format');
+  }
+
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    throw new Error('Invalid ATLASSIAN_EMAIL format');
+  }
+
   // Create axios config
   const axiosConfig: any = {
     baseURL,

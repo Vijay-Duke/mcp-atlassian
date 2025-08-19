@@ -772,7 +772,7 @@ export class JiraHandlers {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           };
         }
-      } catch (e) {
+      } catch (_e) {
         // Invalid cache key, proceed with API lookup
       }
 
