@@ -47,7 +47,7 @@ describe('ArgumentValidator', () => {
 
       const result = validator({ name: '  John  ' });
       expect(result.isValid).toBe(true);
-      expect(result.validatedArgs?.name).toBe('John');
+      expect((result.validatedArgs as any)?.name).toBe('John');
     });
   });
 
