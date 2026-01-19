@@ -140,7 +140,7 @@ export class JiraHandlers {
         },
       });
 
-      const issues = response.data.issues.map((issue: JiraIssue) => ({
+      const issues = (response.data.issues || []).map((issue: JiraIssue) => ({
         id: issue.id,
         key: issue.key,
         webUrl: `${this.client.defaults.baseURL}/browse/${issue.key}`,
@@ -156,7 +156,7 @@ export class JiraHandlers {
       }));
 
       const resultData = {
-        totalResults: response.data.total,
+        totalResults: response.data.total || 0,
         startAt: response.data.startAt,
         maxResults: response.data.maxResults,
         issues,
@@ -181,7 +181,7 @@ export class JiraHandlers {
         params: { expand },
       });
 
-      const projects = response.data.map((project: JiraProject) => ({
+      const projects = (response.data || []).map((project: JiraProject) => ({
         id: project.id,
         key: project.key,
         name: project.name,
@@ -431,7 +431,7 @@ export class JiraHandlers {
 
       const response = await this.client.get('/rest/agile/1.0/board', { params });
 
-      const boards = response.data.values.map((board: JiraBoard) => ({
+      const boards = (response.data.values || []).map((board: JiraBoard) => ({
         id: board.id,
         name: board.name,
         type: board.type,
@@ -490,7 +490,7 @@ export class JiraHandlers {
         { params }
       );
 
-      const sprints = response.data.values.map((sprint: JiraSprint) => ({
+      const sprints = (response.data.values || []).map((sprint: JiraSprint) => ({
         id: sprint.id,
         name: sprint.name,
         state: sprint.state,
@@ -555,8 +555,8 @@ export class JiraHandlers {
           params: { maxResults: 100 },
         });
 
-        result.issueCount = issuesResponse.data.total;
-        result.issues = issuesResponse.data.issues.map((issue: any) => ({
+        result.issueCount = issuesResponse.data.total || 0;
+        result.issues = (issuesResponse.data.issues || []).map((issue: any) => ({
           key: issue.key,
           summary: issue.fields.summary,
           status: issue.fields.status?.name,
@@ -641,7 +641,7 @@ export class JiraHandlers {
         },
       });
 
-      const issues = response.data.issues.map((issue: JiraIssue) => ({
+      const issues = (response.data.issues || []).map((issue: JiraIssue) => ({
         key: issue.key,
         summary: issue.fields.summary,
         status: issue.fields.status?.name,
@@ -656,7 +656,7 @@ export class JiraHandlers {
       const resultData = {
         currentUser: currentUser.displayName,
         activeSprint: sprintInfo,
-        totalIssues: response.data.total,
+        totalIssues: response.data.total || 0,
         issues,
       };
 
@@ -703,7 +703,7 @@ export class JiraHandlers {
         },
       });
 
-      const issues = response.data.issues.map((issue: JiraIssue) => ({
+      const issues = (response.data.issues || []).map((issue: JiraIssue) => ({
         key: issue.key,
         summary: issue.fields.summary,
         status: issue.fields.status?.name,
@@ -955,7 +955,7 @@ export class JiraHandlers {
         },
       });
 
-      const issues = response.data.issues.map((issue: JiraIssue) => ({
+      const issues = (response.data.issues || []).map((issue: JiraIssue) => ({
         key: issue.key,
         summary: issue.fields.summary,
         status: issue.fields.status?.name,
@@ -1116,7 +1116,7 @@ export class JiraHandlers {
         },
       });
 
-      const issues = response.data.issues.map((issue: JiraIssue) => ({
+      const issues = (response.data.issues || []).map((issue: JiraIssue) => ({
         key: issue.key,
         summary: issue.fields.summary,
         status: issue.fields.status?.name,
@@ -1223,7 +1223,7 @@ export class JiraHandlers {
       // Process issues and extract activity
       const activity: any[] = [];
 
-      for (const issue of response.data.issues) {
+      for (const issue of response.data.issues || []) {
         // Add issue updates
         if (issue.fields.updated) {
           const updatedDate = new Date(issue.fields.updated);
@@ -1432,7 +1432,7 @@ export class JiraHandlers {
       const worklogs: WorklogEntry[] = [];
       let totalTimeSpent = 0;
 
-      for (const issue of response.data.issues) {
+      for (const issue of response.data.issues || []) {
         if (issue.fields.worklog?.worklogs) {
           for (const worklog of issue.fields.worklog.worklogs) {
             if (worklog.author?.accountId === userAccountId) {
