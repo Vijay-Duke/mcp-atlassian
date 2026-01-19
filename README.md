@@ -1,10 +1,11 @@
 # MCP Atlassian Server
 
-[![npm version](https://img.shields.io/npm/v/mcp-atlassian.svg)](https://www.npmjs.com/package/mcp-atlassian)
-[![codecov](https://codecov.io/gh/Vijay-Duke/mcp-atlassian/branch/main/graph/badge.svg)](https://codecov.io/gh/Vijay-Duke/mcp-atlassian)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=vijay-duke_mcp-atlassian&metric=alert_status)](https://sonarcloud.io/dashboard?id=vijay-duke_mcp-atlassian)
-[![Renovate](https://img.shields.io/badge/renovate-enabled-brightgreen.svg)](https://renovatebot.com)
-[![All Contributors](https://img.shields.io/github/all-contributors/Vijay-Duke/mcp-atlassian?color=ee8449&style=flat-square)](#contributors)
+> **This is a maintained fork of [Vijay-Duke/mcp-atlassian](https://github.com/Vijay-Duke/mcp-atlassian)**
+>
+> **Why this fork exists:** In January 2026, Atlassian removed the `/rest/api/3/search` endpoint entirely, breaking all Jira search functionality in the original package. This fork migrates to the new `/rest/api/3/search/jql` endpoint and implements the new cursor-based pagination. A [PR has been submitted](https://github.com/Vijay-Duke/mcp-atlassian/pull/73) to upstream, but as of now there are 14+ unmerged PRs in that repo.
+>
+> **Install this fork:** `npm install @efithor/mcp-atlassian --registry=https://npm.pkg.github.com`
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A Model Context Protocol (MCP) server for integrating with Atlassian products (Confluence and Jira). This server provides tools for AI assistants to interact with Atlassian Cloud APIs, enabling document management, search, and export capabilities.
@@ -32,11 +33,29 @@ A Model Context Protocol (MCP) server for integrating with Atlassian products (C
 
 ## Installation
 
-### Option 1: Clone and Build (Recommended)
+### Option 1: GitHub Packages (Recommended)
+
+First, configure npm to use GitHub Packages for the `@efithor` scope. Add to your `~/.npmrc`:
+
+```
+@efithor:registry=https://npm.pkg.github.com
+```
+
+Then install:
 
 ```bash
-# Clone the repository
-git clone https://github.com/Vijay-Duke/mcp-atlassian.git
+# Install globally
+npm install -g @efithor/mcp-atlassian
+
+# Or install locally
+npm install @efithor/mcp-atlassian
+```
+
+### Option 2: Clone and Build
+
+```bash
+# Clone this fork
+git clone https://github.com/Efithor/mcp-atlassian.git
 cd mcp-atlassian
 
 # Install dependencies
@@ -46,24 +65,14 @@ npm install
 npm run build
 ```
 
-### Option 2: Install from GitHub
+### Option 3: Install Directly from GitHub
 
 ```bash
-# Install directly from GitHub
-npm install -g github:Vijay-Duke/mcp-atlassian
+# Install directly from this fork
+npm install -g github:Efithor/mcp-atlassian
 
 # Or install in your project
-npm install github:Vijay-Duke/mcp-atlassian
-```
-
-### Option 3: NPM Registry
-
-```bash
-# Install globally
-npm install -g mcp-atlassian
-
-# Or install locally
-npm install mcp-atlassian
+npm install github:Efithor/mcp-atlassian
 ```
 
 ## Configuration
@@ -99,7 +108,7 @@ Add to your Claude Desktop config file:
   "mcpServers": {
     "mcp-atlassian": {
       "command": "npx",
-      "args": ["mcp-atlassian"],
+      "args": ["@efithor/mcp-atlassian"],
       "env": {
         "ATLASSIAN_BASE_URL": "https://yourdomain.atlassian.net",
         "ATLASSIAN_EMAIL": "your-email@example.com",
@@ -154,7 +163,7 @@ You can run the server directly from GitHub without cloning:
   "mcpServers": {
     "mcp-atlassian": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/Vijay-Duke/mcp-atlassian.git", "mcp-atlassian"],
+      "args": ["--from", "git+https://github.com/Efithor/mcp-atlassian.git", "mcp-atlassian"],
       "env": {
         "ATLASSIAN_BASE_URL": "https://yourdomain.atlassian.net",
         "ATLASSIAN_EMAIL": "your-email@example.com",
@@ -532,9 +541,9 @@ MIT License - see LICENSE file for details
 ## Support
 
 For issues and questions:
-- Create an issue in the GitHub repository
-- Check Atlassian API documentation for API-specific questions
-- Review MCP documentation for protocol-related topics
+- Create an issue in [this fork's GitHub repository](https://github.com/Efithor/mcp-atlassian/issues)
+- Check [Atlassian API documentation](https://developer.atlassian.com/cloud/) for API-specific questions
+- Review [MCP documentation](https://modelcontextprotocol.io) for protocol-related topics
 
 ## Acknowledgments
 
