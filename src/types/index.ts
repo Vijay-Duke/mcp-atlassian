@@ -172,6 +172,7 @@ export interface SearchJiraIssuesArgs {
   maxResults?: number;
   startAt?: number;
   fields?: string;
+  nextPageToken?: string;
 }
 
 export interface ListJiraProjectsArgs {
@@ -315,6 +316,7 @@ export interface SearchJiraIssuesByUserArgs {
   issueType?: string;
   maxResults?: number;
   startAt?: number;
+  nextPageToken?: string;
 }
 
 export interface ListUserJiraIssuesArgs {
@@ -326,6 +328,7 @@ export interface ListUserJiraIssuesArgs {
   endDate?: string;
   maxResults?: number;
   startAt?: number;
+  nextPageToken?: string;
 }
 
 export interface GetUserJiraActivityArgs {
@@ -336,6 +339,7 @@ export interface GetUserJiraActivityArgs {
   days?: number;
   maxResults?: number;
   startAt?: number;
+  nextPageToken?: string;
 }
 
 export interface GetUserJiraWorklogArgs {
@@ -346,6 +350,7 @@ export interface GetUserJiraWorklogArgs {
   projectKeys?: string[];
   maxResults?: number;
   startAt?: number;
+  nextPageToken?: string;
 }
 
 export interface ConfluencePage {
@@ -448,6 +453,21 @@ export interface JiraIssue {
       name: string;
     };
   }>;
+  changelog?: {
+    histories: Array<{
+      id: string;
+      author?: {
+        accountId: string;
+        displayName: string;
+      };
+      created: string;
+      items: Array<{
+        field: string;
+        fromString?: string;
+        toString?: string;
+      }>;
+    }>;
+  };
 }
 
 export interface JiraProject {
