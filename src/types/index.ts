@@ -218,6 +218,12 @@ export interface AddJiraCommentArgs {
   };
 }
 
+export interface TransitionJiraIssueArgs {
+  issueKey: string;
+  transitionId: string;
+  comment?: string;
+}
+
 export interface JiraCommentPayload {
   body: {
     type: 'doc';

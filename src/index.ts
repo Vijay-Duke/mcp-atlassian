@@ -156,6 +156,7 @@ class AtlassianMCPServer {
       { name: 'list_issues_for_user_role', handler: 'listUserJiraIssues' },
       { name: 'get_user_activity_history', handler: 'getUserJiraActivity' },
       { name: 'get_user_time_tracking', handler: 'getUserJiraWorklog' },
+      { name: 'transition_jira_issue', handler: 'transitionJiraIssue' },
     ];
 
     jiraToolsMap.forEach((tool) => {

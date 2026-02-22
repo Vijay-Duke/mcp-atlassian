@@ -7,6 +7,7 @@ import {
   ListJiraProjectsArgs,
   CreateJiraIssueArgs,
   AddJiraCommentArgs,
+  TransitionJiraIssueArgs,
   ListJiraBoardsArgs,
   ListJiraSprintsArgs,
   GetJiraSprintArgs,
@@ -540,6 +541,58 @@ export class JiraHandlers {
         content: [{ type: 'text', text: formatApiError(error) }],
         isError: true,
       };
+    }
+  }
+
+  async transitionJiraIssue(args: TransitionJiraIssueArgs): Promise<CallToolResult> {
+    try {
+      const { issueKey, transitionId, comment } = args;
+
+      // Validate issueKey
+      const issueKeyValidation = validateString(issueKey, 'issueKey', {
+        required: true,
+        pattern: /^[A-Z]+-[0-9]+$/,
+      });
+      if (!issueKeyValidation.isValid)
+        return createValidationError(issueKeyValidation.errors, 'transitionJiraIssue', 'jira');
+
+      // Validate transitionId
+      const transitionIdValidation = validateString(transitionId, 'transitionId', { required: true });
+      if (!transitionIdValidation.isValid)
+        return createValidationError(transitionIdValidation.errors, 'transitionJiraIssue', 'jira');
+
+      // Build payload
+      const payload: any = { transition: { id: transitionIdValidation.sanitizedValue } };
+      if (comment) {
+        payload.update = {
+          comment: [{
+            add: {
+              body: {
+                type: 'doc', version: 1,
+                content: [{ type: 'paragraph', content: [{ type: 'text', text: comment }] }],
+              },
+            },
+          }],
+        };
+      }
+
+      await this.client.post(`/rest/api/3/issue/${issueKeyValidation.sanitizedValue}/transitions`, payload);
+
+      // Fetch updated issue to confirm new status
+      const updated = await this.client.get(`/rest/api/3/issue/${issueKeyValidation.sanitizedValue}`, {
+        params: { fields: 'status,summary' },
+      });
+
+      const result = {
+        issueKey: issueKeyValidation.sanitizedValue,
+        summary: updated.data.fields?.summary,
+        newStatus: updated.data.fields?.status?.name,
+        transitionId: transitionIdValidation.sanitizedValue,
+      };
+
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    } catch (error) {
+      return { content: [{ type: 'text', text: formatApiError(error) }], isError: true };
     }
   }
 
