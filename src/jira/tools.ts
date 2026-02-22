@@ -498,4 +498,27 @@ export const jiraTools: Tool[] = [
       },
     },
   },
+  {
+    name: 'transition_jira_issue',
+    description:
+      'Transitions a Jira issue to a new status (e.g., To Do → In Progress → Done). Use read_jira_issue with expand=transitions to discover available transition IDs first.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        issueKey: {
+          type: 'string',
+          description: 'The issue key (e.g., "PROJ-123").',
+        },
+        transitionId: {
+          type: 'string',
+          description: 'The ID of the transition to execute. Get available transitions from read_jira_issue.',
+        },
+        comment: {
+          type: 'string',
+          description: 'Optional comment to add when transitioning the issue.',
+        },
+      },
+      required: ['issueKey', 'transitionId'],
+    },
+  },
 ];
