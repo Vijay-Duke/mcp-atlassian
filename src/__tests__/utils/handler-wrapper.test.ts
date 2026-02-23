@@ -193,7 +193,7 @@ describe('HandlerWrapper', () => {
 
       const result = await wrappedHandler({});
 
-      expect(result.content[0].text).toContain('"password": "secret123"');
+      expect((result.content[0] as { text: string }).text).toContain('"password": "secret123"');
     });
 
     it('should sanitize response data by default', async () => {
@@ -206,9 +206,9 @@ describe('HandlerWrapper', () => {
 
       const result = await wrappedHandler({});
 
-      expect(result.content[0].text).toContain('"password": "[REDACTED]"');
-      expect(result.content[0].text).toContain('"token": "[REDACTED]"');
-      expect(result.content[0].text).toContain('"data": "result"');
+      expect((result.content[0] as { text: string }).text).toContain('"password": "[REDACTED]"');
+      expect((result.content[0] as { text: string }).text).toContain('"token": "[REDACTED]"');
+      expect((result.content[0] as { text: string }).text).toContain('"data": "result"');
     });
 
     it('should handle nested sensitive data in response', async () => {
@@ -228,7 +228,7 @@ describe('HandlerWrapper', () => {
       const wrappedHandler = withHandlerWrapper(context, mockValidator, nestedHandler);
 
       const result = await wrappedHandler({});
-      const responseText = result.content[0].text;
+      const responseText = (result.content[0] as { text: string }).text;
 
       expect(responseText).toContain('"name": "John"');
       expect(responseText).toContain('"credentials": "[REDACTED]"');
@@ -442,10 +442,10 @@ describe('HandlerWrapper', () => {
 
       const result = await wrappedHandler({});
 
-      expect(result.content[0].text).toContain('"string": "test"');
-      expect(result.content[0].text).toContain('"number": 42');
-      expect(result.content[0].text).toContain('"boolean": true');
-      expect(result.content[0].text).toContain('"null": null');
+      expect((result.content[0] as { text: string }).text).toContain('"string": "test"');
+      expect((result.content[0] as { text: string }).text).toContain('"number": 42');
+      expect((result.content[0] as { text: string }).text).toContain('"boolean": true');
+      expect((result.content[0] as { text: string }).text).toContain('"null": null');
     });
 
     it('should handle arrays with sensitive data', async () => {
@@ -459,11 +459,11 @@ describe('HandlerWrapper', () => {
 
       const result = await wrappedHandler({});
 
-      expect(result.content[0].text).toContain('"password": "[REDACTED]"');
-      expect(result.content[0].text).toContain('"apiKey": "[REDACTED]"');
-      expect(result.content[0].text).toContain('"authorization": "[REDACTED]"');
-      expect(result.content[0].text).toContain('"name": "Item 1"');
-      expect(result.content[0].text).toContain('"simple string"');
+      expect((result.content[0] as { text: string }).text).toContain('"password": "[REDACTED]"');
+      expect((result.content[0] as { text: string }).text).toContain('"apiKey": "[REDACTED]"');
+      expect((result.content[0] as { text: string }).text).toContain('"authorization": "[REDACTED]"');
+      expect((result.content[0] as { text: string }).text).toContain('"name": "Item 1"');
+      expect((result.content[0] as { text: string }).text).toContain('"simple string"');
     });
   });
 
