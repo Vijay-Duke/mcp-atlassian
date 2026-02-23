@@ -1,4 +1,4 @@
-import { AxiosInstance } from 'axios';
+import type { AxiosInstance } from 'axios';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { Logger } from '../utils/logger.js';
 import {
@@ -57,6 +57,167 @@ export class JiraHandlers {
   private async _getCurrentUser(): Promise<JiraUser> {
     const response = await this.client.get('/rest/api/3/myself');
     return response.data;
+  }
+
+  private _statusCode(response: any): number {
+    // axios always provides status, but tests may not.
+    return typeof response?.status === 'number' ? response.status : 200;
+  }
+
+  private _apiErrorText(status: number, data: any): string {
+    const messages: string[] = [];
+
+    if (data?.message && typeof data.message === 'string') {
+      messages.push(data.message);
+    }
+    if (Array.isArray(data?.errorMessages) && data.errorMessages.length > 0) {
+      messages.push(...data.errorMessages.filter((m: any) => typeof m === 'string'));
+    }
+    if (data?.errors && typeof data.errors === 'object') {
+      const entries = Object.entries(data.errors);
+      if (entries.length > 0) {
+        messages.push(
+          entries.map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`).join(', ')
+        );
+      }
+    }
+
+    const base = messages.length > 0 ? messages.join(' | ') : 'Request failed';
+    const boundedHint =
+      status === 400 && /unbounded/i.test(base)
+        ? ' (Jira now requires bounded JQL; add a restrictive clause like project = KEY or updated >= -30d.)'
+        : '';
+
+    return `API Error (${status}): ${base}${boundedHint}`;
+  }
+
+  private _errorResultFromResolvedResponse(operation: string, response: any): CallToolResult {
+    const status = this._statusCode(response);
+    const text = `${operation} failed. ${this._apiErrorText(status, response?.data)}`;
+    return { content: [{ type: 'text', text }], isError: true };
+  }
+
+  private async _jiraSearchJqlPage(params: {
+    jql: string;
+    maxResults: number;
+    fields?: string;
+    expand?: string;
+    nextPageToken?: string;
+  }): Promise<
+    | {
+        ok: true;
+        issues: JiraIssue[];
+        nextPageToken?: string;
+        isLast: boolean;
+      }
+    | { ok: false; result: CallToolResult }
+  > {
+    const response = await this.client.get('/rest/api/3/search/jql', { params });
+    const status = this._statusCode(response);
+    if (status >= 400) {
+      return { ok: false, result: this._errorResultFromResolvedResponse('Jira search', response) };
+    }
+
+    const data = response?.data || {};
+    const issues: JiraIssue[] = Array.isArray(data.issues) ? data.issues : [];
+    const nextPageToken = typeof data.nextPageToken === 'string' ? data.nextPageToken : undefined;
+    const isLast = data.isLast === true || !nextPageToken;
+
+    return { ok: true, issues, nextPageToken, isLast };
+  }
+
+  private async _jiraSearchJqlWithStartAtShim(params: {
+    jql: string;
+    maxResults: number;
+    startAt: number;
+    fields?: string;
+    expand?: string;
+    nextPageToken?: string;
+  }): Promise<
+    | {
+        ok: true;
+        issues: JiraIssue[];
+        nextPageToken?: string;
+        isLast: boolean;
+      }
+    | { ok: false; result: CallToolResult }
+  > {
+    // Prefer cursor pagination if caller provides a token.
+    if (params.nextPageToken) {
+      return await this._jiraSearchJqlPage({
+        jql: params.jql,
+        maxResults: params.maxResults,
+        fields: params.fields,
+        expand: params.expand,
+        nextPageToken: params.nextPageToken,
+      });
+    }
+
+    // Compatibility shim for legacy startAt: fetch enough pages from the beginning and slice.
+    const desiredEnd = params.startAt + params.maxResults;
+    const pageSize = Math.min(100, Math.max(params.maxResults, 1));
+    const collected: JiraIssue[] = [];
+
+    let nextPageToken: string | undefined = undefined;
+    let isLast = false;
+    let lastToken: string | undefined = undefined;
+    let safety = 0;
+
+    while (!isLast && collected.length < desiredEnd) {
+      safety += 1;
+      if (safety > 250) {
+        return {
+          ok: false,
+          result: {
+            content: [
+              {
+                type: 'text',
+                text: 'Jira search failed. Pagination safety limit exceeded while simulating startAt. Please reduce startAt/maxResults or use nextPageToken pagination.',
+              },
+            ],
+            isError: true,
+          },
+        };
+      }
+
+      const page = await this._jiraSearchJqlPage({
+        jql: params.jql,
+        maxResults: pageSize,
+        fields: params.fields,
+        expand: params.expand,
+        nextPageToken,
+      });
+      if (!page.ok) return page;
+
+      collected.push(...page.issues);
+      isLast = page.isLast;
+      lastToken = nextPageToken;
+      nextPageToken = page.nextPageToken;
+
+      // Defensive termination: token missing/unchanged or empty page.
+      if (!nextPageToken || nextPageToken === lastToken || page.issues.length === 0) {
+        isLast = true;
+      }
+    }
+
+    return {
+      ok: true,
+      issues: collected.slice(params.startAt, desiredEnd),
+      nextPageToken,
+      isLast,
+    };
+  }
+
+  private async _jiraApproximateCount(
+    jql: string
+  ): Promise<{ ok: true; count: number } | { ok: false; errorText: string }> {
+    const response = await this.client.post('/rest/api/3/search/approximate-count', { jql });
+    const status = this._statusCode(response);
+    if (status >= 400) {
+      return { ok: false, errorText: this._apiErrorText(status, response?.data) };
+    }
+    const count = typeof response?.data?.count === 'number' ? response.data.count : 0;
+    return { ok: true, count };
   }
 
   async readJiraIssue(args: ReadJiraIssueArgs): Promise<CallToolResult> {
@@ -119,7 +280,7 @@ export class JiraHandlers {
 
   async searchJiraIssues(args: SearchJiraIssuesArgs): Promise<CallToolResult> {
     try {
-      const { jql, maxResults = 50, startAt = 0, fields = '*all' } = args;
+      const { jql, maxResults = 50, startAt = 0, fields = '*all', nextPageToken } = args;
 
       const jqlValidation = validateString(jql, 'jql', { required: true, maxLength: 2000 });
       if (!jqlValidation.isValid) {
@@ -131,16 +292,18 @@ export class JiraHandlers {
         return createValidationError(paginationValidation.errors, 'searchJiraIssues', 'jira');
       }
 
-      const response = await this.client.get('/rest/api/3/search', {
-        params: {
-          jql: jqlValidation.sanitizedValue,
-          maxResults: paginationValidation.sanitizedValue!.maxResults,
-          startAt: paginationValidation.sanitizedValue!.startAt,
-          fields,
-        },
+      const search = await this._jiraSearchJqlWithStartAtShim({
+        jql: jqlValidation.sanitizedValue,
+        maxResults: paginationValidation.sanitizedValue!.maxResults,
+        startAt: paginationValidation.sanitizedValue!.startAt,
+        fields,
+        nextPageToken,
       });
+      if (!search.ok) return search.result;
 
-      const issues = response.data.issues.map((issue: JiraIssue) => ({
+      const count = await this._jiraApproximateCount(jqlValidation.sanitizedValue);
+
+      const issues = (search.issues || []).map((issue: JiraIssue) => ({
         id: issue.id,
         key: issue.key,
         webUrl: `${this.client.defaults.baseURL}/browse/${issue.key}`,
@@ -156,9 +319,11 @@ export class JiraHandlers {
       }));
 
       const resultData = {
-        totalResults: response.data.total,
-        startAt: response.data.startAt,
-        maxResults: response.data.maxResults,
+        totalResults: count.ok ? count.count : issues.length,
+        startAt: paginationValidation.sanitizedValue!.startAt,
+        maxResults: paginationValidation.sanitizedValue!.maxResults,
+        nextPageToken: search.nextPageToken,
+        isLast: search.isLast,
         issues,
       };
 
@@ -181,7 +346,7 @@ export class JiraHandlers {
         params: { expand },
       });
 
-      const projects = response.data.map((project: JiraProject) => ({
+      const projects = (response.data || []).map((project: JiraProject) => ({
         id: project.id,
         key: project.key,
         name: project.name,
@@ -431,7 +596,7 @@ export class JiraHandlers {
 
       const response = await this.client.get('/rest/agile/1.0/board', { params });
 
-      const boards = response.data.values.map((board: JiraBoard) => ({
+      const boards = (response.data.values || []).map((board: JiraBoard) => ({
         id: board.id,
         name: board.name,
         type: board.type,
@@ -490,7 +655,7 @@ export class JiraHandlers {
         { params }
       );
 
-      const sprints = response.data.values.map((sprint: JiraSprint) => ({
+      const sprints = (response.data.values || []).map((sprint: JiraSprint) => ({
         id: sprint.id,
         name: sprint.name,
         state: sprint.state,
@@ -555,8 +720,8 @@ export class JiraHandlers {
           params: { maxResults: 100 },
         });
 
-        result.issueCount = issuesResponse.data.total;
-        result.issues = issuesResponse.data.issues.map((issue: any) => ({
+        result.issueCount = issuesResponse.data.total || 0;
+        result.issues = (issuesResponse.data.issues || []).map((issue: any) => ({
           key: issue.key,
           summary: issue.fields.summary,
           status: issue.fields.status?.name,
@@ -632,16 +797,18 @@ export class JiraHandlers {
       }
 
       // Search for issues
-      const response = await this.client.get('/rest/api/3/search', {
-        params: {
-          jql,
-          maxResults: 100,
-          fields:
-            'summary,status,priority,issuetype,created,updated,description,components,labels,sprint',
-        },
+      const search = await this._jiraSearchJqlWithStartAtShim({
+        jql,
+        maxResults: 100,
+        startAt: 0,
+        fields:
+          'summary,status,priority,issuetype,created,updated,description,components,labels,sprint',
       });
+      if (!search.ok) return search.result;
 
-      const issues = response.data.issues.map((issue: JiraIssue) => ({
+      const count = await this._jiraApproximateCount(jql);
+
+      const issues = (search.issues || []).map((issue: JiraIssue) => ({
         key: issue.key,
         summary: issue.fields.summary,
         status: issue.fields.status?.name,
@@ -656,7 +823,9 @@ export class JiraHandlers {
       const resultData = {
         currentUser: currentUser.displayName,
         activeSprint: sprintInfo,
-        totalIssues: response.data.total,
+        totalIssues: count.ok ? count.count : issues.length,
+        nextPageToken: search.nextPageToken,
+        isLast: search.isLast,
         issues,
       };
 
@@ -694,16 +863,18 @@ export class JiraHandlers {
 
       jql += ' ORDER BY priority DESC, updated DESC';
 
-      const response = await this.client.get('/rest/api/3/search', {
-        params: {
-          jql,
-          maxResults: Math.min(maxResults, 100),
-          fields:
-            'summary,status,priority,issuetype,created,updated,project,components,labels,duedate',
-        },
+      const search = await this._jiraSearchJqlWithStartAtShim({
+        jql,
+        maxResults: Math.min(maxResults, 100),
+        startAt: 0,
+        fields:
+          'summary,status,priority,issuetype,created,updated,project,components,labels,duedate',
       });
+      if (!search.ok) return search.result;
 
-      const issues = response.data.issues.map((issue: JiraIssue) => ({
+      const count = await this._jiraApproximateCount(jql);
+
+      const issues = (search.issues || []).map((issue: JiraIssue) => ({
         key: issue.key,
         summary: issue.fields.summary,
         status: issue.fields.status?.name,
@@ -729,7 +900,9 @@ export class JiraHandlers {
 
       const resultData = {
         currentUser: currentUser.displayName,
-        totalOpenIssues: response.data.total,
+        totalOpenIssues: count.ok ? count.count : issues.length,
+        nextPageToken: search.nextPageToken,
+        isLast: search.isLast,
         issuesByStatus,
         allIssues: issues,
       };
@@ -885,6 +1058,7 @@ export class JiraHandlers {
         issueType,
         maxResults = 50,
         startAt = 0,
+        nextPageToken,
       } = args;
 
       // Get user's accountId if not provided
@@ -946,16 +1120,18 @@ export class JiraHandlers {
         throw new Error('Invalid search criteria provided');
       }
 
-      const response = await this.client.get('/rest/api/3/search', {
-        params: {
-          jql,
-          maxResults: Math.min(maxResults, 100),
-          startAt,
-          fields: 'summary,status,priority,issuetype,assignee,reporter,created,updated,project',
-        },
+      const search = await this._jiraSearchJqlWithStartAtShim({
+        jql,
+        maxResults: Math.min(maxResults, 100),
+        startAt,
+        fields: 'summary,status,priority,issuetype,assignee,reporter,created,updated,project',
+        nextPageToken,
       });
+      if (!search.ok) return search.result;
 
-      const issues = response.data.issues.map((issue: JiraIssue) => ({
+      const count = await this._jiraApproximateCount(jql);
+
+      const issues = (search.issues || []).map((issue: JiraIssue) => ({
         key: issue.key,
         summary: issue.fields.summary,
         status: issue.fields.status?.name,
@@ -972,9 +1148,11 @@ export class JiraHandlers {
       const resultData = {
         searchType,
         user: userAccountId,
-        totalIssues: response.data.total,
-        startAt: response.data.startAt,
-        maxResults: response.data.maxResults,
+        totalIssues: count.ok ? count.count : issues.length,
+        startAt,
+        maxResults: Math.min(maxResults, 100),
+        nextPageToken: search.nextPageToken,
+        isLast: search.isLast,
         issues,
       };
 
@@ -1000,6 +1178,7 @@ export class JiraHandlers {
         endDate,
         maxResults = 50,
         startAt = 0,
+        nextPageToken,
       } = args;
 
       // Validate inputs
@@ -1106,17 +1285,19 @@ export class JiraHandlers {
 
       const jql = jqlBuilder.build() + ' ORDER BY created DESC';
 
-      const response = await this.client.get('/rest/api/3/search', {
-        params: {
-          jql,
-          maxResults: paginationValidation.sanitizedValue!.maxResults,
-          startAt: paginationValidation.sanitizedValue!.startAt,
-          fields:
-            'summary,status,priority,issuetype,assignee,reporter,created,updated,project,resolution',
-        },
+      const search = await this._jiraSearchJqlWithStartAtShim({
+        jql,
+        maxResults: paginationValidation.sanitizedValue!.maxResults,
+        startAt: paginationValidation.sanitizedValue!.startAt,
+        fields:
+          'summary,status,priority,issuetype,assignee,reporter,created,updated,project,resolution',
+        nextPageToken,
       });
+      if (!search.ok) return search.result;
 
-      const issues = response.data.issues.map((issue: JiraIssue) => ({
+      const count = await this._jiraApproximateCount(jql);
+
+      const issues = (search.issues || []).map((issue: JiraIssue) => ({
         key: issue.key,
         summary: issue.fields.summary,
         status: issue.fields.status?.name,
@@ -1138,9 +1319,11 @@ export class JiraHandlers {
           start: startDate || 'unlimited',
           end: endDate || 'unlimited',
         },
-        totalIssues: response.data.total,
-        startAt: response.data.startAt,
-        maxResults: response.data.maxResults,
+        totalIssues: count.ok ? count.count : issues.length,
+        startAt: paginationValidation.sanitizedValue!.startAt,
+        maxResults: paginationValidation.sanitizedValue!.maxResults,
+        nextPageToken: search.nextPageToken,
+        isLast: search.isLast,
         issues,
       };
 
@@ -1165,6 +1348,7 @@ export class JiraHandlers {
         days = 30,
         maxResults = 50,
         startAt = 0,
+        nextPageToken,
       } = args;
 
       const userValidation = validateUserIdentification({ username, accountId });
@@ -1209,21 +1393,21 @@ export class JiraHandlers {
 
       jql += ' ORDER BY updated DESC';
 
-      const response = await this.client.get('/rest/api/3/search', {
-        params: {
-          jql,
-          maxResults: Math.min(maxResults, 100),
-          startAt,
-          fields:
-            'summary,status,priority,issuetype,assignee,reporter,created,updated,project,comment,worklog',
-          expand: 'changelog',
-        },
+      const search = await this._jiraSearchJqlWithStartAtShim({
+        jql,
+        maxResults: Math.min(maxResults, 100),
+        startAt,
+        fields:
+          'summary,status,priority,issuetype,assignee,reporter,created,updated,project,comment,worklog',
+        expand: 'changelog',
+        nextPageToken,
       });
+      if (!search.ok) return search.result;
 
       // Process issues and extract activity
       const activity: any[] = [];
 
-      for (const issue of response.data.issues) {
+      for (const issue of search.issues || []) {
         // Add issue updates
         if (issue.fields.updated) {
           const updatedDate = new Date(issue.fields.updated);
@@ -1290,6 +1474,8 @@ export class JiraHandlers {
       const resultData = {
         user: userAccountId,
         activityType,
+        nextPageToken: search.nextPageToken,
+        isLast: search.isLast,
         dateRange: {
           start: startDate.toISOString(),
           end: endDate.toISOString(),
@@ -1320,6 +1506,7 @@ export class JiraHandlers {
         projectKeys,
         maxResults = 50,
         startAt = 0,
+        nextPageToken,
       } = args;
 
       // Validate inputs
@@ -1419,20 +1606,20 @@ export class JiraHandlers {
       const jql = jqlBuilder.build();
 
       // Use batch API call with worklog expansion for optimal performance
-      const response = await this.client.get('/rest/api/3/search', {
-        params: {
-          jql,
-          maxResults: paginationValidation.sanitizedValue!.maxResults,
-          startAt: paginationValidation.sanitizedValue!.startAt,
-          fields: 'summary,project,worklog',
-          expand: 'worklog', // Efficient batch loading of worklogs
-        },
+      const search = await this._jiraSearchJqlWithStartAtShim({
+        jql,
+        maxResults: paginationValidation.sanitizedValue!.maxResults,
+        startAt: paginationValidation.sanitizedValue!.startAt,
+        fields: 'summary,project,worklog',
+        expand: 'worklog', // Efficient batch loading of worklogs
+        nextPageToken,
       });
+      if (!search.ok) return search.result;
 
       const worklogs: WorklogEntry[] = [];
       let totalTimeSpent = 0;
 
-      for (const issue of response.data.issues) {
+      for (const issue of search.issues || []) {
         if (issue.fields.worklog?.worklogs) {
           for (const worklog of issue.fields.worklog.worklogs) {
             if (worklog.author?.accountId === userAccountId) {
@@ -1457,7 +1644,7 @@ export class JiraHandlers {
       // Sort worklogs by date
       worklogs.sort((a, b) => new Date(b.started).getTime() - new Date(a.started).getTime());
 
-      const resultData: UserJiraWorklogResponse = {
+      const resultData: UserJiraWorklogResponse & { nextPageToken?: string; isLast?: boolean } = {
         user: userAccountId,
         dateRange: {
           start: dateValidation.sanitizedValue?.startDate || 'unlimited',
@@ -1467,6 +1654,8 @@ export class JiraHandlers {
         totalTimeSpentSeconds: totalTimeSpent,
         totalTimeSpentFormatted: formatSeconds(totalTimeSpent),
         worklogs: worklogs.slice(0, paginationValidation.sanitizedValue!.maxResults),
+        nextPageToken: search.nextPageToken,
+        isLast: search.isLast,
       };
 
       return {

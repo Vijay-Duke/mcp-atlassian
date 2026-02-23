@@ -179,7 +179,7 @@ export class ConfluenceHandlers {
         },
       });
 
-      const results = response.data.results.map((page: ConfluencePage) => ({
+      const results = (response.data.results || []).map((page: ConfluencePage) => ({
         id: page.id,
         title: page.title,
         type: page.type,
@@ -232,7 +232,7 @@ export class ConfluenceHandlers {
 
       const response = await this.client.get('/wiki/rest/api/space', { params });
 
-      const results = response.data.results.map((space: ConfluenceSpace) => ({
+      const results = (response.data.results || []).map((space: ConfluenceSpace) => ({
         id: space.id,
         key: space.key,
         name: space.name,
@@ -313,7 +313,7 @@ export class ConfluenceHandlers {
         }
       );
 
-      const attachments = response.data.results.map((attachment: ConfluenceAttachment) => ({
+      const attachments = (response.data.results || []).map((attachment: ConfluenceAttachment) => ({
         id: attachment.id,
         title: attachment.title,
         mediaType: attachment.extensions.mediaType,
@@ -1331,7 +1331,7 @@ export class ConfluenceHandlers {
         }
       );
 
-      const children = response.data.results.map((page: ConfluencePage) => ({
+      const children = (response.data.results || []).map((page: ConfluencePage) => ({
         id: page.id,
         title: page.title,
         type: page.type,
@@ -1520,7 +1520,7 @@ export class ConfluenceHandlers {
         },
       });
 
-      const pages = response.data.results.map((page: ConfluencePage) => ({
+      const pages = (response.data.results || []).map((page: ConfluencePage) => ({
         id: page.id,
         title: page.title,
         type: page.type,
@@ -1593,7 +1593,7 @@ export class ConfluenceHandlers {
         },
       });
 
-      const pages = response.data.results.map((page: ConfluencePage) => ({
+      const pages = (response.data.results || []).map((page: ConfluencePage) => ({
         id: page.id,
         title: page.title,
         type: page.type,
@@ -1763,7 +1763,7 @@ export class ConfluenceHandlers {
         },
       });
 
-      const pages = response.data.results.map((page: ConfluencePage) => ({
+      const pages = (response.data.results || []).map((page: ConfluencePage) => ({
         id: page.id,
         title: page.title,
         type: page.type,
@@ -1863,7 +1863,7 @@ export class ConfluenceHandlers {
         },
       });
 
-      const pages = response.data.results.map((page: ConfluencePage) => ({
+      const pages = (response.data.results || []).map((page: ConfluencePage) => ({
         id: page.id,
         title: page.title,
         type: page.type,
@@ -1958,7 +1958,7 @@ export class ConfluenceHandlers {
         },
       });
 
-      const attachments = response.data.results.map((attachment: any) => ({
+      const attachments = (response.data.results || []).map((attachment: any) => ({
         id: attachment.id,
         title: attachment.title,
         filename: attachment.title,

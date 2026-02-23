@@ -1,7 +1,7 @@
 {
-  "name": "mcp-atlassian",
-  "version": "2.1.0",
-  "description": "MCP server for Atlassian (Confluence and Jira) integration",
+  "name": "@efithor/mcp-atlassian",
+  "version": "3.0.0",
+  "description": "MCP server for Atlassian (Confluence and Jira) integration - fork with fixed Jira API",
   "main": "dist/index.js",
   "type": "module",
   "bin": {
@@ -9,7 +9,7 @@
   },
   "publishConfig": {
     "access": "public",
-    "registry": "https://registry.npmjs.org/"
+    "registry": "https://npm.pkg.github.com"
   },
   "scripts": {
     "build": "tsc",
@@ -40,11 +40,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Vijay-Duke/mcp-atlassian.git"
+    "url": "git+https://github.com/Efithor/mcp-atlassian.git"
   },
-  "homepage": "https://github.com/Vijay-Duke/mcp-atlassian#readme",
+  "homepage": "https://github.com/Efithor/mcp-atlassian#readme",
   "bugs": {
-    "url": "https://github.com/Vijay-Duke/mcp-atlassian/issues"
+    "url": "https://github.com/Efithor/mcp-atlassian/issues"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.17.3",

@@ -118,16 +118,19 @@ describe('JiraHandlers', () => {
       };
 
       (mockClient.get as any).mockResolvedValue(mockResponse);
+      (mockClient.post as any).mockResolvedValue({ data: { count: 1 } });
 
       const result = await handlers.searchJiraIssues({ jql: 'project = TEST' });
 
-      expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
+      expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search/jql', {
         params: {
           jql: 'project = TEST',
           maxResults: 50,
-          startAt: 0,
           fields: '*all',
         },
+      });
+      expect(mockClient.post).toHaveBeenCalledWith('/rest/api/3/search/approximate-count', {
+        jql: 'project = TEST',
       });
 
       expect(result.isError).toBeFalsy();
@@ -161,6 +164,7 @@ describe('JiraHandlers', () => {
       (mockClient.get as any).mockResolvedValue({
         data: { issues: [], total: 100, startAt: 50, maxResults: 25 },
       });
+      (mockClient.post as any).mockResolvedValue({ data: { count: 100 } });
 
       await handlers.searchJiraIssues({
         jql: 'project = TEST',
@@ -169,11 +173,10 @@ describe('JiraHandlers', () => {
         fields: 'summary,status',
       });
 
-      expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
+      expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search/jql', {
         params: {
           jql: 'project = TEST',
           maxResults: 25,
-          startAt: 50,
           fields: 'summary,status',
         },
       });
@@ -186,14 +189,14 @@ describe('JiraHandlers', () => {
       (mockClient.get as any).mockResolvedValue({
         data: { issues: [], total: 0, startAt: 0, maxResults: 50 },
       });
+      (mockClient.post as any).mockResolvedValue({ data: { count: 0 } });
 
       const result = await handlers.searchJiraIssues({ jql: complexJql });
 
-      expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
+      expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search/jql', {
         params: {
           jql: complexJql,
           maxResults: 50,
-          startAt: 0,
           fields: '*all',
         },
       });
@@ -540,10 +543,11 @@ describe('JiraHandlers', () => {
         (mockClient.get as any)
           .mockResolvedValueOnce({ data: mockCurrentUser })
           .mockResolvedValueOnce({ data: mockIssues });
+        (mockClient.post as any).mockResolvedValue({ data: { count: 1 } });
 
         const result = await handlers.getMyOpenIssues({});
 
-        expect(mockClient.get).toHaveBeenNthCalledWith(2, '/rest/api/3/search', {
+        expect(mockClient.get).toHaveBeenNthCalledWith(2, '/rest/api/3/search/jql', {
           params: expect.objectContaining({
             jql: expect.stringContaining('assignee = "currentUser123"'),
           }),
@@ -558,10 +562,11 @@ describe('JiraHandlers', () => {
         (mockClient.get as any)
           .mockResolvedValueOnce({ data: { accountId: 'user1234567890' } })
           .mockResolvedValueOnce({ data: { issues: [], total: 0 } });
+        (mockClient.post as any).mockResolvedValue({ data: { count: 0 } });
 
         await handlers.getMyOpenIssues({ projectKeys: ['TEST'] });
 
-        expect(mockClient.get).toHaveBeenNthCalledWith(2, '/rest/api/3/search', {
+        expect(mockClient.get).toHaveBeenNthCalledWith(2, '/rest/api/3/search/jql', {
           params: expect.objectContaining({
             jql: expect.stringContaining('project in ("TEST")'),
           }),
@@ -572,12 +577,13 @@ describe('JiraHandlers', () => {
         (mockClient.get as any)
           .mockResolvedValueOnce({ data: { accountId: 'user1234567890' } })
           .mockResolvedValueOnce({ data: { issues: [], total: 0 } });
+        (mockClient.post as any).mockResolvedValue({ data: { count: 0 } });
 
         await handlers.getMyOpenIssues({
           maxResults: 20,
         });
 
-        expect(mockClient.get).toHaveBeenNthCalledWith(2, '/rest/api/3/search', {
+        expect(mockClient.get).toHaveBeenNthCalledWith(2, '/rest/api/3/search/jql', {
           params: expect.objectContaining({
             maxResults: 20,
           }),
@@ -764,13 +770,14 @@ describe('JiraHandlers', () => {
         };
 
         (mockClient.get as any).mockResolvedValue({ data: mockIssues });
+        (mockClient.post as any).mockResolvedValue({ data: { count: 1 } });
 
         const result = await handlers.searchJiraIssuesByUser({
           accountId: 'user4567890123',
           searchType: 'assignee',
         });
 
-        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
+        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search/jql', {
           params: expect.objectContaining({
             jql: expect.stringContaining('assignee = "user4567890123"'),
           }),
@@ -785,6 +792,7 @@ describe('JiraHandlers', () => {
         (mockClient.get as any).mockResolvedValue({
           data: { issues: [], total: 0 },
         });
+        (mockClient.post as any).mockResolvedValue({ data: { count: 0 } });
 
         await handlers.searchJiraIssuesByUser({
           accountId: 'user7890123456',
@@ -792,7 +800,7 @@ describe('JiraHandlers', () => {
           projectKeys: ['TEST'],
         });
 
-        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
+        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search/jql', {
           params: expect.objectContaining({
             jql: expect.stringContaining('reporter = "user7890123456"'),
           }),
@@ -803,13 +811,14 @@ describe('JiraHandlers', () => {
         (mockClient.get as any).mockResolvedValue({
           data: { issues: [], total: 0 },
         });
+        (mockClient.post as any).mockResolvedValue({ data: { count: 0 } });
 
         await handlers.searchJiraIssuesByUser({
           accountId: 'user9990123456',
           searchType: 'watcher',
         });
 
-        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
+        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search/jql', {
           params: expect.objectContaining({
             jql: expect.stringContaining('watcher = "user9990123456"'),
           }),
@@ -855,7 +864,7 @@ describe('JiraHandlers', () => {
           endDate: '2024-01-31',
         });
 
-        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
+        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search/jql', {
           params: expect.objectContaining({
             jql: expect.stringContaining('worklogAuthor = "user1234567890"'),
             fields: 'summary,project,worklog',
@@ -937,7 +946,7 @@ describe('JiraHandlers', () => {
           startDate: '2024-01-01',
         });
 
-        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
+        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search/jql', {
           params: expect.objectContaining({
             jql: expect.stringContaining('project IN (\"TEST\")'),
           }),
@@ -963,6 +972,7 @@ describe('JiraHandlers', () => {
         };
 
         (mockClient.get as any).mockResolvedValue({ data: mockIssues });
+        (mockClient.post as any).mockResolvedValue({ data: { count: 1 } });
 
         const result = await handlers.listUserJiraIssues({
           accountId: 'user1234567890',
@@ -971,7 +981,7 @@ describe('JiraHandlers', () => {
           endDate: '2024-01-31',
         });
 
-        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
+        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search/jql', {
           params: expect.objectContaining({
             jql: expect.stringContaining('creator = "user1234567890"'),
           }),
@@ -987,6 +997,7 @@ describe('JiraHandlers', () => {
         (mockClient.get as any).mockResolvedValue({
           data: { issues: [], total: 0 },
         });
+        (mockClient.post as any).mockResolvedValue({ data: { count: 0 } });
 
         await handlers.listUserJiraIssues({
           accountId: 'user1234567890',
@@ -994,7 +1005,7 @@ describe('JiraHandlers', () => {
           projectKeys: ['TEST'],
         });
 
-        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search', {
+        expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search/jql', {
           params: expect.objectContaining({
             jql: expect.stringContaining('assignee = "user1234567890"'),
           }),
@@ -1003,6 +1014,18 @@ describe('JiraHandlers', () => {
     });
   });
 
+  describe('Resolved 4xx handling (validateStatus)', () => {
+    it('should treat resolved 400 responses as errors', async () => {
+      (mockClient.get as any).mockResolvedValue({
+        status: 400,
+        data: { errorMessages: ['The requested API has been removed. Please migrate.'] },
+      });
+
+      const result = await handlers.searchJiraIssues({ jql: 'project = TEST' });
+      expect(result.isError).toBe(true);
+      expect((result.content[0] as any).text).toContain('API Error (400)');
+    });
+  });
   describe('Error handling', () => {
     it('should handle network errors', async () => {
       const networkError = new Error('Network error');
