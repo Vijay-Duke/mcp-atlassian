@@ -1065,7 +1065,7 @@ describe('ConfluenceHandlers', () => {
 
         const result = await handlers.listConfluencePageChildren({ pageId: '123' });
 
-        expect(mockClient.get).toHaveBeenCalledWith('/api/content/123/child/page', {
+        expect(mockClient.get).toHaveBeenCalledWith('/wiki/rest/api/content/123/child/page', {
           params: {
             limit: 25,
             start: 0,
@@ -1100,7 +1100,7 @@ describe('ConfluenceHandlers', () => {
 
         const result = await handlers.listConfluencePageAncestors({ pageId: '123' });
 
-        expect(mockClient.get).toHaveBeenCalledWith('/api/content/123', {
+        expect(mockClient.get).toHaveBeenCalledWith('/wiki/rest/api/content/123', {
           params: { expand: 'ancestors' },
         });
 

@@ -316,9 +316,9 @@ export class ConfluenceHandlers {
       const attachments = (response.data.results || []).map((attachment: ConfluenceAttachment) => ({
         id: attachment.id,
         title: attachment.title,
-        mediaType: attachment.extensions.mediaType,
-        fileSize: attachment.extensions.fileSize,
-        version: attachment.version.number,
+        mediaType: attachment.extensions?.mediaType || attachment.metadata?.mediaType,
+        fileSize: attachment.extensions?.fileSize,
+        version: attachment.version?.number,
         downloadUrl: `${this.client.defaults.baseURL}/wiki${attachment._links?.download}`,
         webUrl: `${this.client.defaults.baseURL}/wiki${attachment._links?.webui}`,
       }));
@@ -1321,7 +1321,7 @@ export class ConfluenceHandlers {
         );
 
       const response = await this.client.get(
-        `/api/content/${pageIdValidation.sanitizedValue}/child/page`,
+        `/wiki/rest/api/content/${pageIdValidation.sanitizedValue}/child/page`,
         {
           params: {
             limit: paginationValidation.sanitizedValue!.maxResults,
@@ -1374,7 +1374,7 @@ export class ConfluenceHandlers {
         );
 
       // First get the page with ancestors expanded
-      const response = await this.client.get(`/api/content/${pageIdValidation.sanitizedValue}`, {
+      const response = await this.client.get(`/wiki/rest/api/content/${pageIdValidation.sanitizedValue}`, {
         params: {
           expand: 'ancestors',
         },
@@ -1448,14 +1448,44 @@ export class ConfluenceHandlers {
       }
       form.append('minorEdit', String(minorEdit));
 
-      const response = await this.client.post(`/api/content/${pageId}/child/attachment`, form, {
+      const response = await this.client.post(
+        `/wiki/rest/api/content/${pageIdValidation.sanitizedValue}/child/attachment`,
+        form,
+        {
         headers: {
           ...form.getHeaders(),
           'X-Atlassian-Token': 'no-check', // Required for file uploads
         },
       });
 
-      const attachment = response.data.results[0];
+      let payload = response.data;
+      if (typeof payload === 'string') {
+        try {
+          payload = JSON.parse(payload);
+        } catch {
+          // Keep original payload if parsing fails.
+        }
+      }
+      let attachment =
+        payload?.results?.[0] || payload?.result?.[0] || payload?.result || payload?.attachment || payload;
+      if (!attachment?.id) {
+        // Some Confluence responses can return an empty body for attachment updates.
+        // In that case, resolve the uploaded file by querying attachments by filename.
+        const lookupResponse = await this.client.get(
+          `/wiki/rest/api/content/${pageIdValidation.sanitizedValue}/child/attachment`,
+          {
+            params: {
+              filename: filenameValidation.sanitizedValue,
+              limit: 1,
+            },
+          }
+        );
+        attachment = lookupResponse.data?.results?.[0];
+      }
+
+      if (!attachment?.id) {
+        throw new Error('Unexpected Confluence attachment upload response format');
+      }
       const result = {
         id: attachment.id,
         title: attachment.title,

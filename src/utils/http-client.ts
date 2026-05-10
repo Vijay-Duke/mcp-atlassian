@@ -61,10 +61,17 @@ export function createAtlassianClient(): AxiosInstance {
 
   const client = axios.create(axiosConfig);
 
-  // Add request interceptor to ensure proper headers for POST/PUT requests
+  // Add request interceptor to ensure JSON default for POST/PUT while preserving multipart uploads.
   client.interceptors.request.use((config) => {
     if (config.method === 'post' || config.method === 'put') {
-      config.headers['Content-Type'] = 'application/json';
+      const rawHeaders: any = config.headers || {};
+      const contentType = rawHeaders['Content-Type'] || rawHeaders['content-type'] || '';
+      const normalized =
+        typeof contentType === 'string' ? contentType.toLowerCase() : String(contentType).toLowerCase();
+
+      if (!normalized.includes('multipart/form-data') && !contentType) {
+        config.headers['Content-Type'] = 'application/json';
+      }
     }
     return config;
   });
