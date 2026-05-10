@@ -1036,11 +1036,6 @@ describe('JiraHandlers', () => {
               fields: {
                 summary: 'Test Issue',
                 status: { name: 'Open' },
-                priority: { name: 'High' },
-                issuetype: { name: 'Bug' },
-                assignee: { displayName: 'John Doe' },
-                created: '2024-01-01T00:00:00.000Z',
-                updated: '2024-01-02T00:00:00.000Z',
               },
             },
           ],

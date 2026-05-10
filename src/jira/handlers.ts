@@ -234,7 +234,7 @@ export class JiraHandlers {
       const issueKeyValidation = validateString(issueKey, 'issueKey', {
         required: true,
         maxLength: 255,
-        pattern: /^[A-Z]+-[0-9]+$/,
+        pattern: /^[A-Z]+-\d+$/,
       });
       if (!issueKeyValidation.isValid) {
         return createValidationError(issueKeyValidation.errors, 'readJiraIssue', 'jira');
@@ -498,7 +498,7 @@ export class JiraHandlers {
 
       const issueKeyValidation = validateString(issueKey, 'issueKey', {
         required: true,
-        pattern: /^[A-Z]+-[0-9]+$/,
+        pattern: /^[A-Z]+-\d+$/,
       });
       if (!issueKeyValidation.isValid)
         return createValidationError(issueKeyValidation.errors, 'addJiraComment', 'jira');
@@ -557,7 +557,7 @@ export class JiraHandlers {
       // Validate issueKey
       const issueKeyValidation = validateString(issueKey, 'issueKey', {
         required: true,
-        pattern: /^[A-Z]+-[0-9]+$/,
+        pattern: /^[A-Z]+-\d+$/,
       });
       if (!issueKeyValidation.isValid)
         return createValidationError(issueKeyValidation.errors, 'transitionJiraIssue', 'jira');
