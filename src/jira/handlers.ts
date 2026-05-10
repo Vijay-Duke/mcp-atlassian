@@ -78,7 +78,9 @@ export class JiraHandlers {
       const entries = Object.entries(data.errors);
       if (entries.length > 0) {
         messages.push(
-          entries.map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`).join(', ')
+          entries
+            .map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`)
+            .join(', ')
         );
       }
     }
@@ -212,13 +214,17 @@ export class JiraHandlers {
   private async _jiraApproximateCount(
     jql: string
   ): Promise<{ ok: true; count: number } | { ok: false; errorText: string }> {
-    const response = await this.client.post('/rest/api/3/search/approximate-count', { jql });
-    const status = this._statusCode(response);
-    if (status >= 400) {
-      return { ok: false, errorText: this._apiErrorText(status, response?.data) };
+    try {
+      const response = await this.client.post('/rest/api/3/search/approximate-count', { jql });
+      const status = this._statusCode(response);
+      if (status >= 400) {
+        return { ok: false, errorText: this._apiErrorText(status, response?.data) };
+      }
+      const count = typeof response?.data?.count === 'number' ? response.data.count : 0;
+      return { ok: true, count };
+    } catch (error) {
+      return { ok: false, errorText: formatApiError(error) };
     }
-    const count = typeof response?.data?.count === 'number' ? response.data.count : 0;
-    return { ok: true, count };
   }
 
   async readJiraIssue(args: ReadJiraIssueArgs): Promise<CallToolResult> {
@@ -557,7 +563,9 @@ export class JiraHandlers {
         return createValidationError(issueKeyValidation.errors, 'transitionJiraIssue', 'jira');
 
       // Validate transitionId
-      const transitionIdValidation = validateString(transitionId, 'transitionId', { required: true });
+      const transitionIdValidation = validateString(transitionId, 'transitionId', {
+        required: true,
+      });
       if (!transitionIdValidation.isValid)
         return createValidationError(transitionIdValidation.errors, 'transitionJiraIssue', 'jira');
 
@@ -565,23 +573,40 @@ export class JiraHandlers {
       const payload: any = { transition: { id: transitionIdValidation.sanitizedValue } };
       if (comment) {
         payload.update = {
-          comment: [{
-            add: {
-              body: {
-                type: 'doc', version: 1,
-                content: [{ type: 'paragraph', content: [{ type: 'text', text: comment }] }],
+          comment: [
+            {
+              add: {
+                body: {
+                  type: 'doc',
+                  version: 1,
+                  content: [{ type: 'paragraph', content: [{ type: 'text', text: comment }] }],
+                },
               },
             },
-          }],
+          ],
         };
       }
 
-      await this.client.post(`/rest/api/3/issue/${issueKeyValidation.sanitizedValue}/transitions`, payload);
+      const transitionResponse = await this.client.post(
+        `/rest/api/3/issue/${issueKeyValidation.sanitizedValue}/transitions`,
+        payload
+      );
+      const transitionStatus = this._statusCode(transitionResponse);
+      if (transitionStatus >= 400) {
+        return this._errorResultFromResolvedResponse('Jira transition', transitionResponse);
+      }
 
       // Fetch updated issue to confirm new status
-      const updated = await this.client.get(`/rest/api/3/issue/${issueKeyValidation.sanitizedValue}`, {
-        params: { fields: 'status,summary' },
-      });
+      const updated = await this.client.get(
+        `/rest/api/3/issue/${issueKeyValidation.sanitizedValue}`,
+        {
+          params: { fields: 'status,summary' },
+        }
+      );
+      const updatedStatus = this._statusCode(updated);
+      if (updatedStatus >= 400) {
+        return this._errorResultFromResolvedResponse('Jira transition (verify)', updated);
+      }
 
       const result = {
         issueKey: issueKeyValidation.sanitizedValue,

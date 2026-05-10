@@ -1025,6 +1025,56 @@ describe('JiraHandlers', () => {
       expect(result.isError).toBe(true);
       expect((result.content[0] as any).text).toContain('API Error (400)');
     });
+
+    it('should keep search results when approximate-count request fails', async () => {
+      (mockClient.get as any).mockResolvedValue({
+        data: {
+          issues: [
+            {
+              id: '10001',
+              key: 'TEST-1',
+              fields: {
+                summary: 'Test Issue',
+                status: { name: 'Open' },
+                priority: { name: 'High' },
+                issuetype: { name: 'Bug' },
+                assignee: { displayName: 'John Doe' },
+                created: '2024-01-01T00:00:00.000Z',
+                updated: '2024-01-02T00:00:00.000Z',
+              },
+            },
+          ],
+          total: 1,
+          startAt: 0,
+          maxResults: 50,
+        },
+      });
+      (mockClient.post as any).mockRejectedValue(new Error('approximate-count failed'));
+
+      const result = await handlers.searchJiraIssues({ jql: 'project = TEST' });
+
+      expect(result.isError).toBeFalsy();
+      const data = JSON.parse((result.content[0] as any).text);
+      expect(data.totalResults).toBe(1);
+      expect(data.issues).toHaveLength(1);
+    });
+
+    it('should return an error when transition API resolves with 4xx status', async () => {
+      (mockClient.post as any).mockResolvedValue({
+        status: 400,
+        data: { errorMessages: ['Transition is invalid for this issue state'] },
+      });
+
+      const result = await handlers.transitionJiraIssue({
+        issueKey: 'TEST-1',
+        transitionId: '31',
+      });
+
+      expect(result.isError).toBe(true);
+      expect((result.content[0] as any).text).toContain('Jira transition');
+      expect((result.content[0] as any).text).toContain('API Error (400)');
+      expect(mockClient.get).not.toHaveBeenCalled();
+    });
   });
   describe('Error handling', () => {
     it('should handle network errors', async () => {
