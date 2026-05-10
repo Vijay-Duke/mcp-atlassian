@@ -78,9 +78,7 @@ export class JiraHandlers {
       const entries = Object.entries(data.errors);
       if (entries.length > 0) {
         messages.push(
-          entries
-            .map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`)
-            .join(', ')
+          entries.map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`).join(', ')
         );
       }
     }

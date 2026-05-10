@@ -31,12 +31,12 @@ describe('ErrorHandler', () => {
       const result = createEnhancedError(axiosError, mockContext);
 
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('**Error in JIRA**');
-      expect(result.content[0].text).toContain('Bad request - Invalid parameters');
-      expect(result.content[0].text).toContain('Invalid request format');
-      expect(result.content[0].text).toContain('validation');
-      expect(result.content[0].text).toContain('HTTP 400');
-      expect(result.content[0].text).toContain('**Retryable**: Yes');
+      expect((result.content[0] as { text: string }).text).toContain('**Error in JIRA**');
+      expect((result.content[0] as { text: string }).text).toContain('Bad request - Invalid parameters');
+      expect((result.content[0] as { text: string }).text).toContain('Invalid request format');
+      expect((result.content[0] as { text: string }).text).toContain('validation');
+      expect((result.content[0] as { text: string }).text).toContain('HTTP 400');
+      expect((result.content[0] as { text: string }).text).toContain('**Retryable**: Yes');
     });
 
     it('should handle Axios 401 error', () => {
@@ -51,10 +51,10 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(axiosError, mockContext);
 
-      expect(result.content[0].text).toContain('Authentication failed');
-      expect(result.content[0].text).toContain('authentication');
-      expect(result.content[0].text).toContain('ATLASSIAN_API_TOKEN');
-      expect(result.content[0].text).toContain('**Retryable**: No');
+      expect((result.content[0] as { text: string }).text).toContain('Authentication failed');
+      expect((result.content[0] as { text: string }).text).toContain('authentication');
+      expect((result.content[0] as { text: string }).text).toContain('ATLASSIAN_API_TOKEN');
+      expect((result.content[0] as { text: string }).text).toContain('**Retryable**: No');
     });
 
     it('should handle Axios 403 error', () => {
@@ -71,10 +71,10 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(axiosError, mockContext);
 
-      expect(result.content[0].text).toContain('Permission denied');
-      expect(result.content[0].text).toContain('Access denied to resource');
-      expect(result.content[0].text).toContain('permission');
-      expect(result.content[0].text).toContain('administrator');
+      expect((result.content[0] as { text: string }).text).toContain('Permission denied');
+      expect((result.content[0] as { text: string }).text).toContain('Access denied to resource');
+      expect((result.content[0] as { text: string }).text).toContain('permission');
+      expect((result.content[0] as { text: string }).text).toContain('administrator');
     });
 
     it('should handle Axios 404 error with user operation', () => {
@@ -96,10 +96,10 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(axiosError, userContext);
 
-      expect(result.content[0].text).toContain('Resource not found');
-      expect(result.content[0].text).toContain('User not found');
-      expect(result.content[0].text).toContain('username or accountId');
-      expect(result.content[0].text).toContain('notFound');
+      expect((result.content[0] as { text: string }).text).toContain('Resource not found');
+      expect((result.content[0] as { text: string }).text).toContain('User not found');
+      expect((result.content[0] as { text: string }).text).toContain('username or accountId');
+      expect((result.content[0] as { text: string }).text).toContain('notFound');
     });
 
     it('should handle Axios 404 error with issue operation', () => {
@@ -119,8 +119,8 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(axiosError, issueContext);
 
-      expect(result.content[0].text).toContain('issue key format');
-      expect(result.content[0].text).toContain('PROJ-123');
+      expect((result.content[0] as { text: string }).text).toContain('issue key format');
+      expect((result.content[0] as { text: string }).text).toContain('PROJ-123');
     });
 
     it('should handle Axios 404 error with project operation', () => {
@@ -140,8 +140,8 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(axiosError, projectContext);
 
-      expect(result.content[0].text).toContain('project key is correct');
-      expect(result.content[0].text).toContain('project exists');
+      expect((result.content[0] as { text: string }).text).toContain('project key is correct');
+      expect((result.content[0] as { text: string }).text).toContain('project exists');
     });
 
     it('should handle Axios 429 error', () => {
@@ -156,10 +156,10 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(axiosError, mockContext);
 
-      expect(result.content[0].text).toContain('Rate limit exceeded');
-      expect(result.content[0].text).toContain('rateLimit');
-      expect(result.content[0].text).toContain('Wait a few minutes');
-      expect(result.content[0].text).toContain('**Retryable**: Yes');
+      expect((result.content[0] as { text: string }).text).toContain('Rate limit exceeded');
+      expect((result.content[0] as { text: string }).text).toContain('rateLimit');
+      expect((result.content[0] as { text: string }).text).toContain('Wait a few minutes');
+      expect((result.content[0] as { text: string }).text).toContain('**Retryable**: Yes');
     });
 
     it('should handle Axios 500 error', () => {
@@ -174,10 +174,10 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(axiosError, mockContext);
 
-      expect(result.content[0].text).toContain('Server error');
-      expect(result.content[0].text).toContain('server');
-      expect(result.content[0].text).toContain('Atlassian Status page');
-      expect(result.content[0].text).toContain('HTTP 500');
+      expect((result.content[0] as { text: string }).text).toContain('Server error');
+      expect((result.content[0] as { text: string }).text).toContain('server');
+      expect((result.content[0] as { text: string }).text).toContain('Atlassian Status page');
+      expect((result.content[0] as { text: string }).text).toContain('HTTP 500');
     });
 
     it('should handle Axios 502 error', () => {
@@ -192,8 +192,8 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(axiosError, mockContext);
 
-      expect(result.content[0].text).toContain('Server error');
-      expect(result.content[0].text).toContain('HTTP 502');
+      expect((result.content[0] as { text: string }).text).toContain('Server error');
+      expect((result.content[0] as { text: string }).text).toContain('HTTP 502');
     });
 
     it('should handle Axios 503 error', () => {
@@ -208,8 +208,8 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(axiosError, mockContext);
 
-      expect(result.content[0].text).toContain('Server error');
-      expect(result.content[0].text).toContain('HTTP 503');
+      expect((result.content[0] as { text: string }).text).toContain('Server error');
+      expect((result.content[0] as { text: string }).text).toContain('HTTP 503');
     });
 
     it('should handle Axios error with unknown status code', () => {
@@ -224,10 +224,10 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(axiosError, mockContext);
 
-      expect(result.content[0].text).toContain('Network or API error');
-      expect(result.content[0].text).toContain('network');
-      expect(result.content[0].text).toContain('internet connection');
-      expect(result.content[0].text).toContain('HTTP 418');
+      expect((result.content[0] as { text: string }).text).toContain('Network or API error');
+      expect((result.content[0] as { text: string }).text).toContain('network');
+      expect((result.content[0] as { text: string }).text).toContain('internet connection');
+      expect((result.content[0] as { text: string }).text).toContain('HTTP 418');
     });
 
     it('should handle Axios error without response', () => {
@@ -239,9 +239,9 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(axiosError, mockContext);
 
-      expect(result.content[0].text).toContain('Network or API error');
-      expect(result.content[0].text).toContain('Network error');
-      expect(result.content[0].text).toContain('network');
+      expect((result.content[0] as { text: string }).text).toContain('Network or API error');
+      expect((result.content[0] as { text: string }).text).toContain('Network error');
+      expect((result.content[0] as { text: string }).text).toContain('network');
     });
 
     it('should handle validation errors with lowercase detection', () => {
@@ -249,11 +249,11 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(validationError, mockContext);
 
-      expect(result.content[0].text).toContain('Input validation failed');
-      expect(result.content[0].text).toContain('validation failed: missing required field');
-      expect(result.content[0].text).toContain('validation');
-      expect(result.content[0].text).toContain('required parameters');
-      expect(result.content[0].text).toContain('**Retryable**: Yes');
+      expect((result.content[0] as { text: string }).text).toContain('Input validation failed');
+      expect((result.content[0] as { text: string }).text).toContain('validation failed: missing required field');
+      expect((result.content[0] as { text: string }).text).toContain('validation');
+      expect((result.content[0] as { text: string }).text).toContain('required parameters');
+      expect((result.content[0] as { text: string }).text).toContain('**Retryable**: Yes');
     });
 
     it('should handle validation errors with capital V as unknown', () => {
@@ -261,11 +261,11 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(validationError, mockContext);
 
-      expect(result.content[0].text).toContain('An unexpected error occurred');
-      expect(result.content[0].text).toContain('Validation failed: missing required field');
-      expect(result.content[0].text).toContain('unknown');
-      expect(result.content[0].text).toContain('network connection');
-      expect(result.content[0].text).toContain('**Retryable**: Yes');
+      expect((result.content[0] as { text: string }).text).toContain('An unexpected error occurred');
+      expect((result.content[0] as { text: string }).text).toContain('Validation failed: missing required field');
+      expect((result.content[0] as { text: string }).text).toContain('unknown');
+      expect((result.content[0] as { text: string }).text).toContain('network connection');
+      expect((result.content[0] as { text: string }).text).toContain('**Retryable**: Yes');
     });
 
     it('should handle generic Error objects', () => {
@@ -273,10 +273,10 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(genericError, mockContext);
 
-      expect(result.content[0].text).toContain('An unexpected error occurred');
-      expect(result.content[0].text).toContain('Something went wrong');
-      expect(result.content[0].text).toContain('unknown');
-      expect(result.content[0].text).toContain('network connection');
+      expect((result.content[0] as { text: string }).text).toContain('An unexpected error occurred');
+      expect((result.content[0] as { text: string }).text).toContain('Something went wrong');
+      expect((result.content[0] as { text: string }).text).toContain('unknown');
+      expect((result.content[0] as { text: string }).text).toContain('network connection');
     });
 
     it('should handle non-Error objects', () => {
@@ -284,9 +284,9 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(stringError, mockContext);
 
-      expect(result.content[0].text).toContain('An unexpected error occurred');
-      expect(result.content[0].text).toContain('Simple string error');
-      expect(result.content[0].text).toContain('unknown');
+      expect((result.content[0] as { text: string }).text).toContain('An unexpected error occurred');
+      expect((result.content[0] as { text: string }).text).toContain('Simple string error');
+      expect((result.content[0] as { text: string }).text).toContain('unknown');
     });
 
     it('should handle errors with different response data formats', () => {
@@ -301,7 +301,7 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(axiosError, mockContext);
 
-      expect(result.content[0].text).toContain('Simple string error response');
+      expect((result.content[0] as { text: string }).text).toContain('Simple string error response');
     });
 
     it('should handle Confluence component context', () => {
@@ -321,7 +321,7 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(axiosError, confluenceContext);
 
-      expect(result.content[0].text).toContain('**Error in CONFLUENCE**');
+      expect((result.content[0] as { text: string }).text).toContain('**Error in CONFLUENCE**');
     });
   });
 
@@ -333,11 +333,11 @@ describe('ErrorHandler', () => {
       const result = createValidationError(errors, operation, 'jira');
 
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('**Error in JIRA**');
-      expect(result.content[0].text).toContain('An unexpected error occurred');
-      expect(result.content[0].text).toContain('create issue');
-      expect(result.content[0].text).toContain('Field is required, Invalid format');
-      expect(result.content[0].text).toContain('unknown');
+      expect((result.content[0] as { text: string }).text).toContain('**Error in JIRA**');
+      expect((result.content[0] as { text: string }).text).toContain('An unexpected error occurred');
+      expect((result.content[0] as { text: string }).text).toContain('create issue');
+      expect((result.content[0] as { text: string }).text).toContain('Field is required, Invalid format');
+      expect((result.content[0] as { text: string }).text).toContain('unknown');
     });
 
     it('should create validation error for confluence component', () => {
@@ -346,10 +346,10 @@ describe('ErrorHandler', () => {
 
       const result = createValidationError(errors, operation, 'confluence');
 
-      expect(result.content[0].text).toContain('**Error in CONFLUENCE**');
-      expect(result.content[0].text).toContain('create page');
-      expect(result.content[0].text).toContain('Missing page title');
-      expect(result.content[0].text).toContain('An unexpected error occurred');
+      expect((result.content[0] as { text: string }).text).toContain('**Error in CONFLUENCE**');
+      expect((result.content[0] as { text: string }).text).toContain('create page');
+      expect((result.content[0] as { text: string }).text).toContain('Missing page title');
+      expect((result.content[0] as { text: string }).text).toContain('An unexpected error occurred');
     });
 
     it('should default to jira component', () => {
@@ -358,8 +358,8 @@ describe('ErrorHandler', () => {
 
       const result = createValidationError(errors, operation);
 
-      expect(result.content[0].text).toContain('**Error in JIRA**');
-      expect(result.content[0].text).toContain('An unexpected error occurred');
+      expect((result.content[0] as { text: string }).text).toContain('**Error in JIRA**');
+      expect((result.content[0] as { text: string }).text).toContain('An unexpected error occurred');
     });
   });
 
@@ -370,12 +370,12 @@ describe('ErrorHandler', () => {
       const result = createUserNotFoundError(identifier, 'jira');
 
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('**User Not Found**');
-      expect(result.content[0].text).toContain('john.doe@example.com');
-      expect(result.content[0].text).toContain('user lookup');
-      expect(result.content[0].text).toContain('Use accountId instead');
-      expect(result.content[0].text).toContain('Security Best Practice');
-      expect(result.content[0].text).toContain('privacy and security');
+      expect((result.content[0] as { text: string }).text).toContain('**User Not Found**');
+      expect((result.content[0] as { text: string }).text).toContain('john.doe@example.com');
+      expect((result.content[0] as { text: string }).text).toContain('user lookup');
+      expect((result.content[0] as { text: string }).text).toContain('Use accountId instead');
+      expect((result.content[0] as { text: string }).text).toContain('Security Best Practice');
+      expect((result.content[0] as { text: string }).text).toContain('privacy and security');
     });
 
     it('should create user not found error for confluence', () => {
@@ -383,9 +383,9 @@ describe('ErrorHandler', () => {
 
       const result = createUserNotFoundError(identifier, 'confluence');
 
-      expect(result.content[0].text).toContain('**User Not Found**');
-      expect(result.content[0].text).toContain('username123');
-      expect(result.content[0].text).toContain('accountId instead of username');
+      expect((result.content[0] as { text: string }).text).toContain('**User Not Found**');
+      expect((result.content[0] as { text: string }).text).toContain('username123');
+      expect((result.content[0] as { text: string }).text).toContain('accountId instead of username');
     });
 
     it('should default to jira component', () => {
@@ -393,8 +393,8 @@ describe('ErrorHandler', () => {
 
       const result = createUserNotFoundError(identifier);
 
-      expect(result.content[0].text).toContain('**User Not Found**');
-      expect(result.content[0].text).toContain('test-user');
+      expect((result.content[0] as { text: string }).text).toContain('**User Not Found**');
+      expect((result.content[0] as { text: string }).text).toContain('test-user');
     });
   });
 
@@ -413,7 +413,7 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(axiosError, mockContext);
 
-      expect(result.content[0].text).toContain('First error; Second error');
+      expect((result.content[0] as { text: string }).text).toContain('First error; Second error');
     });
 
     it('should extract Confluence error message', () => {
@@ -430,7 +430,7 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(axiosError, mockContext);
 
-      expect(result.content[0].text).toContain('Confluence specific error');
+      expect((result.content[0] as { text: string }).text).toContain('Confluence specific error');
     });
 
     it('should handle string response data', () => {
@@ -445,7 +445,7 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(axiosError, mockContext);
 
-      expect(result.content[0].text).toContain('Plain text error');
+      expect((result.content[0] as { text: string }).text).toContain('Plain text error');
     });
 
     it('should fallback to axios message when no response data', () => {
@@ -460,7 +460,7 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(axiosError, mockContext);
 
-      expect(result.content[0].text).toContain('Original axios error message');
+      expect((result.content[0] as { text: string }).text).toContain('Original axios error message');
     });
   });
 
@@ -483,7 +483,7 @@ describe('ErrorHandler', () => {
       };
 
       const result = createEnhancedError(axiosError, context);
-      const text = result.content[0].text;
+      const text = (result.content[0] as { text: string }).text;
 
       expect(text).toContain('**Error in JIRA**');
       expect(text).toContain('**Operation**: test operation');
@@ -498,8 +498,8 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(genericError, mockContext);
 
-      expect(result.content[0].text).toContain('**Type**: unknown');
-      expect(result.content[0].text).not.toContain('HTTP');
+      expect((result.content[0] as { text: string }).text).toContain('**Type**: unknown');
+      expect((result.content[0] as { text: string }).text).not.toContain('HTTP');
     });
   });
 });

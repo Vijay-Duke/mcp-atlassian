@@ -395,7 +395,7 @@ describe('ToolRegistry', () => {
 
       results.forEach((result, index) => {
         expect(result.isError).toBe(false);
-        expect(result.content[0].text).toBe(`Result from ${tools[index]}`);
+        expect((result.content[0] as { text: string }).text).toBe(`Result from ${tools[index]}`);
       });
     });
 
@@ -415,14 +415,14 @@ describe('ToolRegistry', () => {
       
       // Execute original
       let result = await registry.execute('override-test', {});
-      expect(result.content[0].text).toBe('Original');
+      expect((result.content[0] as { text: string }).text).toBe('Original');
 
       // Override tool
       registry.register({ name: 'override-test', handler: overrideHandler });
       
       // Execute override
       result = await registry.execute('override-test', {});
-      expect(result.content[0].text).toBe('Override');
+      expect((result.content[0] as { text: string }).text).toBe('Override');
 
       // Verify warning was logged
       expect(Logger.warn).toHaveBeenCalledWith('Tool override-test is being overridden');
