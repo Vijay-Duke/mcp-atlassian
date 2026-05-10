@@ -78,7 +78,9 @@ export class JiraHandlers {
       const entries = Object.entries(data.errors);
       if (entries.length > 0) {
         messages.push(
-          entries.map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`).join(', ')
+          entries
+            .map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`)
+            .join(', ')
         );
       }
     }
@@ -567,6 +569,48 @@ export class JiraHandlers {
       if (!transitionIdValidation.isValid)
         return createValidationError(transitionIdValidation.errors, 'transitionJiraIssue', 'jira');
 
+      // Read current issue status for transition validation and post-transition verification.
+      const currentIssue = await this.client.get(
+        `/rest/api/3/issue/${issueKeyValidation.sanitizedValue}`,
+        {
+          params: { fields: 'status,summary' },
+        }
+      );
+      const currentIssueStatus = this._statusCode(currentIssue);
+      if (currentIssueStatus >= 400) {
+        return this._errorResultFromResolvedResponse('Jira transition (pre-check)', currentIssue);
+      }
+      const previousStatus = currentIssue.data?.fields?.status?.name;
+
+      // Validate transitionId against currently available transitions for this issue.
+      const transitionsResponse = await this.client.get(
+        `/rest/api/3/issue/${issueKeyValidation.sanitizedValue}/transitions`
+      );
+      const transitionsStatus = this._statusCode(transitionsResponse);
+      if (transitionsStatus >= 400) {
+        return this._errorResultFromResolvedResponse(
+          'Jira transition (available transitions)',
+          transitionsResponse
+        );
+      }
+      const availableTransitions = Array.isArray(transitionsResponse.data?.transitions)
+        ? transitionsResponse.data.transitions
+        : [];
+      const requestedTransition = availableTransitions.find(
+        (t: any) => String(t?.id) === String(transitionIdValidation.sanitizedValue)
+      );
+      if (!requestedTransition) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Invalid transitionId '${transitionIdValidation.sanitizedValue}' for issue ${issueKeyValidation.sanitizedValue}.`,
+            },
+          ],
+          isError: true,
+        };
+      }
+
       // Build payload
       const payload: any = { transition: { id: transitionIdValidation.sanitizedValue } };
       if (comment) {
@@ -605,11 +649,30 @@ export class JiraHandlers {
       if (updatedStatus >= 400) {
         return this._errorResultFromResolvedResponse('Jira transition (verify)', updated);
       }
+      const newStatus = updated.data?.fields?.status?.name;
+      const expectedTargetStatus = requestedTransition?.to?.name;
+      if (
+        previousStatus &&
+        newStatus &&
+        expectedTargetStatus &&
+        previousStatus === newStatus &&
+        expectedTargetStatus !== previousStatus
+      ) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Transition '${transitionIdValidation.sanitizedValue}' did not change issue status (still '${newStatus}').`,
+            },
+          ],
+          isError: true,
+        };
+      }
 
       const result = {
         issueKey: issueKeyValidation.sanitizedValue,
         summary: updated.data.fields?.summary,
-        newStatus: updated.data.fields?.status?.name,
+        newStatus,
         transitionId: transitionIdValidation.sanitizedValue,
       };
 

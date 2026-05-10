@@ -1055,6 +1055,15 @@ describe('JiraHandlers', () => {
     });
 
     it('should return an error when transition API resolves with 4xx status', async () => {
+      (mockClient.get as any)
+        .mockResolvedValueOnce({
+          status: 200,
+          data: { fields: { status: { name: 'Open' }, summary: 'Test Issue' } },
+        })
+        .mockResolvedValueOnce({
+          status: 200,
+          data: { transitions: [{ id: '31', to: { name: 'In Progress' } }] },
+        });
       (mockClient.post as any).mockResolvedValue({
         status: 400,
         data: { errorMessages: ['Transition is invalid for this issue state'] },
@@ -1068,7 +1077,27 @@ describe('JiraHandlers', () => {
       expect(result.isError).toBe(true);
       expect((result.content[0] as any).text).toContain('Jira transition');
       expect((result.content[0] as any).text).toContain('API Error (400)');
-      expect(mockClient.get).not.toHaveBeenCalled();
+    });
+
+    it('should return an error when transitionId is not currently available on the issue', async () => {
+      (mockClient.get as any)
+        .mockResolvedValueOnce({
+          status: 200,
+          data: { fields: { status: { name: 'Open' }, summary: 'Test Issue' } },
+        })
+        .mockResolvedValueOnce({
+          status: 200,
+          data: { transitions: [{ id: '21', to: { name: 'Done' } }] },
+        });
+
+      const result = await handlers.transitionJiraIssue({
+        issueKey: 'TEST-1',
+        transitionId: '999999999',
+      });
+
+      expect(result.isError).toBe(true);
+      expect((result.content[0] as any).text).toContain("Invalid transitionId '999999999'");
+      expect(mockClient.post).not.toHaveBeenCalled();
     });
   });
   describe('Error handling', () => {
