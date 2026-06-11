@@ -1,7 +1,7 @@
 # Source files
 src/
 *.ts
-\!*.d.ts
+!*.d.ts
 
 # Test files
 **/__tests__/
@@ -13,7 +13,7 @@ coverage/
 # Development files
 .env
 .env.*
-\!.env.example
+!.env.example
 *.log
 npm-debug.log*
 
@@ -33,8 +33,8 @@ npm-debug.log*
 # Documentation source
 docs/
 *.md
-\!README.md
-\!LICENSE
+!README.md
+!LICENSE
 
 # Build files
 tsconfig.json
