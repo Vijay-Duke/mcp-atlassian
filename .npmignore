@@ -52,4 +52,3 @@ node_modules/
 tmp/
 temp/
 CODEOWNERS
-EOF < /dev/null
