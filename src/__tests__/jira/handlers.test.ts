@@ -82,6 +82,93 @@ describe('JiraHandlers', () => {
       expect((result.content[0] as any).text).toContain('issueKey cannot be empty');
     });
 
+    it('should accept issue keys with digits in project key', async () => {
+      const mockIssue = {
+        id: '10010',
+        key: 'TEST2-1',
+        fields: {
+          summary: 'Issue in project with digits',
+          description: null,
+          status: { name: 'Open' },
+          priority: { name: 'Medium' },
+          issuetype: { name: 'Task' },
+          assignee: null,
+          reporter: { displayName: 'Devashish' },
+          created: '2024-06-01T00:00:00.000Z',
+          updated: '2024-06-01T00:00:00.000Z',
+          resolutiondate: null,
+          labels: [],
+          components: [],
+        },
+        transitions: [],
+      };
+
+      (mockClient.get as any).mockResolvedValue({ data: mockIssue });
+
+      const result = await handlers.readJiraIssue({ issueKey: 'TEST2-1' });
+      expect(result.isError).toBeFalsy();
+      const data = JSON.parse((result.content[0] as any).text);
+      expect(data.key).toBe('TEST2-1');
+    });
+
+    it('should accept issue keys with multiple digits in project key', async () => {
+      const mockIssue = {
+        id: '10011',
+        key: 'T2EST3-100',
+        fields: {
+          summary: 'Mixed digits in project key',
+          description: null,
+          status: { name: 'Open' },
+          priority: null,
+          issuetype: { name: 'Bug' },
+          assignee: null,
+          reporter: null,
+          created: '2024-06-01T00:00:00.000Z',
+          updated: '2024-06-01T00:00:00.000Z',
+          resolutiondate: null,
+          labels: [],
+          components: [],
+        },
+        transitions: [],
+      };
+
+      (mockClient.get as any).mockResolvedValue({ data: mockIssue });
+
+      const result = await handlers.readJiraIssue({ issueKey: 'T2EST3-100' });
+      expect(result.isError).toBeFalsy();
+      const data = JSON.parse((result.content[0] as any).text);
+      expect(data.key).toBe('T2EST3-100');
+    });
+
+    it('should reject issue keys starting with a digit', async () => {
+      const result = await handlers.readJiraIssue({ issueKey: '2TEST-1' });
+      expect(result.isError).toBe(true);
+    });
+
+    it('should reject issue keys with lowercase letters', async () => {
+      const result = await handlers.readJiraIssue({ issueKey: 'test-1' });
+      expect(result.isError).toBe(true);
+    });
+
+    it('should accept issue keys with underscores in project key', async () => {
+      const mockIssue = {
+        id: '10012',
+        key: 'TE_ST-1',
+        fields: {
+          summary: 'Underscore in project key',
+          status: { name: 'Open' },
+          issuetype: { name: 'Bug' },
+          created: '2024-06-01T00:00:00.000Z',
+          updated: '2024-06-01T00:00:00.000Z',
+        },
+      };
+
+      (mockClient.get as any).mockResolvedValue({ data: mockIssue });
+
+      const result = await handlers.readJiraIssue({ issueKey: 'TE_ST-1' });
+      expect(result.isError).toBeFalsy();
+    });
+
     it('should handle API errors', async () => {
       (mockClient.get as any).mockRejectedValue(new Error('API Error'));
 
@@ -359,6 +446,48 @@ describe('JiraHandlers', () => {
 
       expect(result.isError).toBe(true);
       expect((result.content[0] as any).text).toBe('Creation failed');
+    });
+
+    it('should accept project keys with digits', async () => {
+      (mockClient.post as any).mockResolvedValue({
+        data: { id: '10005', key: 'TEST2-5' },
+      });
+
+      const result = await handlers.createJiraIssue({
+        projectKey: 'TEST2',
+        issueType: 'Task',
+        summary: 'Issue in alphanumeric project',
+      });
+
+      expect(result.isError).toBeFalsy();
+      expect(mockClient.post).toHaveBeenCalledWith(
+        '/rest/api/3/issue',
+        expect.objectContaining({
+          fields: expect.objectContaining({
+            project: { key: 'TEST2' },
+          }),
+        })
+      );
+    });
+
+    it('should reject project keys with underscores', async () => {
+      const result = await handlers.createJiraIssue({
+        projectKey: 'TE_ST',
+        issueType: 'Bug',
+        summary: 'Should fail',
+      });
+
+      expect(result.isError).toBe(true);
+    });
+
+    it('should reject project keys starting with a digit', async () => {
+      const result = await handlers.createJiraIssue({
+        projectKey: '2TEST',
+        issueType: 'Bug',
+        summary: 'Should fail',
+      });
+
+      expect(result.isError).toBe(true);
     });
   });
 
