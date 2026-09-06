@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosError } from 'axios';
+import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { AtlassianErrorResponse } from '../types/index.js';
 
@@ -31,7 +31,7 @@ export function createAtlassianClient(): AxiosInstance {
   }
 
   // Create axios config
-  const axiosConfig: any = {
+  const axiosConfig: AxiosRequestConfig = {
     baseURL,
     auth: {
       username: email,
@@ -47,14 +47,16 @@ export function createAtlassianClient(): AxiosInstance {
   };
 
   // Add proxy configuration using https-proxy-agent
-  const httpsProxy = process.env.HTTPS_PROXY || process.env.https_proxy;
-  const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy;
+  const proxyUrl =
+    process.env.HTTPS_PROXY ??
+    process.env.https_proxy ??
+    process.env.HTTP_PROXY ??
+    process.env.http_proxy;
 
-  if (httpsProxy || httpProxy) {
-    const proxyUrl = httpsProxy || httpProxy;
-    axiosConfig.httpsAgent = new HttpsProxyAgent(proxyUrl!);
+  if (proxyUrl) {
+    axiosConfig.httpsAgent = new HttpsProxyAgent(proxyUrl);
     // Also set httpAgent for completeness
-    axiosConfig.httpAgent = new HttpsProxyAgent(proxyUrl!);
+    axiosConfig.httpAgent = new HttpsProxyAgent(proxyUrl);
     // Disable axios's built-in proxy handling
     axiosConfig.proxy = false;
   }

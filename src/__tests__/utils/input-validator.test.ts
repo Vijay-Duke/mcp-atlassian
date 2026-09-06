@@ -63,11 +63,11 @@ describe('Input Validator', () => {
     });
 
     it('should handle null and undefined for optional fields', () => {
-      const nullResult = validateString(null as any, 'testField');
+      const nullResult = validateString(null, 'testField');
       expect(nullResult.isValid).toBe(true);
       expect(nullResult.sanitizedValue).toBe(undefined);
 
-      const undefinedResult = validateString(undefined as any, 'testField');
+      const undefinedResult = validateString(undefined, 'testField');
       expect(undefinedResult.isValid).toBe(true);
       expect(undefinedResult.sanitizedValue).toBe(undefined);
     });
@@ -85,7 +85,7 @@ describe('Input Validator', () => {
     });
 
     it('should reject non-string values', () => {
-      const result = validateString(123 as any, 'testField');
+      const result = validateString(123, 'testField');
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('testField must be a string');
     });
@@ -93,7 +93,7 @@ describe('Input Validator', () => {
 
   describe('validateNumber', () => {
     it('should validate required number', () => {
-      const result = validateNumber(undefined as any, 'testNumber', { required: true });
+      const result = validateNumber(undefined, 'testNumber', { required: true });
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('testNumber is required');
     });
@@ -129,7 +129,7 @@ describe('Input Validator', () => {
     });
 
     it('should reject non-numeric values', () => {
-      const result = validateNumber('not a number' as any, 'testNumber');
+      const result = validateNumber('not a number', 'testNumber');
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('testNumber must be a valid number');
     });
@@ -322,23 +322,23 @@ describe('Input Validator', () => {
     });
 
     it('should handle non-array input', () => {
-      const result = validateStringArray('not an array' as any, 'testArray');
+      const result = validateStringArray('not an array', 'testArray');
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('testArray must be an array');
     });
 
     it('should handle null/undefined for optional fields', () => {
-      const nullResult = validateStringArray(null as any, 'testArray');
+      const nullResult = validateStringArray(null, 'testArray');
       expect(nullResult.isValid).toBe(true);
       expect(nullResult.sanitizedValue).toBe(undefined);
 
-      const undefinedResult = validateStringArray(undefined as any, 'testArray');
+      const undefinedResult = validateStringArray(undefined, 'testArray');
       expect(undefinedResult.isValid).toBe(true);
       expect(undefinedResult.sanitizedValue).toBe(undefined);
     });
 
     it('should validate individual string items', () => {
-      const result = validateStringArray([123, 'valid'] as any, 'testArray');
+      const result = validateStringArray([123, 'valid'], 'testArray');
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('testArray[0] must be a string');
     });

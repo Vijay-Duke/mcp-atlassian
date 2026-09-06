@@ -188,7 +188,15 @@ export interface CreateJiraIssueArgs {
   assignee?: string;
   labels?: string[];
   components?: string[];
-  customFields?: Record<string, any>;
+  customFields?: Record<string, unknown>;
+}
+
+/** Atlassian Document Format node (comment/description bodies). */
+export interface AdfNode {
+  type: string;
+  text?: string;
+  content?: AdfNode[];
+  [key: string]: unknown;
 }
 
 export interface JiraIssueCreatePayload {
@@ -199,13 +207,13 @@ export interface JiraIssueCreatePayload {
     description?: {
       type: 'doc';
       version: 1;
-      content: any[];
+      content: AdfNode[];
     };
     priority?: { name: string };
     assignee?: { accountId: string };
     labels?: string[];
     components?: { name: string }[];
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -222,9 +230,12 @@ export interface JiraCommentPayload {
   body: {
     type: 'doc';
     version: 1;
-    content: any[];
+    content: AdfNode[];
   };
-  visibility?: any;
+  visibility?: {
+    type: 'group' | 'role';
+    value: string;
+  };
 }
 
 export interface ConfluencePagePayload {
@@ -364,7 +375,16 @@ export interface ConfluencePage {
   };
   version?: {
     number: number;
+    when?: string;
+    minorEdit?: boolean;
+    by?: { displayName?: string };
   };
+  history?: {
+    createdDate?: string;
+    createdBy?: { displayName?: string };
+    lastUpdated?: { when?: string; by?: { displayName?: string } };
+  };
+  ancestors?: Array<Pick<ConfluencePage, 'id' | 'title' | 'type' | 'status' | '_links'>>;
   body?: {
     storage?: {
       value: string;
@@ -406,7 +426,7 @@ export interface ConfluenceUser {
     height: number;
     isDefault: boolean;
   };
-  operations?: any[];
+  operations?: Array<Record<string, unknown>>;
   _links?: {
     self: string;
   };
@@ -425,7 +445,7 @@ export interface ConfluenceAttachment {
   metadata: {
     mediaType: string;
     labels: {
-      results: any[];
+      results: unknown[];
       size: number;
     };
   };
@@ -445,7 +465,43 @@ export interface JiraIssue {
   id: string;
   key: string;
   self: string;
-  fields: Record<string, any>;
+  fields: {
+    summary?: string;
+    status?: { name?: string };
+    priority?: { name?: string };
+    issuetype?: { name?: string };
+    assignee?: { displayName?: string; accountId?: string };
+    reporter?: { displayName?: string };
+    created?: string;
+    updated?: string;
+    resolutiondate?: string;
+    duedate?: string;
+    labels?: string[];
+    project?: { key?: string };
+    components?: Array<{ name?: string }>;
+    sprint?: { name?: string };
+    resolution?: { name?: string };
+    comment?: {
+      comments?: Array<{
+        author?: { accountId?: string };
+        created?: string;
+        body?: string | { content?: AdfNode[] };
+      }>;
+    };
+    worklog?: {
+      worklogs?: Array<{
+        author?: { accountId?: string };
+        timeSpentSeconds?: number;
+        timeSpent?: string;
+        started?: string;
+        created?: string;
+        updated?: string;
+        comment?: string | { content?: AdfNode[] };
+        updateAuthor?: { displayName?: string };
+      }>;
+    };
+    [key: string]: unknown;
+  };
   transitions?: Array<{
     id: string;
     name: string;
@@ -560,15 +616,6 @@ export interface UserJiraWorklogResponse {
   worklogs: WorklogEntry[];
 }
 
-export interface UserIssueSearchResponse {
-  searchType: string;
-  user: string;
-  totalIssues: number;
-  startAt: number;
-  maxResults: number;
-  issues: IssueSearchResult[];
-}
-
 export interface IssueSearchResult {
   key: string;
   summary: string;
@@ -582,21 +629,4 @@ export interface IssueSearchResult {
   created: string;
   updated: string;
   webUrl: string;
-}
-
-export interface UserProfileResponse {
-  accountId: string;
-  displayName: string;
-  emailAddress?: string;
-  active: boolean;
-  timeZone?: string;
-  accountType?: string;
-  avatarUrls?: {
-    '48x48': string;
-    '24x24': string;
-    '16x16': string;
-    '32x32': string;
-  };
-  profileUrl: string;
-  source: 'api' | 'cache';
 }

@@ -29,7 +29,7 @@ describe('Confluence Tools', () => {
     it('should have non-empty names and descriptions', () => {
       confluenceTools.forEach((tool) => {
         expect(tool.name.length).toBeGreaterThan(0);
-        expect((tool.description || '').length).toBeGreaterThan(0);
+        expect((tool.description ?? '').length).toBeGreaterThan(0);
       });
     });
 
@@ -49,7 +49,7 @@ describe('Confluence Tools', () => {
 
       expect(currentUserTool).toBeDefined();
       expect(currentUserTool?.description).toContain('current user');
-      expect(Object.keys(currentUserTool?.inputSchema.properties || {})).toHaveLength(0);
+      expect(Object.keys(currentUserTool?.inputSchema.properties ?? {})).toHaveLength(0);
     });
 
     it('should include get_confluence_user with proper schema', () => {
@@ -58,7 +58,7 @@ describe('Confluence Tools', () => {
       expect(getUserTool).toBeDefined();
       expect(getUserTool?.description).toContain('specific');
 
-      const properties = getUserTool?.inputSchema.properties || {};
+      const properties = getUserTool?.inputSchema.properties ?? {};
       expect(properties).toHaveProperty('username');
       expect(properties).toHaveProperty('accountId');
       expect(properties).toHaveProperty('email');
@@ -70,7 +70,7 @@ describe('Confluence Tools', () => {
       expect(readPageTool).toBeDefined();
       expect(readPageTool?.description).toContain('page');
 
-      const properties = readPageTool?.inputSchema.properties || {};
+      const properties = readPageTool?.inputSchema.properties ?? {};
       expect(properties).toHaveProperty('pageId');
       expect(properties).toHaveProperty('title');
       expect(properties).toHaveProperty('spaceKey');
@@ -80,9 +80,9 @@ describe('Confluence Tools', () => {
       const searchTool = confluenceTools.find((tool) => tool.name === 'search_confluence_pages');
 
       expect(searchTool).toBeDefined();
-      expect(searchTool?.description || '').toContain('search');
+      expect(searchTool?.description ?? '').toContain('search');
 
-      const properties = searchTool?.inputSchema.properties || {};
+      const properties = searchTool?.inputSchema.properties ?? {};
       expect(properties).toHaveProperty('cql');
       expect((properties.cql as any)?.type).toBe('string');
     });
@@ -93,7 +93,7 @@ describe('Confluence Tools', () => {
       expect(listSpacesTool).toBeDefined();
       expect(listSpacesTool?.description).toContain('spaces');
 
-      const properties = listSpacesTool?.inputSchema.properties || {};
+      const properties = listSpacesTool?.inputSchema.properties ?? {};
       expect(properties).toHaveProperty('type');
       expect(properties).toHaveProperty('status');
     });
@@ -102,9 +102,9 @@ describe('Confluence Tools', () => {
       const createPageTool = confluenceTools.find((tool) => tool.name === 'create_confluence_page');
 
       expect(createPageTool).toBeDefined();
-      expect((createPageTool?.description || '').toLowerCase()).toContain('create');
+      expect((createPageTool?.description ?? '').toLowerCase()).toContain('create');
 
-      const properties = createPageTool?.inputSchema.properties || {};
+      const properties = createPageTool?.inputSchema.properties ?? {};
       expect(properties).toHaveProperty('spaceKey');
       expect(properties).toHaveProperty('title');
       expect(properties).toHaveProperty('content');
@@ -118,7 +118,7 @@ describe('Confluence Tools', () => {
       expect(updatePageTool).toBeDefined();
       expect(updatePageTool?.description).toContain('update');
 
-      const properties = updatePageTool?.inputSchema.properties || {};
+      const properties = updatePageTool?.inputSchema.properties ?? {};
       expect(properties).toHaveProperty('pageId');
       expect(properties).toHaveProperty('version');
       expect(properties).toHaveProperty('title');
@@ -151,7 +151,7 @@ describe('Confluence Tools', () => {
 
       expect(userSearchTool).toBeDefined();
 
-      const properties = userSearchTool?.inputSchema.properties || {};
+      const properties = userSearchTool?.inputSchema.properties ?? {};
       expect(properties).toHaveProperty('searchType');
       expect(properties.searchType).toHaveProperty('enum');
       expect((properties.searchType as any)?.enum).toContain('creator');
@@ -163,7 +163,7 @@ describe('Confluence Tools', () => {
 
       expect(exportTool).toBeDefined();
 
-      const properties = exportTool?.inputSchema.properties || {};
+      const properties = exportTool?.inputSchema.properties ?? {};
       expect(properties).toHaveProperty('format');
       expect(properties.format).toHaveProperty('enum');
       expect((properties.format as any)?.enum).toContain('html');
@@ -174,9 +174,9 @@ describe('Confluence Tools', () => {
   describe('schema validation', () => {
     it('should have proper enum definitions where applicable', () => {
       confluenceTools.forEach((tool) => {
-        const properties = tool.inputSchema.properties || {};
+        const properties = tool.inputSchema.properties ?? {};
 
-        Object.entries(properties).forEach(([key, property]: [string, any]) => {
+        Object.entries(properties).forEach(([, property]: [string, any]) => {
           if (property.enum) {
             expect(Array.isArray(property.enum)).toBe(true);
             expect(property.enum.length).toBeGreaterThan(0);
@@ -191,9 +191,9 @@ describe('Confluence Tools', () => {
 
     it('should have descriptions for all properties', () => {
       confluenceTools.forEach((tool) => {
-        const properties = tool.inputSchema.properties || {};
+        const properties = tool.inputSchema.properties ?? {};
 
-        Object.entries(properties).forEach(([key, property]: [string, any]) => {
+        Object.entries(properties).forEach(([, property]: [string, any]) => {
           expect(property).toHaveProperty('description');
           expect(typeof property.description).toBe('string');
           expect(property.description.length).toBeGreaterThan(0);
@@ -203,9 +203,9 @@ describe('Confluence Tools', () => {
 
     it('should have appropriate types for properties', () => {
       confluenceTools.forEach((tool) => {
-        const properties = tool.inputSchema.properties || {};
+        const properties = tool.inputSchema.properties ?? {};
 
-        Object.entries(properties).forEach(([key, property]: [string, any]) => {
+        Object.entries(properties).forEach(([, property]: [string, any]) => {
           expect(property).toHaveProperty('type');
           expect(['string', 'number', 'boolean', 'object', 'array']).toContain(property.type);
         });
@@ -282,7 +282,7 @@ describe('Confluence Tools', () => {
         // Delete is typically not implemented for safety
       ];
 
-      crudOperations.forEach(({ action, name }) => {
+      crudOperations.forEach(({ name }) => {
         const tool = confluenceTools.find((t) => t.name === name);
         expect(tool).toBeDefined();
       });
@@ -291,7 +291,7 @@ describe('Confluence Tools', () => {
     it('should support user-centric operations', () => {
       const userOperations = confluenceTools.filter(
         (tool) =>
-          tool.name.includes('user') || (tool.description || '').toLowerCase().includes('user')
+          tool.name.includes('user') || (tool.description ?? '').toLowerCase().includes('user')
       );
 
       expect(userOperations.length).toBeGreaterThan(2);

@@ -141,8 +141,12 @@ export class ExportConverter {
         // to arbitrary internal or external services.
         if (imageUrl.startsWith('http')) {
           try {
+            if (!client.defaults.baseURL) {
+              Logger.warn('Client base URL not configured; skipping image URL validation');
+              continue;
+            }
             const url = new URL(imageUrl);
-            const clientBaseUrl = new URL(client.defaults.baseURL!);
+            const clientBaseUrl = new URL(client.defaults.baseURL);
             if (url.hostname !== clientBaseUrl.hostname) {
               Logger.warn(`Skipping external image from different domain: ${imageUrl}`);
               continue; // Skip images from other domains
@@ -165,7 +169,8 @@ export class ExportConverter {
         });
 
         if (response.status === 200 && response.data) {
-          let mimeType = response.headers['content-type'] || 'image/png';
+          const rawContentType = response.headers['content-type'];
+          let mimeType = typeof rawContentType === 'string' ? rawContentType : 'image/png';
           if (!mimeType.startsWith('image/')) {
             if (imageUrl.includes('.png')) mimeType = 'image/png';
             else if (imageUrl.includes('.jpg') || imageUrl.includes('.jpeg'))
@@ -332,9 +337,9 @@ ${metadata.sourceUrl ? `source: ${metadata.sourceUrl}` : ''}
 # ${metadata.title}
 
 ${metadata.space ? `> **Space:** ${metadata.space}  ` : ''}
-${metadata.modified ? `> **Last Modified:** ${metadata.modified.toLocaleDateString()}  ` : ''}
+${metadata.modified ? `> **Last Modified:** ${metadata.modified.toLocaleDateString('en-US', { timeZone: 'UTC' })}  ` : ''}
 ${metadata.version ? `> **Version:** ${metadata.version}  ` : ''}
-> **Exported:** ${new Date().toLocaleDateString()}
+> **Exported:** ${new Date().toLocaleDateString('en-US', { timeZone: 'UTC' })}
 
 ---
 
@@ -345,7 +350,7 @@ ${content}
 ## Export Information
 
 - **Page ID:** ${metadata.pageId}
-- **Export Date:** ${new Date().toLocaleString()}
+- **Export Date:** ${new Date().toLocaleString('en-US', { timeZone: 'UTC' })}
 ${metadata.sourceUrl ? `- **Source URL:** ${metadata.sourceUrl}` : ''}
 `;
 

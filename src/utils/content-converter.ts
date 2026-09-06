@@ -26,7 +26,7 @@ export class ContentConverter {
 
     // Convert code blocks
     html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
-      const language = lang || 'none';
+      const language = lang ?? 'none';
       return `<ac:structured-macro ac:name="code"><ac:parameter ac:name="language">${language}</ac:parameter><ac:plain-text-body><![CDATA[${code.trim()}]]></ac:plain-text-body></ac:structured-macro>`;
     });
 

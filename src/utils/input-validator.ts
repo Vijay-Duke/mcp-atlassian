@@ -6,6 +6,8 @@
 export interface ValidationResult {
   isValid: boolean;
   errors: string[];
+  // ponytail: honest contract — sanitized output shape varies per validator; tighten to a generic when consumers type their results
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sanitizedValue?: any;
 }
 
@@ -137,7 +139,7 @@ export function validateDateRange(startDate?: string, endDate?: string): Validat
  * Validates array of strings with optional pattern matching
  */
 export function validateStringArray(
-  value: any,
+  value: unknown,
   fieldName: string,
   options: {
     required?: boolean;
@@ -217,7 +219,7 @@ export function validateStringArray(
  * Validates string with length and pattern constraints
  */
 export function validateString(
-  value: any,
+  value: unknown,
   fieldName: string,
   options: {
     required?: boolean;
@@ -283,7 +285,7 @@ export function validateString(
  * Validates numeric values
  */
 export function validateNumber(
-  value: any,
+  value: unknown,
   fieldName: string,
   options: {
     required?: boolean;
@@ -344,7 +346,7 @@ export function validateNumber(
  * Validates enum values
  */
 export function validateEnum<T extends string>(
-  value: any,
+  value: unknown,
   fieldName: string,
   allowedValues: T[],
   required: boolean = false
@@ -391,7 +393,7 @@ export function validateUserIdentification(args: {
   email?: string;
 }): ValidationResult {
   const errors: string[] = [];
-  const result: any = {};
+  const result: Record<string, unknown> = {};
 
   // At least one identifier must be provided
   if (!args.username && !args.accountId && !args.email) {

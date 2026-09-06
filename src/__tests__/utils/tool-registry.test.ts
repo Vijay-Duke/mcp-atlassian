@@ -43,7 +43,9 @@ describe('ToolRegistry', () => {
       registry.register(toolDefinition);
 
       expect(registry.hasTool('test-tool')).toBe(true);
-      expect(Logger.debug).toHaveBeenCalledWith('Registered tool: test-tool', { tool: 'test-tool' });
+      expect(Logger.debug).toHaveBeenCalledWith('Registered tool: test-tool', {
+        tool: 'test-tool',
+      });
     });
 
     it('should warn when overriding an existing tool', () => {
@@ -132,11 +134,10 @@ describe('ToolRegistry', () => {
         content: [{ type: 'text', text: 'Unknown tool: unknown-tool' }],
         isError: true,
       });
-      expect(Logger.logError).toHaveBeenCalledWith(
-        'tool-execution',
-        expect.any(Error),
-        { tool: 'unknown-tool', requestId }
-      );
+      expect(Logger.logError).toHaveBeenCalledWith('tool-execution', expect.any(Error), {
+        tool: 'unknown-tool',
+        requestId,
+      });
     });
 
     it('should validate args when validator is provided', async () => {
@@ -176,21 +177,19 @@ describe('ToolRegistry', () => {
       expect(failingValidator).toHaveBeenCalledWith(args);
       expect(mockHandler).not.toHaveBeenCalled();
       expect(result).toEqual({
-        content: [{ 
-          type: 'text', 
-          text: 'Validation failed for tool failing-tool: Missing required field, Invalid format' 
-        }],
+        content: [
+          {
+            type: 'text',
+            text: 'Validation failed for tool failing-tool: Missing required field, Invalid format',
+          },
+        ],
         isError: true,
       });
-      expect(Logger.logError).toHaveBeenCalledWith(
-        'tool-validation',
-        expect.any(Error),
-        {
-          tool: 'failing-tool',
-          requestId,
-          validationErrors: ['Missing required field', 'Invalid format'],
-        }
-      );
+      expect(Logger.logError).toHaveBeenCalledWith('tool-validation', expect.any(Error), {
+        tool: 'failing-tool',
+        requestId,
+        validationErrors: ['Missing required field', 'Invalid format'],
+      });
     });
 
     it('should use original args when validator returns no validatedArgs', async () => {
@@ -229,15 +228,11 @@ describe('ToolRegistry', () => {
         content: [{ type: 'text', text: 'Tool execution failed' }],
         isError: true,
       });
-      expect(Logger.logError).toHaveBeenCalledWith(
-        'tool-error-tool',
-        expect.any(Error),
-        {
-          tool: 'error-tool',
-          requestId,
-          duration: expect.any(Number),
-        }
-      );
+      expect(Logger.logError).toHaveBeenCalledWith('tool-error-tool', expect.any(Error), {
+        tool: 'error-tool',
+        requestId,
+        duration: expect.any(Number),
+      });
     });
 
     it('should handle non-Error exceptions', async () => {
@@ -321,7 +316,7 @@ describe('ToolRegistry', () => {
 
     it('should return tools in registration order', () => {
       const toolNames = ['alpha', 'beta', 'gamma'];
-      toolNames.forEach(name => {
+      toolNames.forEach((name) => {
         registry.register({ name, handler: mockHandler });
       });
 
@@ -378,8 +373,8 @@ describe('ToolRegistry', () => {
 
     it('should handle multiple tools with same execution flow', async () => {
       const tools = ['tool-a', 'tool-b', 'tool-c'];
-      
-      tools.forEach(name => {
+
+      tools.forEach((name) => {
         registry.register({
           name,
           handler: vi.fn().mockResolvedValue({
@@ -390,7 +385,7 @@ describe('ToolRegistry', () => {
       });
 
       const results = await Promise.all(
-        tools.map(name => registry.execute(name, { tool: name }))
+        tools.map((name) => registry.execute(name, { tool: name }))
       );
 
       results.forEach((result, index) => {
@@ -404,7 +399,7 @@ describe('ToolRegistry', () => {
         content: [{ type: 'text', text: 'Original' }],
         isError: false,
       });
-      
+
       const overrideHandler = vi.fn().mockResolvedValue({
         content: [{ type: 'text', text: 'Override' }],
         isError: false,
@@ -412,14 +407,14 @@ describe('ToolRegistry', () => {
 
       // Register original tool
       registry.register({ name: 'override-test', handler: originalHandler });
-      
+
       // Execute original
       let result = await registry.execute('override-test', {});
       expect((result.content[0] as { text: string }).text).toBe('Original');
 
       // Override tool
       registry.register({ name: 'override-test', handler: overrideHandler });
-      
+
       // Execute override
       result = await registry.execute('override-test', {});
       expect((result.content[0] as { text: string }).text).toBe('Override');

@@ -39,7 +39,7 @@ describe('Logger', () => {
     vi.clearAllMocks();
     // Get the mock logger instance
     mockWinstonLogger = (winston as any).createLogger();
-    
+
     // Reset environment variables
     delete process.env.LOG_LEVEL;
     delete process.env.NODE_ENV;
@@ -180,7 +180,7 @@ describe('Logger', () => {
   describe('logRequest', () => {
     it('should log request start with operation and timestamp', () => {
       const context: LogContext = { userId: 'user123', tool: 'test-tool' };
-      
+
       // Mock Date.prototype.toISOString
       const mockDate = '2023-01-01T00:00:00.000Z';
       vi.spyOn(Date.prototype, 'toISOString').mockReturnValue(mockDate);
@@ -266,7 +266,7 @@ describe('Logger', () => {
         expect.objectContaining({
           userId: 'user123',
           operation: 'test-operation',
-          error: error,
+          error,
           errorMessage: 'Test error',
           errorStack: 'Error: Test error\n    at test.js:1:1',
           timestamp: mockDate,
@@ -285,7 +285,7 @@ describe('Logger', () => {
         'Failed simple-operation',
         expect.objectContaining({
           operation: 'simple-operation',
-          error: error,
+          error,
           errorMessage: 'Simple error',
           errorStack: error.stack,
           timestamp: mockDate,
@@ -307,7 +307,7 @@ describe('Logger', () => {
         expect.objectContaining({
           tool: 'test-tool',
           userId: 'user123',
-          metadata: metadata,
+          metadata,
           timestamp: mockDate,
         })
       );
@@ -570,10 +570,26 @@ describe('Logger', () => {
       Logger.logResponse('get-confluence-page', 1500, requestContext);
 
       expect(mockWinstonLogger.info).toHaveBeenCalledTimes(4);
-      expect(mockWinstonLogger.info).toHaveBeenNthCalledWith(1, 'Starting get-confluence-page', expect.any(Object));
-      expect(mockWinstonLogger.info).toHaveBeenNthCalledWith(2, 'Tool called: get-page', expect.any(Object));
-      expect(mockWinstonLogger.info).toHaveBeenNthCalledWith(3, 'Performance: get-confluence-page took 1500ms', expect.any(Object));
-      expect(mockWinstonLogger.info).toHaveBeenNthCalledWith(4, 'Completed get-confluence-page', expect.any(Object));
+      expect(mockWinstonLogger.info).toHaveBeenNthCalledWith(
+        1,
+        'Starting get-confluence-page',
+        expect.any(Object)
+      );
+      expect(mockWinstonLogger.info).toHaveBeenNthCalledWith(
+        2,
+        'Tool called: get-page',
+        expect.any(Object)
+      );
+      expect(mockWinstonLogger.info).toHaveBeenNthCalledWith(
+        3,
+        'Performance: get-confluence-page took 1500ms',
+        expect.any(Object)
+      );
+      expect(mockWinstonLogger.info).toHaveBeenNthCalledWith(
+        4,
+        'Completed get-confluence-page',
+        expect.any(Object)
+      );
     });
 
     it('should handle error scenario with context propagation', () => {
@@ -601,7 +617,7 @@ describe('Logger', () => {
           requestId: 'req456',
           tool: 'failing-tool',
           operation: 'network-operation',
-          error: error,
+          error,
           errorMessage: 'Network timeout',
           metadata: {
             attempt: 1,

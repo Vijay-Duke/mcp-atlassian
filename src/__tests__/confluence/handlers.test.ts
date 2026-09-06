@@ -222,7 +222,7 @@ describe('ConfluenceHandlers', () => {
         data: { results: [], totalSize: 50, start: 10, limit: 10 },
       });
 
-      const result = await handlers.searchConfluencePages({
+      await handlers.searchConfluencePages({
         cql: 'type = page',
         start: 10,
         limit: 10,

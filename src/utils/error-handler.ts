@@ -8,7 +8,7 @@ import { AxiosError } from 'axios';
 
 export interface ErrorContext {
   operation: string;
-  userInput?: Record<string, any>;
+  userInput?: Record<string, unknown>;
   suggestions?: string[];
   component: 'jira' | 'confluence' | 'validation' | 'cache';
 }
@@ -105,14 +105,14 @@ function analyzeError(error: unknown, context: ErrorContext): EnhancedError {
  */
 function analyzeAxiosError(error: AxiosError, context: ErrorContext): EnhancedError {
   const status = error.response?.status;
-  const responseData = error.response?.data as any;
+  const responseData = error.response?.data;
 
   switch (status) {
     case 400:
       return {
         type: 'validation',
         message: 'Bad request - Invalid parameters',
-        details: getApiErrorDetails(responseData) || error.message,
+        details: detailOr(getApiErrorDetails(responseData), error.message),
         suggestions: [
           'Verify all parameters are correctly formatted',
           'Check that project keys exist and are accessible',
@@ -144,8 +144,10 @@ function analyzeAxiosError(error: AxiosError, context: ErrorContext): EnhancedEr
       return {
         type: 'permission',
         message: 'Permission denied',
-        details:
-          getApiErrorDetails(responseData) || 'You do not have permission to access this resource',
+        details: detailOr(
+          getApiErrorDetails(responseData),
+          'You do not have permission to access this resource'
+        ),
         suggestions: [
           'Check that your user has the necessary permissions in Jira/Confluence',
           'Verify the project or space is accessible to your account',
@@ -161,7 +163,10 @@ function analyzeAxiosError(error: AxiosError, context: ErrorContext): EnhancedEr
       return {
         type: 'notFound',
         message: 'Resource not found',
-        details: getApiErrorDetails(responseData) || 'The requested resource could not be found',
+        details: detailOr(
+          getApiErrorDetails(responseData),
+          'The requested resource could not be found'
+        ),
         suggestions: getNotFoundSuggestions(context),
         retryable: false,
         statusCode: 404,
@@ -223,25 +228,32 @@ function analyzeAxiosError(error: AxiosError, context: ErrorContext): EnhancedEr
 /**
  * Extracts detailed error information from Atlassian API responses
  */
-function getApiErrorDetails(responseData: any): string | null {
+function getApiErrorDetails(responseData: unknown): string | null {
   if (!responseData) return null;
+  if (typeof responseData === 'string') return responseData;
+  if (typeof responseData !== 'object') return null;
+
+  const data = responseData as Record<string, unknown>;
 
   // Jira error format
-  if (responseData.errorMessages && Array.isArray(responseData.errorMessages)) {
-    return responseData.errorMessages.join('; ');
+  if (Array.isArray(data.errorMessages)) {
+    return data.errorMessages.map((m) => String(m)).join('; ');
   }
 
   // Confluence error format
-  if (responseData.message) {
-    return responseData.message;
-  }
-
-  // Generic error details
-  if (typeof responseData === 'string') {
-    return responseData;
+  if (data.message) {
+    return typeof data.message === 'string' ? data.message : JSON.stringify(data.message);
   }
 
   return null;
+}
+
+/** Picks the API detail if non-empty, else the fallback. */
+function detailOr(apiDetail: string | null, fallback: string): string {
+  if (apiDetail === null || apiDetail === '') {
+    return fallback;
+  }
+  return apiDetail;
 }
 
 /**

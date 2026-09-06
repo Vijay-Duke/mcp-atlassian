@@ -45,6 +45,7 @@ import {
   validateStringArray,
 } from '../utils/input-validator.js';
 import { createValidationError } from '../utils/error-handler.js';
+import { validateAccountId } from '../utils/jql-sanitizer.js';
 
 export class ConfluenceHandlers {
   constructor(private client: AxiosInstance) {}
@@ -173,13 +174,13 @@ export class ConfluenceHandlers {
       const response = await this.client.get('/wiki/rest/api/content/search', {
         params: {
           cql: cqlValidation.sanitizedValue,
-          limit: paginationValidation.sanitizedValue!.maxResults,
-          start: paginationValidation.sanitizedValue!.startAt,
+          limit: paginationValidation.sanitizedValue?.maxResults ?? 50,
+          start: paginationValidation.sanitizedValue?.startAt ?? 0,
           expand,
         },
       });
 
-      const results = (response.data.results || []).map((page: ConfluencePage) => ({
+      const results = (response.data.results ?? []).map((page: ConfluencePage) => ({
         id: page.id,
         title: page.title,
         type: page.type,
@@ -217,9 +218,9 @@ export class ConfluenceHandlers {
           'confluence'
         );
 
-      const params: any = {
-        limit: paginationValidation.sanitizedValue!.maxResults,
-        start: paginationValidation.sanitizedValue!.startAt,
+      const params: Record<string, unknown> = {
+        limit: paginationValidation.sanitizedValue?.maxResults ?? 50,
+        start: paginationValidation.sanitizedValue?.startAt ?? 0,
         status,
       };
 
@@ -232,7 +233,7 @@ export class ConfluenceHandlers {
 
       const response = await this.client.get('/wiki/rest/api/space', { params });
 
-      const results = (response.data.results || []).map((space: ConfluenceSpace) => ({
+      const results = (response.data.results ?? []).map((space: ConfluenceSpace) => ({
         id: space.id,
         key: space.key,
         name: space.name,
@@ -279,9 +280,9 @@ export class ConfluenceHandlers {
           'confluence'
         );
 
-      const params: any = {
-        limit: paginationValidation.sanitizedValue!.maxResults,
-        start: paginationValidation.sanitizedValue!.startAt,
+      const params: Record<string, unknown> = {
+        limit: paginationValidation.sanitizedValue?.maxResults ?? 50,
+        start: paginationValidation.sanitizedValue?.startAt ?? 0,
       };
 
       if (mediaType) {
@@ -313,7 +314,7 @@ export class ConfluenceHandlers {
         }
       );
 
-      const attachments = (response.data.results || []).map((attachment: ConfluenceAttachment) => ({
+      const attachments = (response.data.results ?? []).map((attachment: ConfluenceAttachment) => ({
         id: attachment.id,
         title: attachment.title,
         mediaType: attachment.extensions.mediaType,
@@ -481,7 +482,11 @@ export class ConfluenceHandlers {
       );
 
       const page = pageResponse.data;
-      const result: any = {
+      const result: {
+        page: Record<string, unknown>;
+        attachments: Array<Record<string, unknown>>;
+        summary?: Record<string, number>;
+      } = {
         page: {
           id: page.id,
           title: page.title,
@@ -499,7 +504,7 @@ export class ConfluenceHandlers {
           },
           ancestors: page.ancestors ?? [],
         },
-        attachments: [],
+        attachments: [] as Array<Record<string, unknown>>,
       };
 
       if (includeAttachments) {
@@ -587,9 +592,10 @@ export class ConfluenceHandlers {
         // Add summary
         result.summary = {
           totalAttachments: attachments.length,
-          downloadedAttachments: downloadedAttachments.filter((a: any) => a.base64Data).length,
-          skippedAttachments: result.attachments.filter((a: any) => a.skipped).length,
-          failedAttachments: downloadedAttachments.filter((a: any) => a.error && !a.skipped).length,
+          downloadedAttachments: downloadedAttachments.filter((a) => 'base64Data' in a).length,
+          skippedAttachments: result.attachments.filter((a) => 'skipped' in a).length,
+          failedAttachments: downloadedAttachments.filter((a) => 'error' in a && !('skipped' in a))
+            .length,
         };
       }
 
@@ -643,9 +649,9 @@ export class ConfluenceHandlers {
 
       const requestBody: ConfluencePagePayload = {
         type,
-        title: titleValidation.sanitizedValue!,
+        title: titleValidation.sanitizedValue ?? '',
         space: {
-          key: spaceKeyValidation.sanitizedValue!,
+          key: spaceKeyValidation.sanitizedValue ?? '',
         },
         body: {
           storage: {
@@ -714,12 +720,12 @@ export class ConfluenceHandlers {
 
       // Prepare update request
       const requestBody: ConfluencePageUpdatePayload = {
-        id: pageIdValidation.sanitizedValue!,
+        id: pageIdValidation.sanitizedValue ?? '',
         type: currentPage.type,
-        title: title || currentPage.title,
+        title: title ?? currentPage.title,
         space: currentPage.space,
         version: {
-          number: versionValidation.sanitizedValue!,
+          number: versionValidation.sanitizedValue ?? 0,
           minorEdit,
         },
         body: currentPage.body,
@@ -827,7 +833,7 @@ export class ConfluenceHandlers {
       const requestBody: ConfluenceCommentPayload = {
         type: 'comment',
         container: {
-          id: pageIdValidation.sanitizedValue!,
+          id: pageIdValidation.sanitizedValue ?? '',
           type: 'page',
         },
         body: {
@@ -881,9 +887,9 @@ export class ConfluenceHandlers {
         );
 
       // Build query parameters
-      const params: any = {
-        limit: paginationValidation.sanitizedValue!.maxResults,
-        start: paginationValidation.sanitizedValue!.startAt,
+      const params: Record<string, unknown> = {
+        limit: paginationValidation.sanitizedValue?.maxResults ?? 50,
+        start: paginationValidation.sanitizedValue?.startAt ?? 0,
       };
 
       if (cql) {
@@ -966,20 +972,30 @@ export class ConfluenceHandlers {
       }
 
       const users =
-        response.data.results?.map((user: any) => ({
-          userKey: user.userKey,
-          username: user.username,
-          accountId: user.accountId,
-          displayName: user.displayName,
-          email: user.email,
-          profilePicture: user.profilePicture,
-          active: user.active,
-        })) || [];
+        response.data.results?.map(
+          (user: {
+            userKey?: string;
+            username?: string;
+            accountId?: string;
+            displayName?: string;
+            email?: string;
+            profilePicture?: unknown;
+            active?: boolean;
+          }) => ({
+            userKey: user.userKey,
+            username: user.username,
+            accountId: user.accountId,
+            displayName: user.displayName,
+            email: user.email,
+            profilePicture: user.profilePicture,
+            active: user.active,
+          })
+        ) ?? [];
 
       const result = {
-        totalResults: response.data.size || users.length,
-        startAt: response.data.start || start,
-        limit: response.data.limit || limit,
+        totalResults: response.data.size ?? users.length,
+        startAt: response.data.start ?? start,
+        limit: response.data.limit ?? limit,
         users,
       };
 
@@ -1010,9 +1026,9 @@ export class ConfluenceHandlers {
           'confluence'
         );
 
-      const params: any = {
-        limit: paginationValidation.sanitizedValue!.maxResults,
-        start: paginationValidation.sanitizedValue!.startAt,
+      const params: Record<string, unknown> = {
+        limit: paginationValidation.sanitizedValue?.maxResults ?? 50,
+        start: paginationValidation.sanitizedValue?.startAt ?? 0,
       };
 
       if (prefix) {
@@ -1032,18 +1048,20 @@ export class ConfluenceHandlers {
       );
 
       const labels =
-        response.data.results?.map((label: any) => ({
-          prefix: label.prefix,
-          name: label.name,
-          id: label.id,
-          label: label.label,
-        })) || [];
+        response.data.results?.map(
+          (label: { prefix?: string; name?: string; id?: string; label?: string }) => ({
+            prefix: label.prefix,
+            name: label.name,
+            id: label.id,
+            label: label.label,
+          })
+        ) ?? [];
 
       const result = {
         pageId,
-        totalResults: response.data.size || labels.length,
-        startAt: response.data.start || start,
-        limit: response.data.limit || limit,
+        totalResults: response.data.size ?? labels.length,
+        startAt: response.data.start ?? start,
+        limit: response.data.limit ?? limit,
         labels,
       };
 
@@ -1077,7 +1095,7 @@ export class ConfluenceHandlers {
 
       // Format labels for the API
       const formattedLabels = labels.map((label) => ({
-        prefix: label.prefix || 'global',
+        prefix: label.prefix ?? 'global',
         name: label.name,
       }));
 
@@ -1087,12 +1105,14 @@ export class ConfluenceHandlers {
       );
 
       const addedLabels =
-        response.data.results?.map((label: any) => ({
-          prefix: label.prefix,
-          name: label.name,
-          id: label.id,
-          label: label.label,
-        })) || [];
+        response.data.results?.map(
+          (label: { prefix?: string; name?: string; id?: string; label?: string }) => ({
+            prefix: label.prefix,
+            name: label.name,
+            id: label.id,
+            label: label.label,
+          })
+        ) ?? [];
 
       const result = {
         pageId,
@@ -1150,7 +1170,7 @@ export class ConfluenceHandlers {
       // Sanitize the HTML content immediately after retrieving it to prevent XSS.
       htmlContent = sanitizeHtml(htmlContent);
       const title = page.title;
-      const baseUrl = this.client.defaults.baseURL || '';
+      const baseUrl = this.client.defaults.baseURL ?? '';
 
       Logger.debug(`Page retrieved: "${title}", processing content...`);
 
@@ -1185,7 +1205,7 @@ export class ConfluenceHandlers {
           version: page.version?.number,
           modified: page.version?.when ? new Date(page.version.when) : undefined,
           pageId,
-          sourceUrl: `${baseUrl}/wiki${page._links?.webui || ''}`,
+          sourceUrl: `${baseUrl}/wiki${page._links?.webui ?? ''}`,
         });
         mimeType = 'text/markdown';
         fileExtension = 'md';
@@ -1206,7 +1226,7 @@ export class ConfluenceHandlers {
         mimeType,
         base64Data,
         imagesEmbedded: processedImages.length,
-        webUrl: `${baseUrl}/wiki${page._links?.webui || ''}`,
+        webUrl: `${baseUrl}/wiki${page._links?.webui ?? ''}`,
         message: `Page exported successfully to ${format.toUpperCase()} format with ${processedImages.length} embedded images`,
         exportMethod: format === 'html' ? 'html-export' : 'markdown-conversion',
         timestamp: new Date().toISOString(),
@@ -1324,20 +1344,20 @@ export class ConfluenceHandlers {
         `/api/content/${pageIdValidation.sanitizedValue}/child/page`,
         {
           params: {
-            limit: paginationValidation.sanitizedValue!.maxResults,
-            start: paginationValidation.sanitizedValue!.startAt,
+            limit: paginationValidation.sanitizedValue?.maxResults ?? 50,
+            start: paginationValidation.sanitizedValue?.startAt ?? 0,
             expand,
           },
         }
       );
 
-      const children = (response.data.results || []).map((page: ConfluencePage) => ({
+      const children = (response.data.results ?? []).map((page: ConfluencePage) => ({
         id: page.id,
         title: page.title,
         type: page.type,
         status: page.status,
         spaceKey: page.space?.key,
-        webUrl: `${this.client.defaults.baseURL}/wiki${page._links?.webui || ''}`,
+        webUrl: `${this.client.defaults.baseURL}/wiki${page._links?.webui ?? ''}`,
       }));
 
       const resultData = {
@@ -1382,13 +1402,13 @@ export class ConfluenceHandlers {
 
       const page: ConfluencePage = response.data;
       const ancestors =
-        (page as any).ancestors?.map((ancestor: any) => ({
+        page.ancestors?.map((ancestor) => ({
           id: ancestor.id,
           title: ancestor.title,
           type: ancestor.type,
           status: ancestor.status,
-          webUrl: `${this.client.defaults.baseURL}/wiki${ancestor._links?.webui || ''}`,
-        })) || [];
+          webUrl: `${this.client.defaults.baseURL}/wiki${ancestor._links?.webui ?? ''}`,
+        })) ?? [];
 
       const resultData = {
         pageId,
@@ -1520,15 +1540,15 @@ export class ConfluenceHandlers {
         },
       });
 
-      const pages = (response.data.results || []).map((page: ConfluencePage) => ({
+      const pages = (response.data.results ?? []).map((page: ConfluencePage) => ({
         id: page.id,
         title: page.title,
         type: page.type,
         spaceKey: page.space?.key,
         spaceName: page.space?.name,
         version: page.version?.number,
-        lastModified: (page as any).version?.when,
-        webUrl: `${this.client.defaults.baseURL}/wiki${page._links?.webui || ''}`,
+        lastModified: page.version?.when,
+        webUrl: `${this.client.defaults.baseURL}/wiki${page._links?.webui ?? ''}`,
       }));
 
       const resultData = {
@@ -1593,16 +1613,16 @@ export class ConfluenceHandlers {
         },
       });
 
-      const pages = (response.data.results || []).map((page: ConfluencePage) => ({
+      const pages = (response.data.results ?? []).map((page: ConfluencePage) => ({
         id: page.id,
         title: page.title,
         type: page.type,
         spaceKey: page.space?.key,
         spaceName: page.space?.name,
         version: page.version?.number,
-        lastModified: (page as any).version?.when,
-        lastModifier: (page as any).version?.by?.displayName,
-        webUrl: `${this.client.defaults.baseURL}/wiki${page._links?.webui || ''}`,
+        lastModified: page.version?.when,
+        lastModifier: page.version?.by?.displayName,
+        webUrl: `${this.client.defaults.baseURL}/wiki${page._links?.webui ?? ''}`,
       }));
 
       const resultData = {
@@ -1633,7 +1653,7 @@ export class ConfluenceHandlers {
         return createValidationError(userValidation.errors, 'getConfluenceUser', 'confluence');
 
       // Build search parameters
-      const params: any = {};
+      const params: Record<string, unknown> = {};
       if (userValidation.sanitizedValue?.username)
         params.username = userValidation.sanitizedValue.username;
       if (userValidation.sanitizedValue?.accountId)
@@ -1696,6 +1716,38 @@ export class ConfluenceHandlers {
     }
   }
 
+  /**
+   * Resolve user accountId: use the provided accountId, or look it up by username.
+   * Returns { accountId } on success, or { error } as a CallToolResult.
+   */
+  private async resolveUserAccountId(
+    accountId: string | undefined,
+    username: string | undefined,
+    errorMessage: string
+  ): Promise<{ accountId: string } | { error: CallToolResult }> {
+    let resolved = accountId;
+    if (!resolved && username) {
+      const userResult = await this.getConfluenceUser({ username });
+      if (userResult.isError) {
+        return { error: userResult };
+      }
+      // ponytail: assumes first content item is JSON text; upgrade to TextContent narrowing if SDK adds richer types
+      const { text } = userResult.content[0] as { text: string };
+      const userData = JSON.parse(text) as { accountId?: string };
+      resolved = userData.accountId;
+    }
+    if (!resolved) {
+      return {
+        error: {
+          content: [{ type: 'text', text: errorMessage }],
+          isError: true,
+        },
+      };
+    }
+    // Defense-in-depth: same charset check jira handlers apply before query interpolation
+    return { accountId: validateAccountId(resolved) };
+  }
+
   async searchConfluencePagesByUser(
     args: SearchConfluencePagesByUserArgs
   ): Promise<CallToolResult> {
@@ -1718,25 +1770,14 @@ export class ConfluenceHandlers {
           'confluence'
         );
 
-      // Get user's accountId if not provided
-      let userAccountId = userValidation.sanitizedValue?.accountId;
-      if (!userAccountId && userValidation.sanitizedValue?.username) {
-        const userResult = await this.getConfluenceUser({
-          username: userValidation.sanitizedValue.username,
-        });
-        if (userResult.isError) {
-          return userResult;
-        }
-        const userData = JSON.parse((userResult.content[0] as any).text);
-        userAccountId = userData.accountId;
-      }
-
-      if (!userAccountId) {
-        return {
-          content: [{ type: 'text', text: 'User account ID or username is required' }],
-          isError: true,
-        };
-      }
+      // Resolve user accountId if not provided
+      const resolvedUser = await this.resolveUserAccountId(
+        userValidation.sanitizedValue?.accountId,
+        userValidation.sanitizedValue?.username,
+        'User account ID or username is required'
+      );
+      if ('error' in resolvedUser) return resolvedUser.error;
+      const userAccountId = resolvedUser.accountId;
 
       // Build CQL query based on search type
       let cql = '';
@@ -1763,18 +1804,18 @@ export class ConfluenceHandlers {
         },
       });
 
-      const pages = (response.data.results || []).map((page: ConfluencePage) => ({
+      const pages = (response.data.results ?? []).map((page: ConfluencePage) => ({
         id: page.id,
         title: page.title,
         type: page.type,
         spaceKey: page.space?.key,
         spaceName: page.space?.name,
         version: page.version?.number,
-        created: (page as any).history?.createdDate,
-        lastModified: (page as any).history?.lastUpdated?.when,
-        createdBy: (page as any).history?.createdBy?.displayName,
-        lastModifiedBy: (page as any).history?.lastUpdated?.by?.displayName,
-        webUrl: `${this.client.defaults.baseURL}/wiki${page._links?.webui || ''}`,
+        created: page.history?.createdDate,
+        lastModified: page.history?.lastUpdated?.when,
+        createdBy: page.history?.createdBy?.displayName,
+        lastModifiedBy: page.history?.lastUpdated?.by?.displayName,
+        webUrl: `${this.client.defaults.baseURL}/wiki${page._links?.webui ?? ''}`,
       }));
 
       const resultData = {
@@ -1817,25 +1858,14 @@ export class ConfluenceHandlers {
           'confluence'
         );
 
-      // Get user's accountId if not provided
-      let userAccountId = userValidation.sanitizedValue?.accountId;
-      if (!userAccountId && userValidation.sanitizedValue?.username) {
-        const userResult = await this.getConfluenceUser({
-          username: userValidation.sanitizedValue.username,
-        });
-        if (userResult.isError) {
-          return userResult;
-        }
-        const userData = JSON.parse((userResult.content[0] as any).text);
-        userAccountId = userData.accountId;
-      }
-
-      if (!userAccountId) {
-        return {
-          content: [{ type: 'text', text: 'User account ID or username is required' }],
-          isError: true,
-        };
-      }
+      // Resolve user accountId if not provided
+      const resolvedUser = await this.resolveUserAccountId(
+        userValidation.sanitizedValue?.accountId,
+        userValidation.sanitizedValue?.username,
+        'User account ID or username is required'
+      );
+      if ('error' in resolvedUser) return resolvedUser.error;
+      const userAccountId = resolvedUser.accountId;
 
       // Build CQL query
       let cql = `creator = "${userAccountId}"`;
@@ -1863,23 +1893,23 @@ export class ConfluenceHandlers {
         },
       });
 
-      const pages = (response.data.results || []).map((page: ConfluencePage) => ({
+      const pages = (response.data.results ?? []).map((page: ConfluencePage) => ({
         id: page.id,
         title: page.title,
         type: page.type,
         spaceKey: page.space?.key,
         spaceName: page.space?.name,
         version: page.version?.number,
-        created: (page as any).history?.createdDate,
-        webUrl: `${this.client.defaults.baseURL}/wiki${page._links?.webui || ''}`,
+        created: page.history?.createdDate,
+        webUrl: `${this.client.defaults.baseURL}/wiki${page._links?.webui ?? ''}`,
       }));
 
       const resultData = {
         author: userAccountId,
-        spaceKey: spaceKey || 'all',
+        spaceKey: spaceKey ?? 'all',
         dateRange: {
-          start: startDate || 'unlimited',
-          end: endDate || 'unlimited',
+          start: startDate ?? 'unlimited',
+          end: endDate ?? 'unlimited',
         },
         totalPages: response.data.totalSize,
         start: response.data.start,
@@ -1920,25 +1950,14 @@ export class ConfluenceHandlers {
           'confluence'
         );
 
-      // Get user's accountId if not provided
-      let userAccountId = userValidation.sanitizedValue?.accountId;
-      if (!userAccountId && userValidation.sanitizedValue?.username) {
-        const userResult = await this.getConfluenceUser({
-          username: userValidation.sanitizedValue.username,
-        });
-        if (userResult.isError) {
-          return userResult;
-        }
-        const userData = JSON.parse((userResult.content[0] as any).text);
-        userAccountId = userData.accountId;
-      }
-
-      if (!userAccountId) {
-        return {
-          content: [{ type: 'text', text: 'User account ID or username is required' }],
-          isError: true,
-        };
-      }
+      // Resolve user accountId if not provided
+      const resolvedUser = await this.resolveUserAccountId(
+        userValidation.sanitizedValue?.accountId,
+        userValidation.sanitizedValue?.username,
+        'User account ID or username is required'
+      );
+      if ('error' in resolvedUser) return resolvedUser.error;
+      const userAccountId = resolvedUser.accountId;
 
       // Build CQL query for attachments
       let cql = `type = attachment AND creator = "${userAccountId}"`;
@@ -1958,25 +1977,37 @@ export class ConfluenceHandlers {
         },
       });
 
-      const attachments = (response.data.results || []).map((attachment: any) => ({
-        id: attachment.id,
-        title: attachment.title,
-        filename: attachment.title,
-        mediaType: attachment.metadata?.mediaType,
-        fileSize: attachment.extensions?.fileSize,
-        created: attachment.history?.createdDate,
-        version: attachment.version?.number,
-        parentPageId: attachment.container?.id,
-        parentPageTitle: attachment.container?.title,
-        spaceKey: attachment.space?.key,
-        spaceName: attachment.space?.name,
-        downloadUrl: `${this.client.defaults.baseURL}/wiki${attachment._links?.download}`,
-        webUrl: `${this.client.defaults.baseURL}/wiki${attachment._links?.webui}`,
-      }));
+      const attachments = (response.data.results ?? []).map(
+        (attachment: {
+          id: string;
+          title: string;
+          metadata?: { mediaType?: string };
+          extensions?: { fileSize?: string };
+          history?: { createdDate?: string };
+          version?: { number?: number };
+          container?: { id?: string; title?: string };
+          space?: { key?: string; name?: string };
+          _links?: { download?: string; webui?: string };
+        }) => ({
+          id: attachment.id,
+          title: attachment.title,
+          filename: attachment.title,
+          mediaType: attachment.metadata?.mediaType,
+          fileSize: attachment.extensions?.fileSize,
+          created: attachment.history?.createdDate,
+          version: attachment.version?.number,
+          parentPageId: attachment.container?.id,
+          parentPageTitle: attachment.container?.title,
+          spaceKey: attachment.space?.key,
+          spaceName: attachment.space?.name,
+          downloadUrl: `${this.client.defaults.baseURL}/wiki${attachment._links?.download}`,
+          webUrl: `${this.client.defaults.baseURL}/wiki${attachment._links?.webui}`,
+        })
+      );
 
       const resultData = {
         uploader: userAccountId,
-        spaceKey: spaceKey || 'all',
+        spaceKey: spaceKey ?? 'all',
         totalAttachments: response.data.totalSize,
         start: response.data.start,
         limit: response.data.limit,

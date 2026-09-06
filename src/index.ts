@@ -5,7 +5,11 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+  CallToolResult,
+} from '@modelcontextprotocol/sdk/types.js';
 import { createAtlassianClient } from './utils/http-client.js';
 import { confluenceTools } from './confluence/tools.js';
 import { jiraTools } from './jira/tools.js';
@@ -14,10 +18,7 @@ import { JiraHandlers } from './jira/handlers.js';
 import { ToolRegistry } from './utils/tool-registry.js';
 import { Logger } from './utils/logger.js';
 import { createValidator, validators } from './utils/argument-validator.js';
-import type {
-  GetConfluenceUserArgs,
-  ReadConfluencePageArgs,
-} from './types/index.js';
+import type { GetConfluenceUserArgs, ReadConfluencePageArgs } from './types/index.js';
 
 // Get package version from package.json
 function getPackageVersion(): string {
@@ -31,7 +32,7 @@ function getPackageVersion(): string {
     Logger.warn('Could not read package.json version, using fallback', {
       error: error instanceof Error ? error : new Error(String(error)),
     });
-    return '2.0.2'; // Fallback version
+    return '0.0.0'; // Fallback version — real version read from package.json above
   }
 }
 
@@ -70,7 +71,7 @@ class AtlassianMCPServer {
 
     Logger.info('Initializing Atlassian MCP Server', {
       version,
-      environment: process.env.NODE_ENV || 'development',
+      environment: process.env.NODE_ENV ?? 'development',
     });
 
     this.registerTools();
@@ -101,35 +102,43 @@ class AtlassianMCPServer {
     });
 
     // Register other Confluence tools with basic validation
-    const confluenceToolsMap = [
-      { name: 'search_pages_by_user_involvement', handler: 'searchConfluencePagesByUser' },
-      { name: 'list_pages_created_by_user', handler: 'listUserConfluencePages' },
-      { name: 'list_attachments_uploaded_by_user', handler: 'listUserConfluenceAttachments' },
-      { name: 'search_confluence_pages', handler: 'searchConfluencePages' },
-      { name: 'list_confluence_spaces', handler: 'listConfluenceSpaces' },
-      { name: 'get_confluence_space', handler: 'getConfluenceSpace' },
-      { name: 'list_attachments_on_page', handler: 'listConfluenceAttachments' },
-      { name: 'download_confluence_attachment', handler: 'downloadConfluenceAttachment' },
-      { name: 'upload_confluence_attachment', handler: 'uploadConfluenceAttachment' },
-      { name: 'get_page_with_attachments', handler: 'downloadConfluencePageComplete' },
-      { name: 'create_confluence_page', handler: 'createConfluencePage' },
-      { name: 'update_confluence_page', handler: 'updateConfluencePage' },
-      { name: 'list_confluence_page_children', handler: 'listConfluencePageChildren' },
-      { name: 'list_confluence_page_ancestors', handler: 'listConfluencePageAncestors' },
-      { name: 'add_confluence_comment', handler: 'addConfluenceComment' },
-      { name: 'find_confluence_users', handler: 'findConfluenceUsers' },
-      { name: 'list_confluence_page_labels', handler: 'getConfluenceLabels' },
-      { name: 'add_confluence_page_label', handler: 'addConfluenceLabels' },
-      { name: 'export_confluence_page', handler: 'exportConfluencePage' },
-      { name: 'get_my_recent_confluence_pages', handler: 'getMyRecentConfluencePages' },
-      { name: 'get_confluence_pages_mentioning_me', handler: 'getConfluencePagesMentioningMe' },
-    ];
+    // Tool names come from confluenceTools (advertised via ListTools) — single source of truth
+    const confluenceHandlerMethods: Record<string, string> = {
+      search_pages_by_user_involvement: 'searchConfluencePagesByUser',
+      list_pages_created_by_user: 'listUserConfluencePages',
+      list_attachments_uploaded_by_user: 'listUserConfluenceAttachments',
+      search_confluence_pages: 'searchConfluencePages',
+      list_confluence_spaces: 'listConfluenceSpaces',
+      get_confluence_space: 'getConfluenceSpace',
+      list_attachments_on_page: 'listConfluenceAttachments',
+      download_confluence_attachment: 'downloadConfluenceAttachment',
+      upload_confluence_attachment: 'uploadConfluenceAttachment',
+      get_page_with_attachments: 'downloadConfluencePageComplete',
+      create_confluence_page: 'createConfluencePage',
+      update_confluence_page: 'updateConfluencePage',
+      list_confluence_page_children: 'listConfluencePageChildren',
+      list_confluence_page_ancestors: 'listConfluencePageAncestors',
+      add_confluence_comment: 'addConfluenceComment',
+      find_confluence_users: 'findConfluenceUsers',
+      list_confluence_page_labels: 'getConfluenceLabels',
+      add_confluence_page_label: 'addConfluenceLabels',
+      export_confluence_page: 'exportConfluencePage',
+      get_my_recent_confluence_pages: 'getMyRecentConfluencePages',
+      get_confluence_pages_mentioning_me: 'getConfluencePagesMentioningMe',
+    };
 
-    confluenceToolsMap.forEach((tool) => {
+    confluenceTools.forEach((tool) => {
+      if (this.toolRegistry.hasTool(tool.name)) return; // registered above with validator
+      const methodName = confluenceHandlerMethods[tool.name];
+      if (!methodName) {
+        Logger.warn(`No handler registered for Confluence tool: ${tool.name}`);
+        return;
+      }
       this.toolRegistry.register({
         name: tool.name,
-        handler: (this.confluenceHandlers as any)[tool.handler].bind(this.confluenceHandlers),
-        description: `Confluence tool: ${tool.name}`,
+        handler: (
+          this.confluenceHandlers as unknown as Record<string, () => Promise<CallToolResult>>
+        )[methodName].bind(this.confluenceHandlers),
       });
     });
 
@@ -140,29 +149,36 @@ class AtlassianMCPServer {
       description: 'Get current Jira user',
     });
 
-    const jiraToolsMap = [
-      { name: 'read_jira_issue', handler: 'readJiraIssue' },
-      { name: 'search_jira_issues', handler: 'searchJiraIssues' },
-      { name: 'list_jira_projects', handler: 'listJiraProjects' },
-      { name: 'create_jira_issue', handler: 'createJiraIssue' },
-      { name: 'add_jira_comment', handler: 'addJiraComment' },
-      { name: 'list_agile_boards', handler: 'listJiraBoards' },
-      { name: 'list_sprints_for_board', handler: 'listJiraSprints' },
-      { name: 'get_sprint_details', handler: 'getJiraSprint' },
-      { name: 'get_my_current_sprint_issues', handler: 'getMyTasksInCurrentSprint' },
-      { name: 'get_my_unresolved_issues', handler: 'getMyOpenIssues' },
-      { name: 'get_jira_user', handler: 'getJiraUser' },
-      { name: 'search_issues_by_user_involvement', handler: 'searchJiraIssuesByUser' },
-      { name: 'list_issues_for_user_role', handler: 'listUserJiraIssues' },
-      { name: 'get_user_activity_history', handler: 'getUserJiraActivity' },
-      { name: 'get_user_time_tracking', handler: 'getUserJiraWorklog' },
-    ];
+    const jiraHandlerMethods: Record<string, string> = {
+      read_jira_issue: 'readJiraIssue',
+      search_jira_issues: 'searchJiraIssues',
+      list_jira_projects: 'listJiraProjects',
+      create_jira_issue: 'createJiraIssue',
+      add_jira_comment: 'addJiraComment',
+      list_agile_boards: 'listJiraBoards',
+      list_sprints_for_board: 'listJiraSprints',
+      get_sprint_details: 'getJiraSprint',
+      get_my_current_sprint_issues: 'getMyTasksInCurrentSprint',
+      get_my_unresolved_issues: 'getMyOpenIssues',
+      get_jira_user: 'getJiraUser',
+      search_issues_by_user_involvement: 'searchJiraIssuesByUser',
+      list_issues_by_user_role: 'listUserJiraIssues',
+      get_user_activity_history: 'getUserJiraActivity',
+      get_user_time_tracking: 'getUserJiraWorklog',
+    };
 
-    jiraToolsMap.forEach((tool) => {
+    jiraTools.forEach((tool) => {
+      if (this.toolRegistry.hasTool(tool.name)) return; // registered above
+      const methodName = jiraHandlerMethods[tool.name];
+      if (!methodName) {
+        Logger.warn(`No handler registered for Jira tool: ${tool.name}`);
+        return;
+      }
       this.toolRegistry.register({
         name: tool.name,
-        handler: (this.jiraHandlers as any)[tool.handler].bind(this.jiraHandlers),
-        description: `Jira tool: ${tool.name}`,
+        handler: (this.jiraHandlers as unknown as Record<string, () => Promise<CallToolResult>>)[
+          methodName
+        ].bind(this.jiraHandlers),
       });
     });
 
@@ -231,7 +247,7 @@ class AtlassianMCPServer {
   private setupErrorHandling(): void {
     process.on('uncaughtException', (error) => {
       Logger.error('Uncaught exception - shutting down', {
-        error: error,
+        error,
         errorMessage: error.message,
         errorStack: error.stack,
       });
@@ -271,7 +287,7 @@ class AtlassianMCPServer {
 
       // Use Logger instead of console.error to avoid interfering with MCP protocol
       Logger.info(`Atlassian MCP server v${version} running on stdio`, {
-        startupMessage: true
+        startupMessage: true,
       });
     } catch (error) {
       Logger.error('Failed to start MCP server', {

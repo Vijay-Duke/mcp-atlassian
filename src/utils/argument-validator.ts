@@ -1,17 +1,21 @@
 import { Logger } from './logger.js';
 
-export interface ValidationResult<T = any> {
+export interface ValidationResult<T = unknown> {
   isValid: boolean;
   validatedArgs?: T;
   errors?: string[];
 }
 
-export type ValidatorFunction<T = any> = (args: any) => ValidationResult<T>;
+export type FieldValidator = (value: unknown) => {
+  valid: boolean;
+  error?: string;
+  value?: unknown;
+};
 
-export function createValidator<T>(
-  schema: Record<string, (value: any) => { valid: boolean; error?: string; value?: any }>
-): ValidatorFunction<T> {
-  return (args: any): ValidationResult<T> => {
+export type ValidatorFunction<T = unknown> = (args: unknown) => ValidationResult<T>;
+
+export function createValidator<T>(schema: Record<string, FieldValidator>): ValidatorFunction<T> {
+  return (args: unknown): ValidationResult<T> => {
     if (!args || typeof args !== 'object') {
       return {
         isValid: false,
@@ -20,10 +24,10 @@ export function createValidator<T>(
     }
 
     const errors: string[] = [];
-    const validatedArgs: any = {};
+    const validatedArgs: Record<string, unknown> = {};
 
     for (const [key, validator] of Object.entries(schema)) {
-      const value = args[key];
+      const value = (args as Record<string, unknown>)[key];
       const result = validator(value);
 
       if (!result.valid) {
@@ -45,14 +49,14 @@ export function createValidator<T>(
 
     return {
       isValid: true,
-      validatedArgs: validatedArgs as T,
+      validatedArgs: validatedArgs as unknown as T,
     };
   };
 }
 
 // Common field validators
 export const validators = {
-  required: (fieldName: string) => (value: any) => ({
+  required: (fieldName: string) => (value: unknown) => ({
     valid: value !== undefined && value !== null && value !== '',
     error:
       value === undefined || value === null || value === ''
@@ -60,11 +64,11 @@ export const validators = {
         : undefined,
   }),
 
-  optional: () => (value: any) => ({ valid: true }),
+  optional: () => (_value?: unknown) => ({ valid: true }),
 
   string:
     (fieldName: string, minLength = 0, maxLength = Infinity) =>
-    (value: any) => {
+    (value: unknown) => {
       if (value === undefined || value === null) return { valid: true };
       if (typeof value !== 'string') {
         return { valid: false, error: `${fieldName} must be a string` };
@@ -80,9 +84,10 @@ export const validators = {
 
   number:
     (fieldName: string, min = -Infinity, max = Infinity) =>
-    (value: any) => {
+    (value: unknown) => {
       if (value === undefined || value === null) return { valid: true };
-      const num = typeof value === 'string' ? parseFloat(value) : value;
+      const num =
+        typeof value === 'number' ? value : typeof value === 'string' ? parseFloat(value) : NaN;
       if (typeof num !== 'number' || isNaN(num)) {
         return { valid: false, error: `${fieldName} must be a number` };
       }
@@ -92,7 +97,7 @@ export const validators = {
       return { valid: true, value: num };
     },
 
-  boolean: (fieldName: string) => (value: any) => {
+  boolean: (fieldName: string) => (value: unknown) => {
     if (value === undefined || value === null) return { valid: true };
     if (typeof value === 'boolean') return { valid: true };
     if (typeof value === 'string') {
@@ -103,7 +108,7 @@ export const validators = {
     return { valid: false, error: `${fieldName} must be a boolean` };
   },
 
-  enum: (fieldName: string, allowedValues: string[]) => (value: any) => {
+  enum: (fieldName: string, allowedValues: string[]) => (value: unknown) => {
     if (value === undefined || value === null) return { valid: true };
     if (typeof value !== 'string') {
       return { valid: false, error: `${fieldName} must be a string` };
@@ -118,8 +123,8 @@ export const validators = {
   },
 
   array:
-    (fieldName: string, itemValidator?: (value: any) => { valid: boolean; error?: string }) =>
-    (value: any) => {
+    (fieldName: string, itemValidator?: (value: unknown) => { valid: boolean; error?: string }) =>
+    (value: unknown) => {
       if (value === undefined || value === null) return { valid: true };
       if (!Array.isArray(value)) {
         return { valid: false, error: `${fieldName} must be an array` };
@@ -138,7 +143,7 @@ export const validators = {
       return { valid: true };
     },
 
-  object: (fieldName: string) => (value: any) => {
+  object: (fieldName: string) => (value: unknown) => {
     if (value === undefined || value === null) return { valid: true };
     if (typeof value !== 'object' || Array.isArray(value)) {
       return { valid: false, error: `${fieldName} must be an object` };
@@ -146,27 +151,29 @@ export const validators = {
     return { valid: true };
   },
 
-  oneOfRequired: (fieldName: string, alternatives: string[]) => (value: any, args: any) => {
-    const hasValue = value !== undefined && value !== null && value !== '';
-    const hasAlternatives = alternatives.some(
-      (alt) => args[alt] !== undefined && args[alt] !== null && args[alt] !== ''
-    );
+  oneOfRequired:
+    (fieldName: string, alternatives: string[]) =>
+    (value: unknown, args: Record<string, unknown>) => {
+      const hasValue = value !== undefined && value !== null && value !== '';
+      const hasAlternatives = alternatives.some(
+        (alt) => args[alt] !== undefined && args[alt] !== null && args[alt] !== ''
+      );
 
-    if (!hasValue && !hasAlternatives) {
-      return {
-        valid: false,
-        error: `Either ${fieldName} or one of [${alternatives.join(', ')}] must be provided`,
-      };
-    }
+      if (!hasValue && !hasAlternatives) {
+        return {
+          valid: false,
+          error: `Either ${fieldName} or one of [${alternatives.join(', ')}] must be provided`,
+        };
+      }
 
-    return { valid: true };
-  },
+      return { valid: true };
+    },
 };
 
-function sanitizeForLog(args: any): Record<string, any> {
+function sanitizeForLog(args: unknown): Record<string, unknown> {
   if (!args || typeof args !== 'object') return {};
 
-  const sanitized = { ...args };
+  const sanitized = { ...(args as Record<string, unknown>) };
   const sensitiveKeys = ['password', 'token', 'apiKey', 'secret', 'authorization'];
 
   for (const key of sensitiveKeys) {

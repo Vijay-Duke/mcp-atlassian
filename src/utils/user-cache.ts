@@ -10,7 +10,7 @@ export interface CachedUser {
   active: boolean;
   timeZone?: string;
   accountType?: string;
-  avatarUrls?: any;
+  avatarUrls?: Record<string, string>;
   cachedAt: number;
 }
 

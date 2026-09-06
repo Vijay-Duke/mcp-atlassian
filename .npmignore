@@ -1,7 +1,7 @@
 # Source files
 src/
 *.ts
-\!*.d.ts
+!*.d.ts
 
 # Test files
 **/__tests__/
@@ -13,43 +13,48 @@ coverage/
 # Development files
 .env
 .env.*
-\!.env.example
+!.env.example
 *.log
+logs/
 npm-debug.log*
 
-# IDE files
+# IDE / agent files
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 .DS_Store
+.pi/
 
-# GitHub files
+# GitHub / CI / dev config
 .github/
 .git/
 .gitignore
+.all-contributorsrc
+.releaserc.json
+renovate.json
+codecov.yml
+sonar-project.properties
+.npmrc.github
+.prettierrc*
+.prettierignore
+.eslintrc*
+eslint.config.js
+tsconfig.json
+vitest.config.ts
+.travis.yml
+.gitlab-ci.yml
+azure-pipelines.yml
 
 # Documentation source
 docs/
 *.md
-\!README.md
-\!LICENSE
-
-# Build files
-tsconfig.json
-vitest.config.ts
-.eslintrc*
-.prettierrc*
-
-# CI/CD
-.travis.yml
-.gitlab-ci.yml
-azure-pipelines.yml
+!README.md
+!LICENSE
 
 # Other
 node_modules/
 tmp/
 temp/
 CODEOWNERS
-EOF < /dev/null

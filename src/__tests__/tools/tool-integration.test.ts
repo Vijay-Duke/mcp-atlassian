@@ -56,16 +56,14 @@ describe('Tool Integration', () => {
         expect(typeof tool.inputSchema.properties).toBe('object');
 
         // Each property should have type and description
-        Object.entries(tool.inputSchema.properties || {}).forEach(
-          ([key, property]: [string, any]) => {
-            expect(property).toHaveProperty('type');
-            expect(property).toHaveProperty('description');
+        Object.entries(tool.inputSchema.properties ?? {}).forEach(([, property]: [string, any]) => {
+          expect(property).toHaveProperty('type');
+          expect(property).toHaveProperty('description');
 
-            expect(typeof property.type).toBe('string');
-            expect(typeof property.description).toBe('string');
-            expect(property.description.length).toBeGreaterThan(0);
-          }
-        );
+          expect(typeof property.type).toBe('string');
+          expect(typeof property.description).toBe('string');
+          expect(property.description.length).toBeGreaterThan(0);
+        });
       });
     });
   });
@@ -74,12 +72,12 @@ describe('Tool Integration', () => {
     it('should have consistent user identification parameters', () => {
       const allTools = [...confluenceTools, ...jiraTools];
       const userIdentityTools = allTools.filter((tool) => {
-        const properties = tool.inputSchema.properties || {};
+        const properties = tool.inputSchema.properties ?? {};
         return properties.username || properties.accountId || properties.email;
       });
 
       userIdentityTools.forEach((tool) => {
-        const properties = tool.inputSchema.properties || {};
+        const properties = tool.inputSchema.properties ?? {};
 
         // Should have at least one user identification method
         const hasUserIdentity = properties.username || properties.accountId || properties.email;
@@ -110,7 +108,7 @@ describe('Tool Integration', () => {
       userTools.forEach((tool) => {
         if (tool.name.includes('current')) return; // Current user tools don't need parameters
 
-        const properties = tool.inputSchema.properties || {};
+        const properties = tool.inputSchema.properties ?? {};
         const userIdMethods = [properties.username, properties.accountId, properties.email].filter(
           Boolean
         );
@@ -124,12 +122,12 @@ describe('Tool Integration', () => {
     it('should have consistent pagination parameters', () => {
       const allTools = [...confluenceTools, ...jiraTools];
       const paginatedTools = allTools.filter((tool) => {
-        const properties = tool.inputSchema.properties || {};
+        const properties = tool.inputSchema.properties ?? {};
         return properties.limit || properties.maxResults || properties.start || properties.startAt;
       });
 
       paginatedTools.forEach((tool) => {
-        const properties = tool.inputSchema.properties || {};
+        const properties = tool.inputSchema.properties ?? {};
 
         // Should use consistent naming patterns
         if (properties.limit || properties.maxResults) {
@@ -165,13 +163,13 @@ describe('Tool Integration', () => {
       const jiraSearch = jiraTools.find((tool) => tool.name === 'search_jira_issues');
 
       if (confluenceSearch) {
-        const properties = confluenceSearch.inputSchema.properties || {};
+        const properties = confluenceSearch.inputSchema.properties ?? {};
         expect(properties).toHaveProperty('cql');
         expect((properties.cql as any)?.description.toLowerCase()).toContain('cql');
       }
 
       if (jiraSearch) {
-        const properties = jiraSearch.inputSchema.properties || {};
+        const properties = jiraSearch.inputSchema.properties ?? {};
         expect(properties).toHaveProperty('jql');
         expect((properties.jql as any)?.description.toLowerCase()).toContain('jql');
       }
@@ -227,7 +225,7 @@ describe('Tool Integration', () => {
       confluenceSpecific.forEach((feature) => {
         const hasFeature = confluenceTools.some(
           (tool) =>
-            tool.name.includes(feature) || (tool.description || '').toLowerCase().includes(feature)
+            tool.name.includes(feature) || (tool.description ?? '').toLowerCase().includes(feature)
         );
         expect(hasFeature).toBe(true);
       });
@@ -239,7 +237,7 @@ describe('Tool Integration', () => {
       jiraSpecific.forEach((feature) => {
         const hasFeature = jiraTools.some(
           (tool) =>
-            tool.name.includes(feature) || (tool.description || '').toLowerCase().includes(feature)
+            tool.name.includes(feature) || (tool.description ?? '').toLowerCase().includes(feature)
         );
         expect(hasFeature).toBe(true);
       });
@@ -250,8 +248,8 @@ describe('Tool Integration', () => {
         (tool) =>
           tool.name.includes('board') ||
           tool.name.includes('sprint') ||
-          (tool.description || '').toLowerCase().includes('agile') ||
-          (tool.description || '').toLowerCase().includes('scrum')
+          (tool.description ?? '').toLowerCase().includes('agile') ||
+          (tool.description ?? '').toLowerCase().includes('scrum')
       );
 
       expect(agileTools.length).toBeGreaterThan(1);
@@ -278,9 +276,9 @@ describe('Tool Integration', () => {
       const allTools = [...confluenceTools, ...jiraTools];
 
       allTools.forEach((tool) => {
-        const properties = tool.inputSchema.properties || {};
+        const properties = tool.inputSchema.properties ?? {};
 
-        Object.entries(properties).forEach(([key, property]: [string, any]) => {
+        Object.entries(properties).forEach(([, property]: [string, any]) => {
           if (property.enum) {
             expect(Array.isArray(property.enum)).toBe(true);
             expect(property.enum.length).toBeGreaterThan(0);

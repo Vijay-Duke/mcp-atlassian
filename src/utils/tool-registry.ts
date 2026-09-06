@@ -1,19 +1,21 @@
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { Logger } from './logger.js';
 
-export interface ToolHandler<T = any> {
+export interface ToolHandler<T = unknown> {
   (_args: T): Promise<CallToolResult>;
 }
 
-export interface ToolDefinition<T = any> {
+export interface ToolDefinition<T = unknown> {
   name: string;
   handler: ToolHandler<T>;
-  validator?: (_args: any) => { isValid: boolean; validatedArgs?: T; errors?: string[] };
+  validator?: (_args: unknown) => { isValid: boolean; validatedArgs?: T; errors?: string[] };
   description?: string;
 }
 
 export class ToolRegistry {
-  private tools = new Map<string, ToolDefinition>();
+  // ponytail: heterogeneous storage needs any; T variance is enforced at the register() boundary
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private tools = new Map<string, ToolDefinition<any>>();
 
   register<T>(definition: ToolDefinition<T>): void {
     if (this.tools.has(definition.name)) {
@@ -23,7 +25,7 @@ export class ToolRegistry {
     Logger.debug(`Registered tool: ${definition.name}`, { tool: definition.name });
   }
 
-  async execute(toolName: string, args: any, requestId?: string): Promise<CallToolResult> {
+  async execute(toolName: string, args: unknown, requestId?: string): Promise<CallToolResult> {
     const startTime = Date.now();
 
     Logger.logToolCall(toolName, undefined, { requestId, args: this.sanitizeArgs(args) });
@@ -94,10 +96,10 @@ export class ToolRegistry {
     return this.tools.has(toolName);
   }
 
-  private sanitizeArgs(args: any): Record<string, any> {
+  private sanitizeArgs(args: unknown): Record<string, unknown> {
     if (!args || typeof args !== 'object') return {};
 
-    const sanitized = { ...args };
+    const sanitized = { ...(args as Record<string, unknown>) };
     const sensitiveKeys = ['password', 'token', 'apiKey', 'secret', 'authorization'];
 
     for (const key of sensitiveKeys) {

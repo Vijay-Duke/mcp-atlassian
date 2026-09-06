@@ -16,9 +16,9 @@ export interface LogContext {
   tool?: string;
   duration?: number;
   error?: Error;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   // Allow any additional properties for flexible logging
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // Create winston logger instance
@@ -34,7 +34,7 @@ const logger = winston.createLogger({
   ),
   defaultMeta: {
     service: 'mcp-atlassian',
-    version: process.env.npm_package_version ?? '2.0.0',
+    version: process.env.npm_package_version ?? '0.0.0',
     environment: process.env.NODE_ENV ?? 'development',
   },
   transports: [
@@ -70,6 +70,12 @@ if (process.env.NODE_ENV === 'production') {
       format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
     })
   );
+}
+
+// If no transports are configured (default MCP mode), silence the logger entirely.
+// Winston buffers logs and warns on every write when transportless, which wastes memory.
+if (logger.transports?.length === 0) {
+  logger.silent = true;
 }
 
 // Utility functions for structured logging
@@ -131,7 +137,7 @@ export class Logger {
     });
   }
 
-  static logToolCall(toolName: string, userId?: string, metadata?: Record<string, any>): void {
+  static logToolCall(toolName: string, userId?: string, metadata?: Record<string, unknown>): void {
     this.info(`Tool called: ${toolName}`, {
       tool: toolName,
       userId,

@@ -32,7 +32,9 @@ describe('ErrorHandler', () => {
 
       expect(result.isError).toBe(true);
       expect((result.content[0] as { text: string }).text).toContain('**Error in JIRA**');
-      expect((result.content[0] as { text: string }).text).toContain('Bad request - Invalid parameters');
+      expect((result.content[0] as { text: string }).text).toContain(
+        'Bad request - Invalid parameters'
+      );
       expect((result.content[0] as { text: string }).text).toContain('Invalid request format');
       expect((result.content[0] as { text: string }).text).toContain('validation');
       expect((result.content[0] as { text: string }).text).toContain('HTTP 400');
@@ -250,7 +252,9 @@ describe('ErrorHandler', () => {
       const result = createEnhancedError(validationError, mockContext);
 
       expect((result.content[0] as { text: string }).text).toContain('Input validation failed');
-      expect((result.content[0] as { text: string }).text).toContain('validation failed: missing required field');
+      expect((result.content[0] as { text: string }).text).toContain(
+        'validation failed: missing required field'
+      );
       expect((result.content[0] as { text: string }).text).toContain('validation');
       expect((result.content[0] as { text: string }).text).toContain('required parameters');
       expect((result.content[0] as { text: string }).text).toContain('**Retryable**: Yes');
@@ -261,8 +265,12 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(validationError, mockContext);
 
-      expect((result.content[0] as { text: string }).text).toContain('An unexpected error occurred');
-      expect((result.content[0] as { text: string }).text).toContain('Validation failed: missing required field');
+      expect((result.content[0] as { text: string }).text).toContain(
+        'An unexpected error occurred'
+      );
+      expect((result.content[0] as { text: string }).text).toContain(
+        'Validation failed: missing required field'
+      );
       expect((result.content[0] as { text: string }).text).toContain('unknown');
       expect((result.content[0] as { text: string }).text).toContain('network connection');
       expect((result.content[0] as { text: string }).text).toContain('**Retryable**: Yes');
@@ -273,7 +281,9 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(genericError, mockContext);
 
-      expect((result.content[0] as { text: string }).text).toContain('An unexpected error occurred');
+      expect((result.content[0] as { text: string }).text).toContain(
+        'An unexpected error occurred'
+      );
       expect((result.content[0] as { text: string }).text).toContain('Something went wrong');
       expect((result.content[0] as { text: string }).text).toContain('unknown');
       expect((result.content[0] as { text: string }).text).toContain('network connection');
@@ -284,7 +294,9 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(stringError, mockContext);
 
-      expect((result.content[0] as { text: string }).text).toContain('An unexpected error occurred');
+      expect((result.content[0] as { text: string }).text).toContain(
+        'An unexpected error occurred'
+      );
       expect((result.content[0] as { text: string }).text).toContain('Simple string error');
       expect((result.content[0] as { text: string }).text).toContain('unknown');
     });
@@ -301,7 +313,9 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(axiosError, mockContext);
 
-      expect((result.content[0] as { text: string }).text).toContain('Simple string error response');
+      expect((result.content[0] as { text: string }).text).toContain(
+        'Simple string error response'
+      );
     });
 
     it('should handle Confluence component context', () => {
@@ -334,9 +348,13 @@ describe('ErrorHandler', () => {
 
       expect(result.isError).toBe(true);
       expect((result.content[0] as { text: string }).text).toContain('**Error in JIRA**');
-      expect((result.content[0] as { text: string }).text).toContain('An unexpected error occurred');
+      expect((result.content[0] as { text: string }).text).toContain(
+        'An unexpected error occurred'
+      );
       expect((result.content[0] as { text: string }).text).toContain('create issue');
-      expect((result.content[0] as { text: string }).text).toContain('Field is required, Invalid format');
+      expect((result.content[0] as { text: string }).text).toContain(
+        'Field is required, Invalid format'
+      );
       expect((result.content[0] as { text: string }).text).toContain('unknown');
     });
 
@@ -349,7 +367,9 @@ describe('ErrorHandler', () => {
       expect((result.content[0] as { text: string }).text).toContain('**Error in CONFLUENCE**');
       expect((result.content[0] as { text: string }).text).toContain('create page');
       expect((result.content[0] as { text: string }).text).toContain('Missing page title');
-      expect((result.content[0] as { text: string }).text).toContain('An unexpected error occurred');
+      expect((result.content[0] as { text: string }).text).toContain(
+        'An unexpected error occurred'
+      );
     });
 
     it('should default to jira component', () => {
@@ -359,7 +379,9 @@ describe('ErrorHandler', () => {
       const result = createValidationError(errors, operation);
 
       expect((result.content[0] as { text: string }).text).toContain('**Error in JIRA**');
-      expect((result.content[0] as { text: string }).text).toContain('An unexpected error occurred');
+      expect((result.content[0] as { text: string }).text).toContain(
+        'An unexpected error occurred'
+      );
     });
   });
 
@@ -385,7 +407,9 @@ describe('ErrorHandler', () => {
 
       expect((result.content[0] as { text: string }).text).toContain('**User Not Found**');
       expect((result.content[0] as { text: string }).text).toContain('username123');
-      expect((result.content[0] as { text: string }).text).toContain('accountId instead of username');
+      expect((result.content[0] as { text: string }).text).toContain(
+        'accountId instead of username'
+      );
     });
 
     it('should default to jira component', () => {
@@ -460,7 +484,9 @@ describe('ErrorHandler', () => {
 
       const result = createEnhancedError(axiosError, mockContext);
 
-      expect((result.content[0] as { text: string }).text).toContain('Original axios error message');
+      expect((result.content[0] as { text: string }).text).toContain(
+        'Original axios error message'
+      );
     });
   });
 

@@ -29,7 +29,7 @@ describe('Jira Tools', () => {
     it('should have non-empty names and descriptions', () => {
       jiraTools.forEach((tool) => {
         expect(tool.name.length).toBeGreaterThan(0);
-        expect((tool.description || '').length).toBeGreaterThan(0);
+        expect((tool.description ?? '').length).toBeGreaterThan(0);
       });
     });
 
@@ -47,7 +47,7 @@ describe('Jira Tools', () => {
 
       expect(currentUserTool).toBeDefined();
       expect(currentUserTool?.description).toContain('current user');
-      expect(Object.keys(currentUserTool?.inputSchema.properties || {})).toHaveLength(0);
+      expect(Object.keys(currentUserTool?.inputSchema.properties ?? {})).toHaveLength(0);
     });
 
     it('should include get_jira_user with proper schema', () => {
@@ -56,7 +56,7 @@ describe('Jira Tools', () => {
       expect(getUserTool).toBeDefined();
       expect(getUserTool?.description).toContain('specific');
 
-      const properties = getUserTool?.inputSchema.properties || {};
+      const properties = getUserTool?.inputSchema.properties ?? {};
       expect(properties).toHaveProperty('username');
       expect(properties).toHaveProperty('accountId');
       expect(properties).toHaveProperty('email');
@@ -68,7 +68,7 @@ describe('Jira Tools', () => {
       expect(readIssueTool).toBeDefined();
       expect(readIssueTool?.description).toContain('issue');
 
-      const properties = readIssueTool?.inputSchema.properties || {};
+      const properties = readIssueTool?.inputSchema.properties ?? {};
       expect(properties).toHaveProperty('issueKey');
       expect(properties).toHaveProperty('expand');
     });
@@ -77,9 +77,9 @@ describe('Jira Tools', () => {
       const searchTool = jiraTools.find((tool) => tool.name === 'search_jira_issues');
 
       expect(searchTool).toBeDefined();
-      expect((searchTool?.description || '').toLowerCase()).toContain('search');
+      expect((searchTool?.description ?? '').toLowerCase()).toContain('search');
 
-      const properties = searchTool?.inputSchema.properties || {};
+      const properties = searchTool?.inputSchema.properties ?? {};
       expect(properties).toHaveProperty('jql');
       expect((properties.jql as any)?.type).toBe('string');
     });
@@ -90,7 +90,7 @@ describe('Jira Tools', () => {
       expect(listProjectsTool).toBeDefined();
       expect(listProjectsTool?.description).toContain('projects');
 
-      const properties = listProjectsTool?.inputSchema.properties || {};
+      const properties = listProjectsTool?.inputSchema.properties ?? {};
       expect(properties).toHaveProperty('expand');
     });
 
@@ -98,9 +98,9 @@ describe('Jira Tools', () => {
       const createIssueTool = jiraTools.find((tool) => tool.name === 'create_jira_issue');
 
       expect(createIssueTool).toBeDefined();
-      expect((createIssueTool?.description || '').toLowerCase()).toContain('create');
+      expect((createIssueTool?.description ?? '').toLowerCase()).toContain('create');
 
-      const properties = createIssueTool?.inputSchema.properties || {};
+      const properties = createIssueTool?.inputSchema.properties ?? {};
       expect(properties).toHaveProperty('projectKey');
       expect(properties).toHaveProperty('issueType');
       expect(properties).toHaveProperty('summary');
@@ -113,7 +113,7 @@ describe('Jira Tools', () => {
       expect(addCommentTool).toBeDefined();
       expect(addCommentTool?.description).toContain('comment');
 
-      const properties = addCommentTool?.inputSchema.properties || {};
+      const properties = addCommentTool?.inputSchema.properties ?? {};
       expect(properties).toHaveProperty('issueKey');
       expect(properties).toHaveProperty('body');
     });
@@ -127,16 +127,18 @@ describe('Jira Tools', () => {
 
       expect(sprintTool).toBeDefined();
 
-      const properties = sprintTool?.inputSchema.properties || {};
+      const properties = sprintTool?.inputSchema.properties ?? {};
       expect(properties).toHaveProperty('boardId');
     });
 
     it('should include user-specific search tools', () => {
-      const userSearchTool = jiraTools.find((tool) => tool.name === 'search_issues_by_user_involvement');
+      const userSearchTool = jiraTools.find(
+        (tool) => tool.name === 'search_issues_by_user_involvement'
+      );
 
       expect(userSearchTool).toBeDefined();
 
-      const properties = userSearchTool?.inputSchema.properties || {};
+      const properties = userSearchTool?.inputSchema.properties ?? {};
       expect(properties).toHaveProperty('searchType');
       expect(properties.searchType).toHaveProperty('enum');
       expect((properties.searchType as any)?.enum).toContain('assignee');
@@ -149,7 +151,7 @@ describe('Jira Tools', () => {
 
       expect(worklogTool).toBeDefined();
 
-      const properties = worklogTool?.inputSchema.properties || {};
+      const properties = worklogTool?.inputSchema.properties ?? {};
       expect(properties).toHaveProperty('startDate');
       expect(properties).toHaveProperty('endDate');
     });
@@ -168,9 +170,9 @@ describe('Jira Tools', () => {
   describe('schema validation', () => {
     it('should have proper enum definitions where applicable', () => {
       jiraTools.forEach((tool) => {
-        const properties = tool.inputSchema.properties || {};
+        const properties = tool.inputSchema.properties ?? {};
 
-        Object.entries(properties).forEach(([key, property]: [string, any]) => {
+        Object.entries(properties).forEach(([, property]: [string, any]) => {
           if (property.enum) {
             expect(Array.isArray(property.enum)).toBe(true);
             expect(property.enum.length).toBeGreaterThan(0);
@@ -185,9 +187,9 @@ describe('Jira Tools', () => {
 
     it('should have descriptions for all properties', () => {
       jiraTools.forEach((tool) => {
-        const properties = tool.inputSchema.properties || {};
+        const properties = tool.inputSchema.properties ?? {};
 
-        Object.entries(properties).forEach(([key, property]: [string, any]) => {
+        Object.entries(properties).forEach(([, property]: [string, any]) => {
           expect(property).toHaveProperty('description');
           expect(typeof property.description).toBe('string');
           expect(property.description.length).toBeGreaterThan(0);
@@ -197,9 +199,9 @@ describe('Jira Tools', () => {
 
     it('should have appropriate types for properties', () => {
       jiraTools.forEach((tool) => {
-        const properties = tool.inputSchema.properties || {};
+        const properties = tool.inputSchema.properties ?? {};
 
-        Object.entries(properties).forEach(([key, property]: [string, any]) => {
+        Object.entries(properties).forEach(([, property]: [string, any]) => {
           expect(property).toHaveProperty('type');
           expect(['string', 'number', 'boolean', 'object', 'array']).toContain(property.type);
         });
@@ -208,9 +210,9 @@ describe('Jira Tools', () => {
 
     it('should have proper array schemas where applicable', () => {
       jiraTools.forEach((tool) => {
-        const properties = tool.inputSchema.properties || {};
+        const properties = tool.inputSchema.properties ?? {};
 
-        Object.entries(properties).forEach(([key, property]: [string, any]) => {
+        Object.entries(properties).forEach(([, property]: [string, any]) => {
           if (property.type === 'array') {
             expect(property).toHaveProperty('items');
             expect(property.items).toHaveProperty('type');
@@ -289,7 +291,7 @@ describe('Jira Tools', () => {
         // Update and delete are typically more restricted
       ];
 
-      crudOperations.forEach(({ action, name }) => {
+      crudOperations.forEach(({ name }) => {
         const tool = jiraTools.find((t) => t.name === name);
         expect(tool).toBeDefined();
       });
@@ -298,7 +300,7 @@ describe('Jira Tools', () => {
     it('should support user-centric operations', () => {
       const userOperations = jiraTools.filter(
         (tool) =>
-          tool.name.includes('user') || (tool.description || '').toLowerCase().includes('user')
+          tool.name.includes('user') || (tool.description ?? '').toLowerCase().includes('user')
       );
 
       expect(userOperations.length).toBeGreaterThan(3);
@@ -309,8 +311,8 @@ describe('Jira Tools', () => {
         (tool) =>
           tool.name.includes('board') ||
           tool.name.includes('sprint') ||
-          (tool.description || '').toLowerCase().includes('sprint') ||
-          (tool.description || '').toLowerCase().includes('board')
+          (tool.description ?? '').toLowerCase().includes('sprint') ||
+          (tool.description ?? '').toLowerCase().includes('board')
       );
 
       expect(agileOperations.length).toBeGreaterThan(2);
@@ -341,7 +343,7 @@ describe('Jira Tools', () => {
       const searchTool = jiraTools.find((tool) => tool.name === 'search_jira_issues');
 
       expect(searchTool).toBeDefined();
-      const properties = searchTool?.inputSchema.properties || {};
+      const properties = searchTool?.inputSchema.properties ?? {};
       expect(properties.jql).toBeDefined();
       expect((properties.jql as any)?.description).toContain('JQL');
     });
@@ -350,7 +352,7 @@ describe('Jira Tools', () => {
       const sprintTool = jiraTools.find((tool) => tool.name === 'list_sprints_for_board');
 
       expect(sprintTool).toBeDefined();
-      const properties = sprintTool?.inputSchema.properties || {};
+      const properties = sprintTool?.inputSchema.properties ?? {};
       expect(properties.boardId).toBeDefined();
       expect((properties.boardId as any)?.type).toBe('number');
     });
@@ -362,7 +364,7 @@ describe('Jira Tools', () => {
       specificIssueTools.forEach((toolName) => {
         const tool = jiraTools.find((t) => t.name === toolName);
         if (tool) {
-          const properties = tool.inputSchema.properties || {};
+          const properties = tool.inputSchema.properties ?? {};
           expect(properties).toHaveProperty('issueKey');
           expect((properties.issueKey as any)?.type).toBe('string');
         }
@@ -373,7 +375,7 @@ describe('Jira Tools', () => {
       const worklogTool = jiraTools.find((tool) => tool.name === 'get_user_time_tracking');
 
       if (worklogTool) {
-        const properties = worklogTool.inputSchema.properties || {};
+        const properties = worklogTool.inputSchema.properties ?? {};
         expect(properties).toHaveProperty('startDate');
         expect(properties).toHaveProperty('endDate');
 

@@ -1077,7 +1077,7 @@ describe('JiraHandlers', () => {
 
         expect(mockClient.get).toHaveBeenCalledWith('/rest/api/3/search/jql', {
           params: expect.objectContaining({
-            jql: expect.stringContaining('project IN (\"TEST\")'),
+            jql: expect.stringContaining('project IN ("TEST")'),
           }),
         });
       });

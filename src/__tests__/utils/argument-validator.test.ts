@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createValidator, validators, type ValidationResult } from '../../utils/argument-validator.js';
+import { createValidator, validators } from '../../utils/argument-validator.js';
 
 describe('ArgumentValidator', () => {
   beforeEach(() => {
@@ -10,7 +10,7 @@ describe('ArgumentValidator', () => {
     it('should validate valid arguments', () => {
       const validator = createValidator({
         name: validators.required('name'),
-        age: validators.number('age', 0, 150)
+        age: validators.number('age', 0, 150),
       });
 
       const result = validator({ name: 'John', age: 25 });
@@ -20,7 +20,7 @@ describe('ArgumentValidator', () => {
 
     it('should reject non-object arguments', () => {
       const validator = createValidator({
-        name: validators.required('name')
+        name: validators.required('name'),
       });
 
       const result = validator(null);
@@ -31,7 +31,7 @@ describe('ArgumentValidator', () => {
     it('should collect validation errors', () => {
       const validator = createValidator({
         name: validators.required('name'),
-        age: validators.number('age', 0, 150)
+        age: validators.number('age', 0, 150),
       });
 
       const result = validator({ name: '', age: 'invalid' });
@@ -42,7 +42,7 @@ describe('ArgumentValidator', () => {
 
     it('should use transformed values when provided', () => {
       const validator = createValidator({
-        name: validators.string('name')
+        name: validators.string('name'),
       });
 
       const result = validator({ name: '  John  ' });
@@ -210,10 +210,10 @@ describe('ArgumentValidator', () => {
     it('should validate array items when itemValidator provided', () => {
       const itemValidator = (value: any) => ({
         valid: typeof value === 'string',
-        error: typeof value === 'string' ? undefined : 'must be string'
+        error: typeof value === 'string' ? undefined : 'must be string',
       });
       const validator = validators.array('test', itemValidator);
-      
+
       expect(validator(['a', 'b', 'c']).valid).toBe(true);
       const result = validator(['a', 123, 'c']);
       expect(result.valid).toBe(false);
@@ -263,7 +263,11 @@ describe('ArgumentValidator', () => {
 
     it('should pass when multiple alternatives have values', () => {
       const validator = validators.oneOfRequired('username', ['email', 'phoneNumber']);
-      const result = validator('', { username: '', email: 'john@example.com', phoneNumber: '123-456-7890' });
+      const result = validator('', {
+        username: '',
+        email: 'john@example.com',
+        phoneNumber: '123-456-7890',
+      });
       expect(result.valid).toBe(true);
     });
 

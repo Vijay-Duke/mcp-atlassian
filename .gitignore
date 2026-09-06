@@ -46,4 +46,5 @@ Architecture_Solution_Brief*
 # Debug files
 test-*.js
 test-*.mjs
-EOF < /dev/null
+.pi/
+.pi/

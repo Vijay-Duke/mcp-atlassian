@@ -275,7 +275,7 @@ export class SimplePdfExport {
         ${metadata?.space ? `<div class="meta-item">📁 Space: ${metadata.space}</div>` : ''}
         ${metadata?.author ? `<div class="meta-item">👤 Author: ${metadata.author}</div>` : ''}
         ${metadata?.lastModified ? `<div class="meta-item">📅 Modified: ${metadata.lastModified}</div>` : ''}
-        <div class="meta-item">📄 Exported: ${new Date().toLocaleDateString()}</div>
+        <div class="meta-item">📄 Exported: ${new Date().toLocaleDateString('en-US', { timeZone: 'UTC' })}</div>
       </div>
     </div>
     
@@ -285,7 +285,7 @@ export class SimplePdfExport {
     
     <div class="document-footer">
       <p>Exported from Confluence | ${baseUrl}</p>
-      <p>Generated on ${new Date().toLocaleString()}</p>
+      <p>Generated on ${new Date().toLocaleString('en-US', { timeZone: 'UTC' })}</p>
     </div>
   </div>
 </body>
